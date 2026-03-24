@@ -1,0 +1,38 @@
+{
+  "track": "common",
+  "trackLabel": "게임 업계 공통",
+  "questions": [
+    {
+      "id": "test-001",
+      "text": "게임 개발에서 프레임(Frame)과 프레임레이트(FPS)의 개념을 설명하고, 프레임 드랍이 발생하는 주요 원인은 무엇인지 말씀해주세요.",
+      "category": "technical",
+      "difficulty": "basic",
+      "keywords": ["프레임", "FPS", "프레임 드랍", "최적화"],
+      "evaluationHints": "프레임 기본 개념과 FPS 의미, 드랍 원인(CPU/GPU 병목, 메모리 등)"
+    },
+    {
+      "id": "test-002",
+      "text": "팀 프로젝트에서 팀원 간 의견 충돌이 있었던 경험을 말씀해주시고, 어떻게 해결했는지 설명해주세요.",
+      "category": "behavioral",
+      "difficulty": "basic",
+      "keywords": ["팀워크", "갈등 해결", "소통", "협업"],
+      "evaluationHints": "구체적 상황(STAR 기법), 본인 역할, 해결 과정, 교훈"
+    },
+    {
+      "id": "test-003",
+      "text": "게임 최적화를 위해 사용할 수 있는 기법 3가지 이상을 설명해주세요.",
+      "category": "technical",
+      "difficulty": "intermediate",
+      "keywords": ["최적화", "LOD", "오클루전 컬링", "오브젝트 풀링"],
+      "evaluationHints": "LOD, 오클루전 컬링, 오브젝트 풀링, 드로우콜 배칭 등 3개 이상"
+    },
+    {
+      "id": "test-004",
+      "text": "최근 플레이한 게임 중 인상 깊었던 게임이 있다면, 그 게임의 장점과 개선할 점을 분석해주세요.",
+      "category": "technical",
+      "difficulty": "intermediate",
+      "keywords": ["게임 분석", "비판적 사고", "UX", "게임 메카닉"],
+      "evaluationHints": "감상이 아닌 디자인/기술 관점 분석, 장점+개선점+근거"
+    }
+  ]
+}

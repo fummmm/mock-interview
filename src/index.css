@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme {
+  --font-pretendard: 'Pretendard Variable', 'Pretendard', system-ui, sans-serif;
+
+  /* 모의면접 서비스 고유 색상 */
+  --color-bg-primary: #0c0f14;
+  --color-bg-secondary: #151922;
+  --color-bg-card: #1c2130;
+  --color-bg-elevated: #242a3a;
+  --color-text-primary: #e8eaf0;
+  --color-text-secondary: #8b92a5;
+  --color-border: #2a3042;
+
+  --color-accent: #6366f1;
+  --color-accent-hover: #818cf8;
+  --color-recording: #ef4444;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-pretendard);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes recording-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes analyzing-dots {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+@keyframes score-reveal {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-recording-pulse {
+  animation: recording-pulse 1.5s ease-in-out infinite;
+}
+
+.animate-score-reveal {
+  animation: score-reveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
