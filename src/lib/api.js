@@ -45,7 +45,7 @@ export async function correctTranscript(rawTranscript, questionText) {
   if (!rawTranscript || rawTranscript.trim().length < 5) return rawTranscript || ''
 
   const content = await callOpenRouter({
-    model: 'anthropic/claude-3.5-haiku',
+    model: 'anthropic/claude-sonnet-4',
     messages: [
       {
         role: 'system',
@@ -134,7 +134,7 @@ ${evaluatorConfig.jsonExample}
   console.log('[analyzeText] 답변 요약:', answersText.slice(0, 200))
 
   const content = await callOpenRouter({
-    model: 'anthropic/claude-3.5-haiku',
+    model: 'anthropic/claude-sonnet-4',
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: answersText },
@@ -209,7 +209,7 @@ export async function analyzeVision({ answers }) {
 }`
 
   const content = await callOpenRouter({
-    model: 'openai/gpt-4o',
+    model: 'openai/gpt-4o-mini',
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: [
