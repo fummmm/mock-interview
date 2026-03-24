@@ -44,7 +44,7 @@ export function useAnalysis() {
   return { report, isAnalyzing, progress, error, analyze }
 }
 
-function buildReport(textData, visionData, answers) {
+export function buildReport(textData, visionData, answers) {
   const questionCount = answers.length
   const evaluators = textData?.evaluators || []
 
@@ -77,17 +77,35 @@ function buildReport(textData, visionData, answers) {
     visionData.visionFeedbacks.forEach((vf) => { visionByQuestion[vf.questionIndex] = vf })
   }
 
-  // 질문별 데이터 (영상 + 프레임 + 전사 텍스트 + 모범 답안)
-  const questionData = answers.map((a, i) => ({
-    questionIndex: i,
-    questionText: a.questionText,
-    transcript: a.transcript,
-    videoBlobUrl: a.videoBlobUrl,
-    recordingDuration: a.recordingDuration,
-    frames: a.frames || [],
-    vision: visionByQuestion[i] || null,
-    sampleAnswer: textData?.sampleAnswers?.find((s) => s.questionIndex === i)?.answer || '',
-  }))
+  // 질문별 데이터 (영상 + 프레임 + 전사 텍스트 + 모범 답안 + 문제 구절)
+  const questionData = answers.map((a, i) => {
+    // 3명 평가자의 problemPhrases를 합산 (중복 제거)
+    const allProblemPhrases = []
+    const seenTexts = new Set()
+    evaluators.forEach((ev) => {
+      const fb = ev.questionFeedbacks?.find((f) => f.questionIndex === i)
+      if (fb?.problemPhrases) {
+        fb.problemPhrases.forEach((pp) => {
+          if (pp.text && !seenTexts.has(pp.text)) {
+            seenTexts.add(pp.text)
+            allProblemPhrases.push({ ...pp, evaluator: ev.name })
+          }
+        })
+      }
+    })
+
+    return {
+      questionIndex: i,
+      questionText: a.questionText,
+      transcript: a.transcript,
+      videoBlobUrl: a.videoBlobUrl,
+      recordingDuration: a.recordingDuration,
+      frames: a.frames || [],
+      vision: visionByQuestion[i] || null,
+      sampleAnswer: textData?.sampleAnswers?.find((s) => s.questionIndex === i)?.answer || '',
+      problemPhrases: allProblemPhrases,
+    }
+  })
 
   // 카테고리별 점수 (3명 평균)
   const categoryScores = { relevance: 0, structure: 0, keywords: 0, specificity: 0 }

@@ -219,9 +219,21 @@ function EvaluatorCard({ evaluator, questionData }) {
   )
 }
 
-/* 질문 상세 카드 (영상 재생 + 전사 + 모범 답안) */
+/* 질문 상세 카드 (하이라이트 답변 + 영상 재생 + 비언어) */
 function QuestionDetailCard({ data }) {
   const [open, setOpen] = useState(false)
+  const videoRef = useRef(null)
+
+  // 영상을 특정 시점부터 재생
+  const seekAndPlay = (seconds) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = seconds
+      videoRef.current.play()
+    }
+  }
+
+  // 프레임 인덱스 → 대략적 타임스탬프 (7초 간격 캡처 기준)
+  const frameToTime = (frameIndex) => frameIndex * 7
 
   return (
     <div className="bg-bg-card border border-border rounded-2xl overflow-hidden">
@@ -239,18 +251,68 @@ function QuestionDetailCard({ data }) {
           {data.videoBlobUrl && (
             <div>
               <p className="text-xs text-text-secondary font-medium mb-2">녹화 영상 ({data.recordingDuration}초)</p>
-              <video src={data.videoBlobUrl} controls className="w-full rounded-xl bg-black max-h-64" style={{ transform: 'scaleX(-1)' }} />
+              <video ref={videoRef} src={data.videoBlobUrl} controls className="w-full rounded-xl bg-black max-h-64" style={{ transform: 'scaleX(-1)' }} />
             </div>
           )}
 
-          {/* 캡처 프레임 */}
+          {/* 내 답변 - 문제 구절 하이라이트 */}
+          {data.transcript && (
+            <div className="bg-bg-secondary rounded-xl p-3">
+              <p className="text-xs text-text-secondary font-medium mb-2">내 답변</p>
+              <p className="text-sm leading-relaxed">
+                <HighlightedTranscript
+                  text={data.transcript}
+                  problemPhrases={data.problemPhrases || []}
+                />
+              </p>
+              {/* 문제 구절 범례 */}
+              {data.problemPhrases?.length > 0 && (
+                <div className="mt-3 space-y-1.5 border-t border-border/50 pt-2">
+                  {data.problemPhrases.map((pp, i) => (
+                    <div key={i} className="flex gap-2 text-xs">
+                      <span className={`shrink-0 ${pp.severity === 'error' ? 'text-danger' : 'text-warning'}`}>
+                        {pp.severity === 'error' ? '!!' : '!'}
+                      </span>
+                      <span>
+                        <span className={pp.severity === 'error' ? 'text-danger' : 'text-warning'}>"{pp.text}"</span>
+                        <span className="text-text-secondary ml-1">- {pp.reason}</span>
+                        {pp.evaluator && <span className="text-text-secondary/60 ml-1">({pp.evaluator})</span>}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 캡처 프레임 + 문제 프레임 표시 */}
           {data.frames.length > 0 && (
             <div>
               <p className="text-xs text-text-secondary font-medium mb-2">캡처 프레임</p>
               <div className="flex gap-2">
-                {data.frames.map((f, i) => (
-                  <img key={i} src={f} alt={`캡처 ${i + 1}`} className="w-28 h-20 rounded-lg object-cover border border-border" style={{ transform: 'scaleX(-1)' }} />
-                ))}
+                {data.frames.map((f, i) => {
+                  const problemFrame = data.vision?.problemFrames?.find((pf) => pf.frameIndex === i)
+                  return (
+                    <div key={i} className="relative group">
+                      <img
+                        src={f} alt={`캡처 ${i + 1}`}
+                        className={`w-28 h-20 rounded-lg object-cover border cursor-pointer transition-all ${
+                          problemFrame ? 'border-warning border-2' : 'border-border'
+                        }`}
+                        style={{ transform: 'scaleX(-1)' }}
+                        onClick={() => seekAndPlay(frameToTime(i))}
+                      />
+                      {problemFrame && (
+                        <div className="absolute -bottom-1 left-0 right-0 text-center">
+                          <span className="bg-warning text-black text-[9px] px-1 rounded">{problemFrame.issue}</span>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                        <span className="text-white text-xs">재생</span>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -279,14 +341,6 @@ function QuestionDetailCard({ data }) {
             </div>
           )}
 
-          {/* 전사 텍스트 */}
-          {data.transcript && (
-            <div className="bg-bg-secondary rounded-xl p-3">
-              <p className="text-xs text-text-secondary font-medium mb-1">내 답변 (음성 인식)</p>
-              <p className="text-sm leading-relaxed text-text-secondary">{data.transcript}</p>
-            </div>
-          )}
-
           {/* 모범 답안 */}
           {data.sampleAnswer && (
             <div className="bg-info/5 border border-info/20 rounded-xl p-3">
@@ -297,5 +351,78 @@ function QuestionDetailCard({ data }) {
         </div>
       )}
     </div>
+  )
+}
+
+/* 답변 텍스트에서 문제 구절을 하이라이트 */
+function HighlightedTranscript({ text, problemPhrases }) {
+  if (!problemPhrases || problemPhrases.length === 0) {
+    return <span className="text-text-secondary">{text}</span>
+  }
+
+  // 문제 구절의 위치를 찾아서 마킹
+  const segments = []
+  let remaining = text
+  let offset = 0
+
+  // severity 높은 순으로 정렬 (error 먼저)
+  const sorted = [...problemPhrases].sort((a, b) =>
+    a.severity === 'error' ? -1 : b.severity === 'error' ? 1 : 0
+  )
+
+  // 각 문제 구절의 위치 찾기
+  const marks = []
+  sorted.forEach((pp) => {
+    const idx = text.indexOf(pp.text)
+    if (idx !== -1) {
+      marks.push({ start: idx, end: idx + pp.text.length, severity: pp.severity, reason: pp.reason })
+    }
+  })
+
+  // 겹치는 구간 제거 (먼저 찾은 것 우선)
+  marks.sort((a, b) => a.start - b.start)
+  const filtered = []
+  let lastEnd = -1
+  marks.forEach((m) => {
+    if (m.start >= lastEnd) {
+      filtered.push(m)
+      lastEnd = m.end
+    }
+  })
+
+  // 세그먼트 분할
+  let pos = 0
+  filtered.forEach((m) => {
+    if (m.start > pos) {
+      segments.push({ text: text.slice(pos, m.start), type: 'normal' })
+    }
+    segments.push({ text: text.slice(m.start, m.end), type: m.severity, reason: m.reason })
+    pos = m.end
+  })
+  if (pos < text.length) {
+    segments.push({ text: text.slice(pos), type: 'normal' })
+  }
+
+  return (
+    <>
+      {segments.map((seg, i) => {
+        if (seg.type === 'normal') {
+          return <span key={i} className="text-text-secondary">{seg.text}</span>
+        }
+        return (
+          <span
+            key={i}
+            className={`relative cursor-help border-b-2 ${
+              seg.type === 'error'
+                ? 'text-danger border-danger/60 bg-danger/10'
+                : 'text-warning border-warning/60 bg-warning/10'
+            }`}
+            title={seg.reason}
+          >
+            {seg.text}
+          </span>
+        )
+      })}
+    </>
   )
 }

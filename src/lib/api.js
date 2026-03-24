@@ -69,6 +69,13 @@ export async function analyzeText({ questions, answers, track }) {
 - keywords: 기술 용어 및 핵심 키워드 활용
 - specificity: 구체적 사례/수치 제시
 
+## 문제 구절 지적 (problemPhrases)
+각 질문 피드백에서, 답변 원문 중 문제가 되는 구절을 정확히 인용하여 지적해주세요.
+- "text": 답변 원문에서 그대로 복사한 문제 구절 (반드시 원문과 일치해야 함)
+- "reason": 왜 문제인지 간단히
+- "severity": "warning"(개선 필요) 또는 "error"(심각한 문제)
+- 문제가 없으면 빈 배열 []
+
 반드시 아래 JSON 형식으로만 응답하세요:
 {
   "evaluators": [
@@ -80,7 +87,11 @@ export async function analyzeText({ questions, answers, track }) {
         {
           "questionIndex": 0,
           "scores": { "relevance": 0, "structure": 0, "keywords": 0, "specificity": 0 },
-          "comment": "이 질문에 대한 종합 코멘트 (2~3문장)"
+          "comment": "이 질문에 대한 종합 코멘트 (2~3문장)",
+          "problemPhrases": [
+            { "text": "답변에서 문제가 된 정확한 구절 (원문 그대로)", "reason": "왜 문제인지 한 줄 설명", "severity": "warning" },
+            { "text": "더 심각한 문제 구절", "reason": "이유", "severity": "error" }
+          ]
         }
       ],
       "overallComment": "면접 전체에 대한 총평 (3~4문장)",
@@ -96,7 +107,10 @@ export async function analyzeText({ questions, answers, track }) {
         {
           "questionIndex": 0,
           "scores": { "relevance": 0, "structure": 0, "keywords": 0, "specificity": 0 },
-          "comment": "이 질문에 대한 종합 코멘트 (2~3문장)"
+          "comment": "이 질문에 대한 종합 코멘트 (2~3문장)",
+          "problemPhrases": [
+            { "text": "문제 구절", "reason": "이유", "severity": "warning" }
+          ]
         }
       ],
       "overallComment": "면접 전체에 대한 총평 (3~4문장)",
@@ -112,7 +126,10 @@ export async function analyzeText({ questions, answers, track }) {
         {
           "questionIndex": 0,
           "scores": { "relevance": 0, "structure": 0, "keywords": 0, "specificity": 0 },
-          "comment": "이 질문에 대한 종합 코멘트 (2~3문장)"
+          "comment": "이 질문에 대한 종합 코멘트 (2~3문장)",
+          "problemPhrases": [
+            { "text": "문제 구절", "reason": "이유", "severity": "warning" }
+          ]
         }
       ],
       "overallComment": "면접 전체에 대한 총평 (3~4문장)",
@@ -163,11 +180,14 @@ export async function analyzeVision({ answers }) {
 
   const systemPrompt = `당신은 면접 비언어적 커뮤니케이션 평가 전문가입니다.
 면접자의 캡처 이미지를 분석하여 비언어적 요소를 평가해주세요.
+각 질문에 대해 여러 장의 프레임이 제공됩니다 (시작/중간/끝 시점 캡처).
 
 평가 기준:
 - eyeContact: 카메라(면접관) 응시 여부 (0~100)
 - expression: 표정의 자연스러움과 자신감 (0~100)
 - posture: 자세의 바름과 안정감 (0~100)
+
+문제가 발견된 프레임이 있다면 problemFrames에 몇 번째 프레임(0부터)인지와 이유를 기재해주세요.
 
 반드시 아래 JSON 형식으로만 응답하세요:
 {
@@ -176,7 +196,10 @@ export async function analyzeVision({ answers }) {
       "questionIndex": 0,
       "eyeContact": { "score": 0, "comment": "코멘트" },
       "expression": { "score": 0, "comment": "코멘트" },
-      "posture": { "score": 0, "comment": "코멘트" }
+      "posture": { "score": 0, "comment": "코멘트" },
+      "problemFrames": [
+        { "frameIndex": 0, "issue": "문제 설명 (예: 시선이 아래를 향함)", "category": "eyeContact" }
+      ]
     }
   ],
   "overallVisionScore": 0,

@@ -1,47 +1,90 @@
 /**
  * 브라우저 내 Whisper STT (transformers.js)
  * 서버/API 키 불필요, 완전 무료, 사용량 무제한
+ *
+ * 1차: Web Worker에서 실행 (UI 블로킹 방지)
+ * 2차: Worker 실패 시 메인 스레드 폴백
  */
 
 const FILLER_WORDS = ['음', '어', '그', '아', '에', '음음', '어어']
-const SILENCE_THRESHOLD = 2.5 // 청크 간 2.5초 이상이면 침묵
+const SILENCE_THRESHOLD = 2.5
 
 let worker = null
 let isModelReady = false
+let useMainThread = false // Worker 실패 시 true
 
 function getWorker() {
-  if (!worker) {
-    worker = new Worker(
-      new URL('../workers/whisper.worker.js', import.meta.url),
-      { type: 'module' }
-    )
+  if (!worker && !useMainThread) {
+    try {
+      worker = new Worker(
+        new URL('../workers/whisper.worker.js', import.meta.url),
+        { type: 'module' }
+      )
+      worker.onerror = (e) => {
+        console.warn('Whisper Worker error:', e.message)
+        useMainThread = true
+        worker = null
+      }
+    } catch (e) {
+      console.warn('Worker creation failed, using main thread:', e.message)
+      useMainThread = true
+    }
   }
   return worker
 }
 
 /**
- * 모델 사전 로딩 (첫 접속 시 호출, 캐시되면 이후 빠름)
+ * 모델 사전 로딩
  */
-export function preloadModel(onProgress, onStatus) {
+export async function preloadModel(onProgress, onStatus) {
+  const w = getWorker()
+
+  if (!w || useMainThread) {
+    // 메인 스레드 폴백
+    onStatus?.('음성 인식 모델 준비 중 (메인 스레드)...')
+    const { pipeline } = await import('@huggingface/transformers')
+    globalThis.__whisperPipeline = await pipeline(
+      'automatic-speech-recognition',
+      'Xenova/whisper-base',
+      {
+        progress_callback: (p) => {
+          if (p.status === 'progress' && p.progress) onProgress?.(p)
+          if (p.status === 'initiate') onStatus?.(`다운로드 중: ${p.file}`)
+        },
+      }
+    )
+    isModelReady = true
+    return
+  }
+
+  // Worker 방식
   return new Promise((resolve, reject) => {
-    const w = getWorker()
+    const timeout = setTimeout(() => {
+      w.removeEventListener('message', handler)
+      console.warn('Worker model load timeout, falling back to main thread')
+      useMainThread = true
+      worker = null
+      preloadModel(onProgress, onStatus).then(resolve).catch(reject)
+    }, 120000) // 2분 타임아웃
 
     const handler = (e) => {
       const { type } = e.data
-      if (type === 'download-progress' && onProgress) {
-        onProgress(e.data)
-      }
-      if (type === 'status' && onStatus) {
-        onStatus(e.data.message)
-      }
+      if (type === 'download-progress') onProgress?.(e.data)
+      if (type === 'status') onStatus?.(e.data.message)
       if (type === 'ready') {
+        clearTimeout(timeout)
         isModelReady = true
         w.removeEventListener('message', handler)
         resolve()
       }
       if (type === 'error') {
+        clearTimeout(timeout)
         w.removeEventListener('message', handler)
-        reject(new Error(e.data.message))
+        // Worker 실패 → 메인 스레드 폴백
+        console.warn('Worker load failed, falling back:', e.data.message)
+        useMainThread = true
+        worker = null
+        preloadModel(onProgress, onStatus).then(resolve).catch(reject)
       }
     }
 
@@ -51,63 +94,62 @@ export function preloadModel(onProgress, onStatus) {
 }
 
 /**
- * 오디오 Blob을 텍스트로 변환
+ * 오디오 Blob → 텍스트 변환
  */
 export async function transcribeAudio(blob) {
-  if (!isModelReady) {
-    await preloadModel()
-  }
+  if (!isModelReady) await preloadModel()
 
-  // WebM Blob → ArrayBuffer → Float32Array (PCM)
   const audioData = await blobToAudioData(blob)
 
+  if (useMainThread || !worker) {
+    // 메인 스레드 폴백
+    const pipe = globalThis.__whisperPipeline
+    if (!pipe) throw new Error('모델이 로딩되지 않았습니다.')
+    const result = await pipe(audioData, { language: 'ko', task: 'transcribe', return_timestamps: true, chunk_length_s: 30 })
+    return { transcript: result.text || '', chunks: result.chunks || [], ...analyzeTranscript(result.text, result.chunks) }
+  }
+
+  // Worker 방식
   return new Promise((resolve, reject) => {
-    const w = getWorker()
+    const timeout = setTimeout(() => {
+      worker.removeEventListener('message', handler)
+      reject(new Error('음성 변환 시간 초과'))
+    }, 180000) // 3분 타임아웃
 
     const handler = (e) => {
-      const { type } = e.data
-      if (type === 'result') {
-        w.removeEventListener('message', handler)
+      if (e.data.type === 'result') {
+        clearTimeout(timeout)
+        worker.removeEventListener('message', handler)
         const analysis = analyzeTranscript(e.data.text, e.data.chunks)
-        resolve({
-          transcript: e.data.text,
-          chunks: e.data.chunks,
-          ...analysis,
-        })
+        resolve({ transcript: e.data.text, chunks: e.data.chunks, ...analysis })
       }
-      if (type === 'error') {
-        w.removeEventListener('message', handler)
+      if (e.data.type === 'error') {
+        clearTimeout(timeout)
+        worker.removeEventListener('message', handler)
         reject(new Error(e.data.message))
       }
     }
 
-    w.addEventListener('message', handler)
-    w.postMessage({ type: 'transcribe', audioData })
+    worker.addEventListener('message', handler)
+    worker.postMessage({ type: 'transcribe', audioData })
   })
 }
 
-/**
- * Blob → Float32Array (16kHz mono PCM)
- */
 async function blobToAudioData(blob) {
   const arrayBuffer = await blob.arrayBuffer()
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 })
   const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
-  const channelData = audioBuffer.getChannelData(0) // mono
+  const channelData = audioBuffer.getChannelData(0)
   audioCtx.close()
   return channelData
 }
 
-/**
- * 전사 결과에서 습관어/침묵 분석
- */
 function analyzeTranscript(text, chunks) {
   let fillerWordCount = 0
   const fillerPositions = []
   const silencePositions = []
 
-  // 습관어 감지 (텍스트 기반)
-  const words = text.split(/\s+/).filter(Boolean)
+  const words = (text || '').split(/\s+/).filter(Boolean)
   words.forEach((w) => {
     const cleaned = w.replace(/[.,!?。、]/g, '').trim()
     if (FILLER_WORDS.includes(cleaned)) {
@@ -116,7 +158,6 @@ function analyzeTranscript(text, chunks) {
     }
   })
 
-  // 침묵 감지 (청크 타임스탬프 기반)
   let silenceCount = 0
   if (chunks && chunks.length > 1) {
     for (let i = 1; i < chunks.length; i++) {
