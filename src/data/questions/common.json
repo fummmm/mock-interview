@@ -3,36 +3,60 @@
   "trackLabel": "게임 업계 공통",
   "questions": [
     {
-      "id": "test-001",
-      "text": "게임 개발에서 프레임(Frame)과 프레임레이트(FPS)의 개념을 설명하고, 프레임 드랍이 발생하는 주요 원인은 무엇인지 말씀해주세요.",
+      "id": "tech-001",
+      "text": "본인이 사용하는 게임 엔진(Unity 또는 Unreal)을 선택한 이유와 장단점을 말씀해주세요.",
       "category": "technical",
       "difficulty": "basic",
-      "keywords": ["프레임", "FPS", "프레임 드랍", "최적화"],
-      "evaluationHints": "프레임 기본 개념과 FPS 의미, 드랍 원인(CPU/GPU 병목, 메모리 등)"
+      "keywords": ["게임 엔진", "Unity", "Unreal", "장단점"],
+      "evaluationHints": "단순 선호가 아닌 기술적 근거, 프로젝트 맥락에 맞는 선택 이유"
     },
     {
-      "id": "test-002",
-      "text": "팀 프로젝트에서 팀원 간 의견 충돌이 있었던 경험을 말씀해주시고, 어떻게 해결했는지 설명해주세요.",
+      "id": "tech-002",
+      "text": "버전 관리(Git)를 사용해본 경험이 있나요? 팀 프로젝트에서 어떻게 활용했는지 말씀해주세요.",
+      "category": "technical",
+      "difficulty": "basic",
+      "keywords": ["Git", "버전 관리", "브랜치", "협업"],
+      "evaluationHints": "기본 사용 경험, 브랜치 전략, 충돌 해결 경험"
+    },
+    {
+      "id": "tech-003",
+      "text": "최근 플레이한 게임 중 하나를 골라, 재미있었던 요소와 아쉬웠던 점을 말씀해주세요.",
+      "category": "technical",
+      "difficulty": "basic",
+      "keywords": ["게임 분석", "재미 요소", "개선점"],
+      "evaluationHints": "단순 감상이 아닌 게임 디자인 관점의 분석, 구체적 근거"
+    },
+    {
+      "id": "beh-001",
+      "text": "자기소개를 간단히 해주시고, 게임 업계에 지원하게 된 동기를 말씀해주세요.",
       "category": "behavioral",
       "difficulty": "basic",
-      "keywords": ["팀워크", "갈등 해결", "소통", "협업"],
-      "evaluationHints": "구체적 상황(STAR 기법), 본인 역할, 해결 과정, 교훈"
+      "keywords": ["자기소개", "지원 동기", "게임 업계"],
+      "evaluationHints": "간결한 자기소개, 구체적 동기, 게임 업계에 대한 이해"
     },
     {
-      "id": "test-003",
-      "text": "게임 최적화를 위해 사용할 수 있는 기법 3가지 이상을 설명해주세요.",
-      "category": "technical",
-      "difficulty": "intermediate",
-      "keywords": ["최적화", "LOD", "오클루전 컬링", "오브젝트 풀링"],
-      "evaluationHints": "LOD, 오클루전 컬링, 오브젝트 풀링, 드로우콜 배칭 등 3개 이상"
+      "id": "beh-002",
+      "text": "프로젝트 진행 중 예상치 못한 문제가 발생했던 경험과, 어떻게 대처했는지 말씀해주세요.",
+      "category": "behavioral",
+      "difficulty": "basic",
+      "keywords": ["문제 해결", "대처", "경험"],
+      "evaluationHints": "구체적 상황, 본인의 판단과 행동, 결과와 배운 점"
     },
     {
-      "id": "test-004",
-      "text": "최근 플레이한 게임 중 인상 깊었던 게임이 있다면, 그 게임의 장점과 개선할 점을 분석해주세요.",
-      "category": "technical",
-      "difficulty": "intermediate",
-      "keywords": ["게임 분석", "비판적 사고", "UX", "게임 메카닉"],
-      "evaluationHints": "감상이 아닌 디자인/기술 관점 분석, 장점+개선점+근거"
+      "id": "beh-003",
+      "text": "본인의 강점과 약점을 각각 하나씩 말씀해주시고, 약점을 극복하기 위해 어떤 노력을 하고 있는지 알려주세요.",
+      "category": "behavioral",
+      "difficulty": "basic",
+      "keywords": ["강점", "약점", "자기 인식", "성장"],
+      "evaluationHints": "솔직한 자기 인식, 약점에 대한 구체적 개선 노력"
+    },
+    {
+      "id": "beh-004",
+      "text": "팀에서 의견이 맞지 않는 상황이 있었다면, 어떻게 소통하고 해결했는지 경험을 공유해주세요.",
+      "category": "behavioral",
+      "difficulty": "basic",
+      "keywords": ["소통", "갈등 해결", "팀워크"],
+      "evaluationHints": "구체적 상황(STAR), 본인 역할, 해결 과정, 교훈"
     }
   ]
 }
