@@ -226,8 +226,8 @@ function QuestionDetailCard({ data }) {
   const videoRef = useRef(null)
   const [playingClip, setPlayingClip] = useState(null) // { start, end, label }
 
-  // 프레임 인덱스 → 대략적 타임스탬프 (7초 간격 캡처 기준)
-  const frameToTime = (frameIndex) => frameIndex * 7
+  // 프레임 인덱스 → 대략적 타임스탬프 (5초 간격 캡처 기준)
+  const frameToTime = (frameIndex) => frameIndex * 5
 
   // 특정 구간만 재생 (시작~끝)
   const playClip = (startSec, durationSec = 7, label = '') => {

@@ -1,14 +1,13 @@
 import { useState, useRef, useCallback } from 'react'
 
-const CAPTURE_INTERVAL = 7000 // 7초 간격
-const MAX_FRAMES = 3 // 질문당 최대 프레임 수
+const CAPTURE_INTERVAL = 5000 // 5초 간격
+const MAX_FRAMES = 6 // 질문당 최대 프레임 (비용 vs 커버리지 균형)
 
 export function useFrameCapture(videoRef) {
   const [frames, setFrames] = useState([])
   const intervalRef = useRef(null)
   const canvasRef = useRef(null)
 
-  // 캔버스 lazy 생성
   const getCanvas = () => {
     if (!canvasRef.current) {
       canvasRef.current = document.createElement('canvas')
@@ -25,13 +24,11 @@ export function useFrameCapture(videoRef) {
     const canvas = getCanvas()
     const ctx = canvas.getContext('2d')
     ctx.drawImage(video, 0, 0, 640, 480)
-    return canvas.toDataURL('image/jpeg', 0.7)
+    return canvas.toDataURL('image/jpeg', 0.6) // 약간 압축 (프레임 수 늘었으니)
   }, [videoRef])
 
   const startCapture = useCallback(() => {
     setFrames([])
-
-    // 즉시 첫 프레임 캡처
     const first = captureFrame()
     if (first) setFrames([first])
 
@@ -40,23 +37,26 @@ export function useFrameCapture(videoRef) {
       if (!frame) return
 
       setFrames((prev) => {
-        if (prev.length < MAX_FRAMES) {
-          return [...prev, frame]
+        if (prev.length < MAX_FRAMES) return [...prev, frame]
+        // 초과 시: 첫 프레임 유지, 균등 간격으로 대표 프레임 선택
+        const step = Math.floor(prev.length / (MAX_FRAMES - 1))
+        const kept = [prev[0]]
+        for (let i = 1; i < MAX_FRAMES - 1; i++) {
+          kept.push(prev[Math.min(i * step, prev.length - 1)])
         }
-        // 3장 초과 시: 시작 유지, 중간 교체, 끝 = 최신
-        return [prev[0], prev[prev.length - 1], frame]
+        kept.push(frame) // 최신 프레임
+        return kept
       })
     }, CAPTURE_INTERVAL)
   }, [captureFrame])
 
   const stopCapture = useCallback(() => {
     clearInterval(intervalRef.current)
-    // 마지막 프레임 캡처 (끝 시점)
     const last = captureFrame()
     if (last) {
       setFrames((prev) => {
         if (prev.length < MAX_FRAMES) return [...prev, last]
-        return [prev[0], prev[1], last]
+        return [...prev.slice(0, MAX_FRAMES - 1), last]
       })
     }
   }, [captureFrame])
