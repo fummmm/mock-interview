@@ -4,6 +4,7 @@ import { useInterviewStore } from '../stores/interviewStore'
 import { getQuestions } from '../lib/questions'
 
 const TRACKS = [
+  { id: 'behavioral', label: '인성면접 (공통)', desc: '직군 무관, 인성/역량 중심 면접' },
   { id: 'unity', label: 'Unity', desc: 'C# 기반 게임 클라이언트 개발' },
   { id: 'unreal', label: 'Unreal Engine', desc: 'C++/Blueprint 기반 게임 개발' },
   { id: 'design', label: '게임기획', desc: '시스템/레벨/밸런스 기획' },
@@ -21,7 +22,7 @@ export default function SetupPage() {
   const handleStart = () => {
     if (!canStart) return
     reset()
-    const questions = getQuestions(questionCount)
+    const questions = getQuestions(questionCount, track)
     loadQuestions(questions)
     navigate('/interview')
   }
@@ -32,8 +33,7 @@ export default function SetupPage() {
         {/* 헤더 */}
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">AI Mock Interview</h1>
-          <p className="text-text-secondary">게임 업계 취업을 위한 AI 모의면접</p>
-          <p className="text-sm text-text-secondary mt-1">기술 + 인성 종합 면접</p>
+          <p className="text-text-secondary">AI 모의면접 연습 서비스</p>
         </div>
 
         {/* 트랙 선택 */}
@@ -56,7 +56,7 @@ export default function SetupPage() {
             ))}
           </div>
           <p className="text-xs text-text-secondary">
-            트랙 선택은 AI 분석 시 직군 맥락을 반영하는 데 사용됩니다. 질문은 공통 질문 풀에서 출제됩니다.
+            인성면접은 직군 무관 공통 질문, 직군 트랙은 기술+인성 종합 질문으로 출제됩니다.
           </p>
         </section>
 

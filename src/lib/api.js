@@ -78,7 +78,7 @@ export async function correctTranscript(rawTranscript, questionText) {
 }
 
 /**
- * 텍스트 분석 - 3명 평가자 (실무 전문가 2 + 인사 담당자 1)
+ * 텍스트 분석 - 3명 평가자
  */
 export async function analyzeText({ questions, answers, track }) {
   const answersText = answers
@@ -86,22 +86,13 @@ export async function analyzeText({ questions, answers, track }) {
     .join('\n\n---\n\n')
 
   const trackLabel = getTrackLabel(track)
+  const evaluatorConfig = getEvaluatorConfig(track, trackLabel)
 
-  const systemPrompt = `당신은 게임 업계 면접 평가 시스템입니다.
+  const systemPrompt = `당신은 면접 평가 시스템입니다.
 아래 면접 답변에 대해 3명의 면접관이 각각 독립적으로 평가합니다.
 
 ## 면접관 구성
-1. **실무 전문가 A** (${trackLabel} 시니어 개발자/기획자, 경력 7년+)
-   - 기술적 정확성, 실무 적용 가능성, 문제 해결 역량 위주 평가
-   - 솔직하고 직설적인 피드백 스타일
-
-2. **실무 전문가 B** (${trackLabel} 리드급, 경력 10년+)
-   - 설계 사고, 커뮤니케이션 능력, 성장 가능성 위주 평가
-   - 건설적이고 구체적인 피드백 스타일
-
-3. **인사 담당자** (게임회사 HR, 경력 5년+)
-   - 조직 적합성, 태도, 자기 표현력, 협업 역량 위주 평가
-   - 따뜻하지만 핵심을 짚는 피드백 스타일
+${evaluatorConfig.prompt}
 
 ## 평가 기준 (각 0~100점)
 - relevance: 질문 의도 파악 및 답변 적합성
@@ -119,64 +110,7 @@ export async function analyzeText({ questions, answers, track }) {
 반드시 아래 JSON 형식으로만 응답하세요:
 {
   "evaluators": [
-    {
-      "id": "expert_a",
-      "name": "실무 전문가 A",
-      "role": "${trackLabel} 시니어",
-      "questionFeedbacks": [
-        {
-          "questionIndex": 0,
-          "scores": { "relevance": 0, "structure": 0, "keywords": 0, "specificity": 0 },
-          "comment": "이 질문에 대한 종합 코멘트 (2~3문장)",
-          "problemPhrases": [
-            { "text": "답변에서 문제가 된 정확한 구절 (원문 그대로)", "reason": "왜 문제인지 한 줄 설명", "severity": "warning" },
-            { "text": "더 심각한 문제 구절", "reason": "이유", "severity": "error" }
-          ]
-        }
-      ],
-      "overallComment": "면접 전체에 대한 총평 (3~4문장)",
-      "strengths": ["강점1", "강점2"],
-      "improvements": ["개선점1", "개선점2"],
-      "pass": true
-    },
-    {
-      "id": "expert_b",
-      "name": "실무 전문가 B",
-      "role": "${trackLabel} 리드",
-      "questionFeedbacks": [
-        {
-          "questionIndex": 0,
-          "scores": { "relevance": 0, "structure": 0, "keywords": 0, "specificity": 0 },
-          "comment": "이 질문에 대한 종합 코멘트 (2~3문장)",
-          "problemPhrases": [
-            { "text": "문제 구절", "reason": "이유", "severity": "warning" }
-          ]
-        }
-      ],
-      "overallComment": "면접 전체에 대한 총평 (3~4문장)",
-      "strengths": ["강점1", "강점2"],
-      "improvements": ["개선점1", "개선점2"],
-      "pass": true
-    },
-    {
-      "id": "hr",
-      "name": "인사 담당자",
-      "role": "게임회사 HR",
-      "questionFeedbacks": [
-        {
-          "questionIndex": 0,
-          "scores": { "relevance": 0, "structure": 0, "keywords": 0, "specificity": 0 },
-          "comment": "이 질문에 대한 종합 코멘트 (2~3문장)",
-          "problemPhrases": [
-            { "text": "문제 구절", "reason": "이유", "severity": "warning" }
-          ]
-        }
-      ],
-      "overallComment": "면접 전체에 대한 총평 (3~4문장)",
-      "strengths": ["강점1", "강점2"],
-      "improvements": ["개선점1", "개선점2"],
-      "pass": true
-    }
+${evaluatorConfig.jsonExample}
   ],
   "speechFeedback": {
     "fillerWordComment": "습관어 사용에 대한 코멘트",
@@ -298,6 +232,90 @@ function safeParseJSON(content, label) {
 }
 
 function getTrackLabel(track) {
-  const labels = { unity: 'Unity 개발', unreal: 'Unreal Engine 개발', design: '게임기획' }
-  return labels[track] || '게임 개발'
+  const labels = { behavioral: '인성면접', unity: 'Unity 개발', unreal: 'Unreal Engine 개발', design: '게임기획' }
+  return labels[track] || '종합'
+}
+
+function getEvaluatorConfig(track, trackLabel) {
+  const feedbackTemplate = `"questionFeedbacks": [
+        {
+          "questionIndex": 0,
+          "scores": { "relevance": 0, "structure": 0, "keywords": 0, "specificity": 0 },
+          "comment": "이 질문에 대한 종합 코멘트 (2~3문장)",
+          "problemPhrases": [
+            { "text": "문제 구절 (원문 그대로)", "reason": "이유", "severity": "warning" }
+          ]
+        }
+      ],
+      "overallComment": "면접 전체에 대한 총평 (3~4문장)",
+      "strengths": ["강점1", "강점2"],
+      "improvements": ["개선점1", "개선점2"],
+      "pass": true`
+
+  if (track === 'behavioral') {
+    return {
+      prompt: `1. **현직 팀장** (IT/게임 업계 팀장급, 경력 8년+)
+   - 실무 역량, 팀 적합성, 문제 해결 능력 위주 평가
+   - 솔직하고 실무적인 피드백 스타일
+
+2. **인사 담당자** (HR 매니저, 경력 6년+)
+   - 인성, 조직 문화 적합성, 소통 능력, 태도 위주 평가
+   - 따뜻하지만 핵심을 짚는 피드백 스타일
+
+3. **임원 면접관** (이사/본부장급, 경력 15년+)
+   - 성장 가능성, 가치관, 리더십 잠재력, 장기 비전 위주 평가
+   - 큰 그림을 보는 전략적 피드백 스타일`,
+      jsonExample: `    {
+      "id": "team_lead",
+      "name": "현직 팀장",
+      "role": "IT/게임 팀장",
+      ${feedbackTemplate}
+    },
+    {
+      "id": "hr",
+      "name": "인사 담당자",
+      "role": "HR 매니저",
+      ${feedbackTemplate}
+    },
+    {
+      "id": "executive",
+      "name": "임원 면접관",
+      "role": "이사급",
+      ${feedbackTemplate}
+    }`,
+    }
+  }
+
+  // 기술 트랙 (Unity/Unreal/기획)
+  return {
+    prompt: `1. **실무 전문가 A** (${trackLabel} 시니어, 경력 7년+)
+   - 기술적 정확성, 실무 적용 가능성, 문제 해결 역량 위주 평가
+   - 솔직하고 직설적인 피드백 스타일
+
+2. **실무 전문가 B** (${trackLabel} 리드급, 경력 10년+)
+   - 설계 사고, 커뮤니케이션 능력, 성장 가능성 위주 평가
+   - 건설적이고 구체적인 피드백 스타일
+
+3. **인사 담당자** (HR, 경력 5년+)
+   - 조직 적합성, 태도, 자기 표현력, 협업 역량 위주 평가
+   - 따뜻하지만 핵심을 짚는 피드백 스타일`,
+    jsonExample: `    {
+      "id": "expert_a",
+      "name": "실무 전문가 A",
+      "role": "${trackLabel} 시니어",
+      ${feedbackTemplate}
+    },
+    {
+      "id": "expert_b",
+      "name": "실무 전문가 B",
+      "role": "${trackLabel} 리드",
+      ${feedbackTemplate}
+    },
+    {
+      "id": "hr",
+      "name": "인사 담당자",
+      "role": "HR",
+      ${feedbackTemplate}
+    }`,
+  }
 }

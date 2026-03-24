@@ -1,0 +1,86 @@
+{
+  "track": "behavioral",
+  "trackLabel": "인성면접 (공통)",
+  "questions": [
+    {
+      "id": "beh-intro",
+      "text": "자기소개를 해주세요.",
+      "category": "behavioral",
+      "difficulty": "basic",
+      "keywords": ["자기소개", "경력", "강점"],
+      "evaluationHints": "간결하고 구조적인 자기소개, 직무 관련성, 차별화 포인트"
+    },
+    {
+      "id": "beh-motivation",
+      "text": "이 직무에 지원하게 된 동기는 무엇인가요?",
+      "category": "behavioral",
+      "difficulty": "basic",
+      "keywords": ["지원 동기", "관심", "목표"],
+      "evaluationHints": "구체적 동기, 회사/직무에 대한 이해, 진정성"
+    },
+    {
+      "id": "beh-strength",
+      "text": "본인의 강점과 약점을 각각 말씀해주시고, 약점을 극복하기 위해 어떤 노력을 하고 있는지 알려주세요.",
+      "category": "behavioral",
+      "difficulty": "basic",
+      "keywords": ["강점", "약점", "자기 인식", "성장"],
+      "evaluationHints": "솔직한 자기 인식, 약점에 대한 구체적 개선 노력, 성장 의지"
+    },
+    {
+      "id": "beh-conflict",
+      "text": "팀에서 의견 충돌이 있었던 경험과 어떻게 해결했는지 말씀해주세요.",
+      "category": "behavioral",
+      "difficulty": "basic",
+      "keywords": ["갈등 해결", "소통", "팀워크", "협업"],
+      "evaluationHints": "구체적 상황, 본인 역할, 해결 과정, 결과와 교훈"
+    },
+    {
+      "id": "beh-failure",
+      "text": "실패하거나 큰 어려움을 겪었던 경험이 있다면, 그때 어떻게 대처했는지 말씀해주세요.",
+      "category": "behavioral",
+      "difficulty": "intermediate",
+      "keywords": ["실패", "극복", "회복력", "교훈"],
+      "evaluationHints": "실패를 인정하는 태도, 원인 분석, 극복 과정, 배운 교훈"
+    },
+    {
+      "id": "beh-pressure",
+      "text": "마감이 촉박한 상황에서 어떻게 우선순위를 정하고 업무를 처리하시나요?",
+      "category": "behavioral",
+      "difficulty": "intermediate",
+      "keywords": ["시간 관리", "우선순위", "압박", "효율"],
+      "evaluationHints": "구체적 방법론, 실제 경험, 결과 중심 사고"
+    },
+    {
+      "id": "beh-leadership",
+      "text": "팀을 이끌거나 주도적으로 프로젝트를 진행했던 경험이 있나요?",
+      "category": "behavioral",
+      "difficulty": "intermediate",
+      "keywords": ["리더십", "주도성", "책임감", "프로젝트"],
+      "evaluationHints": "구체적 역할과 기여, 팀원과의 관계, 성과"
+    },
+    {
+      "id": "beh-growth",
+      "text": "최근 1년간 가장 성장했다고 느끼는 부분은 무엇이고, 어떤 노력을 했나요?",
+      "category": "behavioral",
+      "difficulty": "basic",
+      "keywords": ["성장", "학습", "자기 개발", "변화"],
+      "evaluationHints": "구체적 성장 사례, 학습 방법, 변화의 계기"
+    },
+    {
+      "id": "beh-teamwork",
+      "text": "협업할 때 본인이 가장 중요하게 생각하는 것은 무엇인가요?",
+      "category": "behavioral",
+      "difficulty": "basic",
+      "keywords": ["협업", "소통", "가치관", "팀워크"],
+      "evaluationHints": "명확한 가치관, 실제 경험과 연결, 구체적 실천 방법"
+    },
+    {
+      "id": "beh-goal",
+      "text": "입사 후 1년 뒤, 어떤 모습이 되어 있고 싶은지 말씀해주세요.",
+      "category": "behavioral",
+      "difficulty": "basic",
+      "keywords": ["목표", "비전", "계획", "성장"],
+      "evaluationHints": "현실적이고 구체적인 목표, 회사 성장과의 연결, 실행 계획"
+    }
+  ]
+}

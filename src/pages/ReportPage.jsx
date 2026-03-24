@@ -134,7 +134,8 @@ function EvaluatorCard({ evaluator, questionData }) {
   const [open, setOpen] = useState(false)
   const ev = evaluator
 
-  const roleIcon = ev.id === 'hr' ? '👔' : ev.id === 'expert_a' ? '🎮' : '🛠️'
+  const iconMap = { hr: '👔', expert_a: '🎮', expert_b: '🛠️', team_lead: '💼', executive: '🏢' }
+  const roleIcon = iconMap[ev.id] || '👤'
 
   return (
     <div className="bg-bg-card border border-border rounded-2xl overflow-hidden">
