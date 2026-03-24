@@ -38,6 +38,38 @@ async function callOpenRouter({ model, messages, jsonMode = false }) {
 }
 
 /**
+ * STT 텍스트 교정 - 음성 인식 오류를 문맥에 맞게 보정
+ * Whisper base의 부정확한 한국어를 LLM이 교정
+ */
+export async function correctTranscript(rawTranscript, questionText) {
+  if (!rawTranscript || rawTranscript.trim().length < 5) return rawTranscript || ''
+
+  const content = await callOpenRouter({
+    model: 'anthropic/claude-3.5-haiku',
+    messages: [
+      {
+        role: 'system',
+        content: `당신은 음성 인식(STT) 결과를 교정하는 전문가입니다.
+아래 텍스트는 한국어 음성을 자동 인식한 결과로, 오인식된 부분이 있습니다.
+
+규칙:
+- 발화자의 원래 의도와 의미를 최대한 보존하세요
+- 문맥상 명백히 잘못 인식된 단어만 교정하세요 (예: "생물" → "신입", "월요소" → "어릴 때부터")
+- 습관어(음, 어, 그)는 그대로 유지하세요 (분석에 필요)
+- 문장 구조를 크게 바꾸지 마세요
+- 교정된 텍스트만 출력하세요 (설명 없이)`
+      },
+      {
+        role: 'user',
+        content: `[면접 질문] ${questionText}\n\n[음성 인식 결과 (교정 필요)]\n${rawTranscript}`
+      },
+    ],
+  })
+
+  return content?.trim() || rawTranscript
+}
+
+/**
  * 텍스트 분석 - 3명 평가자 (실무 전문가 2 + 인사 담당자 1)
  */
 export async function analyzeText({ questions, answers, track }) {

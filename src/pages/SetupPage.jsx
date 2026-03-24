@@ -9,7 +9,7 @@ const TRACKS = [
   { id: 'design', label: '게임기획', desc: '시스템/레벨/밸런스 기획' },
 ]
 
-const COUNTS = [3, 5, 7]
+const COUNTS = [2, 3, 5, 7]
 
 export default function SetupPage() {
   const navigate = useNavigate()

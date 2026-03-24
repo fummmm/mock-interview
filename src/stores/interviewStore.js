@@ -27,6 +27,7 @@ export const useInterviewStore = create((set, get) => ({
       questionId: q.id,
       questionText: q.text,
       transcript: '',
+      rawTranscript: '',
       videoBlob: null,
       videoBlobUrl: null,
       frames: [],

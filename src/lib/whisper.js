@@ -45,7 +45,7 @@ export async function preloadModel(onProgress, onStatus) {
     const { pipeline } = await import('@huggingface/transformers')
     globalThis.__whisperPipeline = await pipeline(
       'automatic-speech-recognition',
-      'Xenova/whisper-small',
+      'Xenova/whisper-base',
       {
         progress_callback: (p) => {
           if (p.status === 'progress' && p.progress) onProgress?.(p)

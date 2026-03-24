@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useInterviewStore } from '../stores/interviewStore'
-import { analyzeText, analyzeVision } from '../lib/api'
+import { analyzeText, analyzeVision, correctTranscript } from '../lib/api'
 import { preloadModel, transcribeAudio, isModelLoaded } from '../lib/whisper'
 
 export default function AnalyzingPage() {
@@ -43,28 +43,50 @@ export default function AnalyzingPage() {
       }
       setProgress(20)
 
-      // --- 2단계: Whisper STT (20~50%) ---
+      // --- 2단계: Whisper STT (20~40%) ---
       setStep('whisper')
       for (let i = 0; i < answers.length; i++) {
         if (!answers[i].videoBlob) continue
         setStatusText(`질문 ${i + 1}/${answers.length} 음성 변환 중...`)
-        setProgress(20 + Math.round(((i + 0.5) / answers.length) * 30))
+        setProgress(20 + Math.round(((i + 0.5) / answers.length) * 20))
 
         try {
           const result = await transcribeAudio(answers[i].videoBlob)
           updateAnswer(i, {
             transcript: result.transcript,
+            rawTranscript: result.transcript, // 원본 보존
             fillerWordCount: result.fillerWordCount,
             silenceSegments: result.silencePositions || [],
           })
         } catch (e) {
           console.warn(`Q${i + 1} STT failed:`, e.message)
         }
-        setProgress(20 + Math.round(((i + 1) / answers.length) * 30))
+        setProgress(20 + Math.round(((i + 1) / answers.length) * 20))
       }
-      setProgress(50)
+      setProgress(40)
 
-      // --- 3단계: LLM 분석 (50~95%) ---
+      // --- 3단계: LLM 텍스트 교정 (40~55%) ---
+      setStep('correct')
+      setStatusText('음성 인식 결과를 교정하고 있습니다...')
+
+      const midAnswers = useInterviewStore.getState().answers
+      for (let i = 0; i < midAnswers.length; i++) {
+        if (!midAnswers[i].transcript) continue
+        setStatusText(`질문 ${i + 1}/${midAnswers.length} 텍스트 교정 중...`)
+        setProgress(40 + Math.round(((i + 0.5) / midAnswers.length) * 15))
+
+        try {
+          const corrected = await correctTranscript(midAnswers[i].transcript, midAnswers[i].questionText)
+          console.log(`[교정] Q${i + 1} 원본:`, midAnswers[i].transcript?.slice(0, 80))
+          console.log(`[교정] Q${i + 1} 교정:`, corrected?.slice(0, 80))
+          updateAnswer(i, { transcript: corrected })
+        } catch (e) {
+          console.warn(`Q${i + 1} 교정 실패:`, e.message)
+        }
+      }
+      setProgress(55)
+
+      // --- 4단계: LLM 평가 (55~95%) ---
       setStep('llm')
       setStatusText('면접관이 답변을 평가하고 있습니다...')
 
@@ -81,7 +103,7 @@ export default function AnalyzingPage() {
       const [textResult, visionResult] = await Promise.allSettled([
         analyzeText({ questions, answers: updatedAnswers, track }).then((r) => {
           console.log('[분석] 텍스트 분석 결과:', r)
-          setProgress(70)
+          setProgress(75)
           setStatusText('텍스트 분석 완료, 영상 분석 중...')
           return r
         }),
@@ -152,16 +174,19 @@ export default function AnalyzingPage() {
           )}
 
           {step !== 'error' && (
-            <div className="flex justify-center gap-6 text-xs text-text-secondary mt-4">
-              <span className={step === 'model-download' ? 'text-accent font-medium' : (step === 'whisper' || step === 'llm') ? 'text-success' : ''}>
-                {(step === 'whisper' || step === 'llm') ? '1. 모델 준비 완료' : '1. 모델 준비'}
-              </span>
-              <span className={step === 'whisper' ? 'text-accent font-medium' : step === 'llm' ? 'text-success' : ''}>
-                {step === 'llm' ? '2. 음성 변환 완료' : '2. 음성 변환'}
-              </span>
-              <span className={step === 'llm' ? 'text-accent font-medium' : ''}>
-                3. 평가
-              </span>
+            <div className="flex justify-center gap-4 text-xs text-text-secondary mt-4 flex-wrap">
+              {['model-download', 'whisper', 'correct', 'llm'].map((s, i) => {
+                const labels = ['1. 모델', '2. 음성 변환', '3. 텍스트 교정', '4. 평가']
+                const steps = ['model-download', 'whisper', 'correct', 'llm']
+                const currentIdx = steps.indexOf(step)
+                const isCurrent = step === s
+                const isDone = currentIdx > i
+                return (
+                  <span key={s} className={isCurrent ? 'text-accent font-medium' : isDone ? 'text-success' : ''}>
+                    {isDone ? labels[i].replace(/\d\./, (m) => m) + ' 완료' : labels[i]}
+                  </span>
+                )
+              })}
             </div>
           )}
         </div>
