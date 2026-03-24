@@ -308,38 +308,32 @@ function QuestionDetailCard({ data }) {
             </div>
           )}
 
-          {/* 캡처 프레임 - 클릭 시 해당 구간 재생 */}
-          {data.frames.length > 0 && (
+          {/* 문제 프레임만 표시 */}
+          {data.frames.length > 0 && data.vision?.problemFrames?.length > 0 && (
             <div>
-              <p className="text-xs text-text-secondary font-medium mb-2">캡처 프레임 (클릭하면 해당 구간 재생)</p>
-              <div className="flex gap-2">
-                {data.frames.map((f, i) => {
-                  const problemFrame = data.vision?.problemFrames?.find((pf) => pf.frameIndex === i)
-                  const time = frameToTime(i)
+              <p className="text-xs text-text-secondary font-medium mb-2">문제 감지 구간 (클릭하면 해당 시점 재생)</p>
+              <div className="flex gap-2 flex-wrap">
+                {data.vision.problemFrames.map((pf) => {
+                  const frame = data.frames[pf.frameIndex]
+                  if (!frame) return null
+                  const time = frameToTime(pf.frameIndex)
                   return (
                     <button
-                      key={i}
+                      key={pf.frameIndex}
                       className="relative group cursor-pointer"
-                      onClick={() => playClip(time, 7, `${time}초~${time + 7}초`)}
+                      onClick={() => playClip(time, 5, `${pf.issue}`)}
                     >
                       <img
-                        src={f} alt={`${time}초 시점`}
-                        className={`w-28 h-20 rounded-lg object-cover border transition-all ${
-                          problemFrame ? 'border-warning border-2' : 'border-border hover:border-accent'
-                        }`}
+                        src={frame} alt={pf.issue}
+                        className="w-32 h-22 rounded-lg object-cover border-2 border-warning transition-all hover:border-danger"
                       />
-                      {/* 시간 표시 */}
                       <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[9px] px-1 rounded">
                         {Math.floor(time / 60)}:{(time % 60).toString().padStart(2, '0')}
                       </span>
-                      {/* 문제 프레임 라벨 */}
-                      {problemFrame && (
-                        <span className="absolute top-1 right-1 bg-warning text-black text-[8px] px-1 rounded font-medium">
-                          {problemFrame.issue?.slice(0, 8)}
-                        </span>
-                      )}
-                      {/* 호버 시 재생 아이콘 */}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                      <span className="absolute top-0 left-0 right-0 bg-warning/90 text-black text-[9px] px-1.5 py-0.5 rounded-t-lg text-center font-medium">
+                        {pf.issue}
+                      </span>
+                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                         <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M8 5v14l11-7z"/>
                         </svg>
