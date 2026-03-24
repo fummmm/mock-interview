@@ -223,17 +223,29 @@ function EvaluatorCard({ evaluator, questionData }) {
 function QuestionDetailCard({ data }) {
   const [open, setOpen] = useState(false)
   const videoRef = useRef(null)
-
-  // 영상을 특정 시점부터 재생
-  const seekAndPlay = (seconds) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = seconds
-      videoRef.current.play()
-    }
-  }
+  const [playingClip, setPlayingClip] = useState(null) // { start, end, label }
 
   // 프레임 인덱스 → 대략적 타임스탬프 (7초 간격 캡처 기준)
   const frameToTime = (frameIndex) => frameIndex * 7
+
+  // 특정 구간만 재생 (시작~끝)
+  const playClip = (startSec, durationSec = 7, label = '') => {
+    const video = videoRef.current
+    if (!video) return
+    video.currentTime = Math.max(0, startSec)
+    video.play()
+    setPlayingClip({ start: startSec, end: startSec + durationSec, label })
+
+    // 구간 끝나면 자동 일시정지
+    const checkEnd = () => {
+      if (video.currentTime >= startSec + durationSec) {
+        video.pause()
+        setPlayingClip(null)
+        video.removeEventListener('timeupdate', checkEnd)
+      }
+    }
+    video.addEventListener('timeupdate', checkEnd)
+  }
 
   return (
     <div className="bg-bg-card border border-border rounded-2xl overflow-hidden">
@@ -247,11 +259,32 @@ function QuestionDetailCard({ data }) {
 
       {open && (
         <div className="border-t border-border p-4 space-y-4">
-          {/* 녹화 영상 */}
+          {/* 녹화 영상 - CSS로 영상만 미러링, 컨트롤은 정상 */}
           {data.videoBlobUrl && (
             <div>
-              <p className="text-xs text-text-secondary font-medium mb-2">녹화 영상 ({data.recordingDuration}초)</p>
-              <video ref={videoRef} src={data.videoBlobUrl} controls className="w-full rounded-xl bg-black max-h-64" style={{ transform: 'scaleX(-1)' }} />
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-text-secondary font-medium">녹화 영상 ({data.recordingDuration}초)</p>
+                {playingClip && (
+                  <span className="text-xs text-accent animate-recording-pulse">{playingClip.label} 재생 중...</span>
+                )}
+              </div>
+              <div className="relative rounded-xl overflow-hidden bg-black">
+                <style>{`
+                  .mirror-video video::-webkit-media-controls { transform: scaleX(-1); }
+                  .mirror-video video { transform: scaleX(-1); }
+                  .mirror-video video::-webkit-media-controls-panel { transform: scaleX(-1); }
+                `}</style>
+                <div className="mirror-video">
+                  <video
+                    ref={videoRef}
+                    src={data.videoBlobUrl}
+                    controls
+                    className="w-full max-h-64"
+                    onPlay={() => {}}
+                    onPause={() => setPlayingClip(null)}
+                  />
+                </div>
+              </div>
             </div>
           )}
 
@@ -265,7 +298,6 @@ function QuestionDetailCard({ data }) {
                   problemPhrases={data.problemPhrases || []}
                 />
               </p>
-              {/* 문제 구절 범례 */}
               {data.problemPhrases?.length > 0 && (
                 <div className="mt-3 space-y-1.5 border-t border-border/50 pt-2">
                   {data.problemPhrases.map((pp, i) => (
@@ -285,32 +317,43 @@ function QuestionDetailCard({ data }) {
             </div>
           )}
 
-          {/* 캡처 프레임 + 문제 프레임 표시 */}
+          {/* 캡처 프레임 - 클릭 시 해당 구간 재생 */}
           {data.frames.length > 0 && (
             <div>
-              <p className="text-xs text-text-secondary font-medium mb-2">캡처 프레임</p>
+              <p className="text-xs text-text-secondary font-medium mb-2">캡처 프레임 (클릭하면 해당 구간 재생)</p>
               <div className="flex gap-2">
                 {data.frames.map((f, i) => {
                   const problemFrame = data.vision?.problemFrames?.find((pf) => pf.frameIndex === i)
+                  const time = frameToTime(i)
                   return (
-                    <div key={i} className="relative group">
+                    <button
+                      key={i}
+                      className="relative group cursor-pointer"
+                      onClick={() => playClip(time, 7, `${time}초~${time + 7}초`)}
+                    >
                       <img
-                        src={f} alt={`캡처 ${i + 1}`}
-                        className={`w-28 h-20 rounded-lg object-cover border cursor-pointer transition-all ${
-                          problemFrame ? 'border-warning border-2' : 'border-border'
+                        src={f} alt={`${time}초 시점`}
+                        className={`w-28 h-20 rounded-lg object-cover border transition-all ${
+                          problemFrame ? 'border-warning border-2' : 'border-border hover:border-accent'
                         }`}
-                        style={{ transform: 'scaleX(-1)' }}
-                        onClick={() => seekAndPlay(frameToTime(i))}
                       />
+                      {/* 시간 표시 */}
+                      <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[9px] px-1 rounded">
+                        {Math.floor(time / 60)}:{(time % 60).toString().padStart(2, '0')}
+                      </span>
+                      {/* 문제 프레임 라벨 */}
                       {problemFrame && (
-                        <div className="absolute -bottom-1 left-0 right-0 text-center">
-                          <span className="bg-warning text-black text-[9px] px-1 rounded">{problemFrame.issue}</span>
-                        </div>
+                        <span className="absolute top-1 right-1 bg-warning text-black text-[8px] px-1 rounded font-medium">
+                          {problemFrame.issue?.slice(0, 8)}
+                        </span>
                       )}
+                      {/* 호버 시 재생 아이콘 */}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                        <span className="text-white text-xs">재생</span>
+                        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
                       </div>
-                    </div>
+                    </button>
                   )
                 })}
               </div>

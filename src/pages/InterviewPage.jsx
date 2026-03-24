@@ -5,7 +5,9 @@ import { useMediaStream } from '../hooks/useMediaStream'
 import { useMediaRecorder } from '../hooks/useMediaRecorder'
 import { useFrameCapture } from '../hooks/useFrameCapture'
 import { useAudioLevel } from '../hooks/useAudioLevel'
-import { useEffect, useCallback } from 'react'
+import { transcribeAudio, preloadModel, isModelLoaded } from '../lib/whisper'
+import { correctTranscript } from '../lib/api'
+import { useEffect, useCallback, useRef } from 'react'
 
 export default function InterviewPage() {
   const navigate = useNavigate()
@@ -41,7 +43,43 @@ export default function InterviewPage() {
     navigate('/')
   }, [stopStream, navigate])
 
-  // 답변 시작 (녹화 + 프레임캡처만, STT 없음)
+  // 백그라운드 STT+교정 처리 추적
+  const bgProcessing = useRef(new Set())
+
+  // 모델 사전 로딩 (캠 권한 받은 후)
+  useEffect(() => {
+    if (mediaStatus === 'granted' && !isModelLoaded()) {
+      preloadModel().catch((e) => console.warn('모델 사전 로딩 실패:', e.message))
+    }
+  }, [mediaStatus])
+
+  // 백그라운드 STT + 교정 (답변 완료 즉시 비동기 시작)
+  const processInBackground = useCallback((idx, blob, questionText) => {
+    bgProcessing.current.add(idx)
+    ;(async () => {
+      try {
+        console.log(`[백그라운드] Q${idx + 1} STT 시작`)
+        const result = await transcribeAudio(blob)
+        updateAnswer(idx, {
+          rawTranscript: result.transcript,
+          transcript: result.transcript,
+          fillerWordCount: result.fillerWordCount,
+          silenceSegments: result.silencePositions || [],
+        })
+        // 교정
+        console.log(`[백그라운드] Q${idx + 1} 교정 시작`)
+        const corrected = await correctTranscript(result.transcript, questionText)
+        updateAnswer(idx, { transcript: corrected })
+        console.log(`[백그라운드] Q${idx + 1} 완료`)
+      } catch (e) {
+        console.warn(`[백그라운드] Q${idx + 1} 실패:`, e.message)
+      } finally {
+        bgProcessing.current.delete(idx)
+      }
+    })()
+  }, [updateAnswer])
+
+  // 답변 시작
   const handleStartAnswer = useCallback(() => {
     if (!stream) return
     clearFrames()
@@ -50,21 +88,25 @@ export default function InterviewPage() {
     setPhase('recording')
   }, [stream, clearFrames, startRecording, startCapture, setPhase])
 
-  // 답변 완료
+  // 답변 완료 → 즉시 백그라운드 STT 시작 + 다음 질문
   const handleStopAnswer = useCallback(async () => {
     stopCapture()
     const result = await stopRecording()
+    const idx = currentIndex
+    const questionText = currentQuestion?.text || ''
+
     if (result) {
-      updateAnswer(currentIndex, {
+      updateAnswer(idx, {
         videoBlob: result.blob,
         videoBlobUrl: result.blobUrl,
         recordingDuration: result.duration,
         frames,
-        // transcript는 분석 단계에서 Whisper가 채움
       })
+      // 백그라운드에서 STT+교정 시작 (다음 질문과 병렬)
+      processInBackground(idx, result.blob, questionText)
     }
     nextQuestion()
-  }, [stopCapture, stopRecording, updateAnswer, currentIndex, frames, nextQuestion])
+  }, [stopCapture, stopRecording, updateAnswer, currentIndex, currentQuestion, frames, processInBackground, nextQuestion])
 
   // processing → 분석 페이지 이동
   useEffect(() => {
