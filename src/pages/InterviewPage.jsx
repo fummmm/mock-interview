@@ -4,7 +4,7 @@ import { useInterviewStore } from '../stores/interviewStore'
 import { useMediaStream } from '../hooks/useMediaStream'
 import { useMediaRecorder } from '../hooks/useMediaRecorder'
 import { useFrameCapture } from '../hooks/useFrameCapture'
-import { useSpeechToText } from '../hooks/useSpeechToText'
+import { useAudioLevel } from '../hooks/useAudioLevel'
 import { useEffect, useCallback } from 'react'
 
 export default function InterviewPage() {
@@ -18,71 +18,53 @@ export default function InterviewPage() {
   const { stream, videoRef, error: mediaError, status: mediaStatus, requestPermission, stopStream } = useMediaStream()
   const { isRecording, duration, startRecording, stopRecording } = useMediaRecorder(stream)
   const { frames, startCapture, stopCapture, clearFrames } = useFrameCapture(videoRef)
-  const { transcript, interimText, isSupported: sttSupported, fillerCount, silenceCount, transcriptRef, fillerCountRef, silenceCountRef, start: startSTT, stop: stopSTT, reset: resetSTT } = useSpeechToText()
+  const audioLevel = useAudioLevel(stream)
 
   const currentQuestion = questions[currentIndex]
 
   // 설정 없으면 홈으로
   useEffect(() => {
-    if (!track || questions.length === 0) {
-      navigate('/')
-    }
+    if (!track || questions.length === 0) navigate('/')
   }, [track, questions, navigate])
 
   // 마운트 시 캠/마이크 권한 요청
   useEffect(() => {
     if (mediaStatus === 'idle') {
       requestPermission().then((s) => {
-        if (s) {
-          setMediaStream(s)
-          setPhase('ready')
-        }
+        if (s) { setMediaStream(s); setPhase('ready') }
       })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 나가기 시 정리
   const handleExit = useCallback(() => {
-    stopSTT()
     stopStream()
     navigate('/')
-  }, [stopSTT, stopStream, navigate])
+  }, [stopStream, navigate])
 
-  // 답변 시작 (녹화 + 프레임캡처 + STT 동시 시작)
+  // 답변 시작 (녹화 + 프레임캡처만, STT 없음)
   const handleStartAnswer = useCallback(() => {
     if (!stream) return
     clearFrames()
-    resetSTT()
     startRecording()
     startCapture()
-    startSTT()
     setPhase('recording')
-  }, [stream, clearFrames, resetSTT, startRecording, startCapture, startSTT, setPhase])
+  }, [stream, clearFrames, startRecording, startCapture, setPhase])
 
-  // 답변 완료 (녹화 + 프레임캡처 + STT 동시 중지)
+  // 답변 완료
   const handleStopAnswer = useCallback(async () => {
-    stopSTT()
     stopCapture()
     const result = await stopRecording()
-
-    // ref에서 최신값을 가져옴 (클로저 stale state 방지)
-    const latestTranscript = transcriptRef.current
-    const latestFillerCount = fillerCountRef.current
-    const latestSilenceCount = silenceCountRef.current
-
     if (result) {
       updateAnswer(currentIndex, {
         videoBlob: result.blob,
         videoBlobUrl: result.blobUrl,
         recordingDuration: result.duration,
         frames,
-        transcript: latestTranscript,
-        fillerWordCount: latestFillerCount,
-        silenceSegments: Array(latestSilenceCount).fill({ duration: 3 }),
+        // transcript는 분석 단계에서 Whisper가 채움
       })
     }
     nextQuestion()
-  }, [stopSTT, stopCapture, stopRecording, updateAnswer, currentIndex, frames, transcriptRef, fillerCountRef, silenceCountRef, nextQuestion])
+  }, [stopCapture, stopRecording, updateAnswer, currentIndex, frames, nextQuestion])
 
   // processing → 분석 페이지 이동
   useEffect(() => {
@@ -112,9 +94,18 @@ export default function InterviewPage() {
             </span>
             <div className="flex items-center gap-3">
               {isRecording && (
-                <span className="flex items-center gap-1.5 text-sm text-recording font-medium">
+                <span className="flex items-center gap-2 text-sm text-recording font-medium">
                   <span className="w-2 h-2 rounded-full bg-recording animate-recording-pulse" />
                   REC {formatTime(duration)}
+                  {/* 미니 마이크 레벨 */}
+                  <span className="flex items-center gap-px h-3 ml-1">
+                    {[0.05, 0.15, 0.25, 0.35, 0.45].map((threshold, i) => (
+                      <span key={i} className="w-0.5 rounded-full transition-all duration-75" style={{
+                        height: audioLevel > threshold ? '12px' : '4px',
+                        backgroundColor: audioLevel > threshold ? '#22c55e' : '#ffffff30',
+                      }} />
+                    ))}
+                  </span>
                 </span>
               )}
               <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
@@ -154,13 +145,37 @@ export default function InterviewPage() {
                 className="w-full h-full object-cover"
                 style={{ transform: 'scaleX(-1)' }}
               />
+
               {/* 답변 전 가이드 오버레이 */}
               {phase === 'ready' && (
-                <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-3 pointer-events-none">
+                <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-4 pointer-events-none">
                   <div className="w-16 h-16 rounded-full border-2 border-white/60 flex items-center justify-center">
                     <div className="w-3 h-3 rounded-full bg-white/80" />
                   </div>
                   <p className="text-white text-sm font-medium">정면에서 카메라를 응시하고 답변해주세요</p>
+
+                  {/* 마이크 레벨 테스트 */}
+                  <div className="flex flex-col items-center gap-1.5">
+                    <p className="text-white/60 text-xs">마이크 테스트 - 말해보세요</p>
+                    <div className="flex items-center gap-1 h-5">
+                      {Array.from({ length: 20 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-1 rounded-full transition-all duration-75"
+                          style={{
+                            height: `${Math.max(4, (audioLevel > (i / 20) ? 20 : 4))}px`,
+                            backgroundColor: audioLevel > (i / 20)
+                              ? i < 14 ? '#22c55e' : i < 17 ? '#f59e0b' : '#ef4444'
+                              : '#ffffff20',
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs" style={{ color: audioLevel > 0.05 ? '#22c55e' : '#ffffff60' }}>
+                      {audioLevel > 0.05 ? '마이크 정상' : '소리가 감지되지 않습니다'}
+                    </p>
+                  </div>
+
                   <p className="text-white/60 text-xs">준비되면 아래 "답변 시작" 버튼을 눌러주세요</p>
                 </div>
               )}
@@ -175,27 +190,6 @@ export default function InterviewPage() {
                   캡처 {frames.length}/3
                 </div>
               )}
-
-              {/* 실시간 자막 오버레이 */}
-              {isRecording && (transcript || interimText) && (
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <div className="bg-black/70 backdrop-blur-sm rounded-xl px-4 py-3 max-h-24 overflow-y-auto">
-                    <p className="text-sm text-white leading-relaxed">
-                      {transcript && <span>{transcript} </span>}
-                      {interimText && <span className="text-white/50">{interimText}</span>}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* STT 미지원 안내 */}
-              {!sttSupported && isRecording && (
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <div className="bg-warning/20 rounded-xl px-4 py-2 text-center">
-                    <p className="text-xs text-warning">이 브라우저는 실시간 음성 인식을 지원하지 않습니다. Chrome을 사용해주세요.</p>
-                  </div>
-                </div>
-              )}
             </>
           ) : mediaStatus === 'requesting' ? (
             <div className="flex items-center justify-center h-full">
@@ -205,12 +199,7 @@ export default function InterviewPage() {
             <div className="flex flex-col items-center justify-center h-full gap-3">
               <p className="text-danger font-medium">카메라/마이크 접근이 거부되었습니다</p>
               <p className="text-sm text-text-secondary">{mediaError}</p>
-              <button
-                onClick={requestPermission}
-                className="px-4 py-2 rounded-lg bg-accent text-white text-sm cursor-pointer"
-              >
-                다시 시도
-              </button>
+              <button onClick={requestPermission} className="px-4 py-2 rounded-lg bg-accent text-white text-sm cursor-pointer">다시 시도</button>
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">
@@ -219,43 +208,32 @@ export default function InterviewPage() {
           )}
         </div>
 
-        {/* 하단: STT 상태 + 컨트롤 */}
-        <div className="space-y-3">
-          {/* 말하기 상태 표시 */}
-          {isRecording && (
-            <div className="flex justify-center gap-4 text-xs text-text-secondary">
-              <span>습관어(음, 어..): <span className={fillerCount > 3 ? 'text-warning' : 'text-text-primary'}>{fillerCount}회</span></span>
-              <span>침묵: <span className={silenceCount > 2 ? 'text-warning' : 'text-text-primary'}>{silenceCount}구간</span></span>
-            </div>
-          )}
+        {/* 하단 컨트롤 */}
+        <div className="flex justify-center gap-4 py-2">
+          <button
+            onClick={handleExit}
+            disabled={isRecording}
+            className="px-5 py-2.5 rounded-xl border border-border bg-bg-card text-text-secondary hover:border-accent/50 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            나가기
+          </button>
 
-          {/* 버튼 */}
-          <div className="flex justify-center gap-4 pb-2">
+          {phase === 'ready' ? (
             <button
-              onClick={handleExit}
-              disabled={isRecording}
-              className="px-5 py-2.5 rounded-xl border border-border bg-bg-card text-text-secondary hover:border-accent/50 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              onClick={handleStartAnswer}
+              disabled={mediaStatus !== 'granted'}
+              className="px-8 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white font-semibold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              나가기
+              답변 시작
             </button>
-
-            {phase === 'ready' ? (
-              <button
-                onClick={handleStartAnswer}
-                disabled={mediaStatus !== 'granted'}
-                className="px-8 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white font-semibold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                답변 시작
-              </button>
-            ) : phase === 'recording' ? (
-              <button
-                onClick={handleStopAnswer}
-                className="px-8 py-2.5 rounded-xl bg-recording hover:bg-red-600 text-white font-semibold transition-all cursor-pointer"
-              >
-                답변 완료
-              </button>
-            ) : null}
-          </div>
+          ) : phase === 'recording' ? (
+            <button
+              onClick={handleStopAnswer}
+              className="px-8 py-2.5 rounded-xl bg-recording hover:bg-red-600 text-white font-semibold transition-all cursor-pointer"
+            >
+              답변 완료
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

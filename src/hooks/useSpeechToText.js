@@ -88,9 +88,22 @@ export function useSpeechToText() {
     }
 
     recognition.onend = () => {
-      // 활성 상태면 자동 재시작 (Chrome이 가끔 끊음)
+      // 활성 상태면 즉시 재시작 (Chrome이 빠른 말에서 세션을 끊음)
       if (isActiveRef.current) {
-        processedIndex = 0 // 재시작 시 인덱스 리셋
+        // 끊기기 직전 interim 텍스트가 있으면 transcript에 반영
+        setInterimText((prev) => {
+          if (prev.trim()) {
+            const trimmed = prev.trim()
+            setTranscript((t) => {
+              const updated = t + (t ? ' ' : '') + trimmed
+              transcriptRef.current = updated
+              return updated
+            })
+          }
+          return ''
+        })
+        processedIndex = 0
+        // 즉시 재시작 (딜레이 없이)
         try { recognition.start() } catch (e) { /* ignore */ }
       }
     }
