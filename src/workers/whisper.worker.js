@@ -11,7 +11,7 @@ self.addEventListener('message', async (event) => {
 
       transcriber = await pipeline(
         'automatic-speech-recognition',
-        'Xenova/whisper-base',
+        'Xenova/whisper-small',
         {
           progress_callback: (progress) => {
             if (progress.status === 'progress' && progress.progress) {

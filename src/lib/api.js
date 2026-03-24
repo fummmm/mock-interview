@@ -148,6 +148,9 @@ export async function analyzeText({ questions, answers, track }) {
   ]
 }`
 
+  console.log('[analyzeText] 요청 전송 중...')
+  console.log('[analyzeText] 답변 요약:', answersText.slice(0, 200))
+
   const content = await callOpenRouter({
     model: 'anthropic/claude-3.5-haiku',
     messages: [
@@ -157,7 +160,8 @@ export async function analyzeText({ questions, answers, track }) {
     jsonMode: true,
   })
 
-  return JSON.parse(content)
+  console.log('[analyzeText] 원본 응답:', content?.slice(0, 300))
+  return safeParseJSON(content, 'analyzeText')
 }
 
 /**
@@ -218,7 +222,39 @@ export async function analyzeVision({ answers }) {
     jsonMode: true,
   })
 
-  return JSON.parse(content)
+  console.log('[analyzeVision] 원본 응답:', content?.slice(0, 300))
+  return safeParseJSON(content, 'analyzeVision')
+}
+
+/**
+ * LLM 응답에서 JSON을 안전하게 추출
+ * 마크다운 코드블록(```json ... ```)이 감싸져 있는 경우도 처리
+ */
+function safeParseJSON(content, label) {
+  if (!content) throw new Error(`${label}: 응답이 비어있습니다`)
+
+  // 1차: 그대로 파싱
+  try {
+    return JSON.parse(content)
+  } catch (e) {
+    // 2차: 마크다운 코드블록 제거 후 파싱
+    const cleaned = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+    try {
+      return JSON.parse(cleaned)
+    } catch (e2) {
+      // 3차: JSON 부분만 추출 (첫 { ~ 마지막 })
+      const match = content.match(/\{[\s\S]*\}/)
+      if (match) {
+        try {
+          return JSON.parse(match[0])
+        } catch (e3) {
+          // 모든 시도 실패
+        }
+      }
+      console.error(`[${label}] JSON 파싱 실패. 원본:`, content)
+      throw new Error(`${label}: JSON 파싱 실패`)
+    }
+  }
 }
 
 function getTrackLabel(track) {

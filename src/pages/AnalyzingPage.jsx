@@ -70,13 +70,23 @@ export default function AnalyzingPage() {
 
       const updatedAnswers = useInterviewStore.getState().answers
 
+      // 디버깅: transcript 확인
+      console.log('[분석] 답변 데이터:', updatedAnswers.map((a, i) => ({
+        q: i + 1,
+        transcript: a.transcript?.slice(0, 50) || '(없음)',
+        hasVideo: !!a.videoBlob,
+        frames: a.frames?.length || 0,
+      })))
+
       const [textResult, visionResult] = await Promise.allSettled([
         analyzeText({ questions, answers: updatedAnswers, track }).then((r) => {
+          console.log('[분석] 텍스트 분석 결과:', r)
           setProgress(70)
           setStatusText('텍스트 분석 완료, 영상 분석 중...')
           return r
         }),
         analyzeVision({ answers: updatedAnswers }).then((r) => {
+          console.log('[분석] 비전 분석 결과:', r)
           setProgress(85)
           return r
         }),
@@ -85,10 +95,17 @@ export default function AnalyzingPage() {
       setProgress(90)
       setStatusText('종합 리포트 생성 중...')
 
+      if (textResult.status === 'rejected') {
+        console.error('[분석] 텍스트 분석 실패:', textResult.reason)
+      }
+      if (visionResult.status === 'rejected') {
+        console.error('[분석] 비전 분석 실패:', visionResult.reason)
+      }
+
       const textData = textResult.status === 'fulfilled' ? textResult.value : null
       const visionData = visionResult.status === 'fulfilled' ? visionResult.value : null
 
-      if (!textData && !visionData) throw new Error('분석에 실패했습니다.')
+      if (!textData && !visionData) throw new Error('분석에 실패했습니다. 콘솔(F12)에서 상세 오류를 확인해주세요.')
 
       // 리포트 빌드 (useAnalysis에서 가져온 로직을 인라인)
       const { buildReport } = await import('../hooks/useAnalysis')
