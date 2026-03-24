@@ -15,6 +15,7 @@ export default function InterviewPage() {
   const {
     phase, questions, currentIndex,
     setPhase, updateAnswer, nextQuestion, setMediaStream,
+    incPendingSTT, decPendingSTT,
   } = useInterviewStore()
 
   const { stream, videoRef, error: mediaError, status: mediaStatus, requestPermission, stopStream } = useMediaStream()
@@ -55,7 +56,7 @@ export default function InterviewPage() {
 
   // 백그라운드 STT + 교정 (답변 완료 즉시 비동기 시작)
   const processInBackground = useCallback((idx, blob, questionText) => {
-    bgProcessing.current.add(idx)
+    incPendingSTT()
     ;(async () => {
       try {
         console.log(`[백그라운드] Q${idx + 1} STT 시작`)
@@ -66,7 +67,6 @@ export default function InterviewPage() {
           fillerWordCount: result.fillerWordCount,
           silenceSegments: result.silencePositions || [],
         })
-        // 교정
         console.log(`[백그라운드] Q${idx + 1} 교정 시작`)
         const corrected = await correctTranscript(result.transcript, questionText)
         updateAnswer(idx, { transcript: corrected })
@@ -74,10 +74,10 @@ export default function InterviewPage() {
       } catch (e) {
         console.warn(`[백그라운드] Q${idx + 1} 실패:`, e.message)
       } finally {
-        bgProcessing.current.delete(idx)
+        decPendingSTT()
       }
     })()
-  }, [updateAnswer])
+  }, [updateAnswer, incPendingSTT, decPendingSTT])
 
   // 답변 시작
   const handleStartAnswer = useCallback(() => {

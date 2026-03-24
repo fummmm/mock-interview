@@ -43,46 +43,45 @@ export default function AnalyzingPage() {
       }
       setProgress(20)
 
-      // --- 2단계: 남은 STT + 교정 처리 (20~55%) ---
-      // 백그라운드에서 이미 처리된 질문은 건너뜀
+      // --- 2단계: 백그라운드 STT 완료 대기 + 남은 처리 (20~55%) ---
       setStep('whisper')
-      const latestAnswers = useInterviewStore.getState().answers
-      let remaining = 0
+      setStatusText('음성 변환 완료를 기다리는 중...')
 
+      // 백그라운드 처리가 끝날 때까지 대기
+      await new Promise((resolve) => {
+        const check = () => {
+          const pending = useInterviewStore.getState().pendingSTT
+          if (pending <= 0) {
+            resolve()
+          } else {
+            setStatusText(`음성 변환 + 교정 중... (${pending}개 남음)`)
+            setProgress(20 + Math.round(((answers.length - pending) / answers.length) * 25))
+            setTimeout(check, 500)
+          }
+        }
+        check()
+      })
+
+      // 혹시 백그라운드에서 못 처리한 질문 보완
+      const latestAnswers = useInterviewStore.getState().answers
       for (let i = 0; i < latestAnswers.length; i++) {
         const a = latestAnswers[i]
-        if (a.transcript && a.transcript.length > 0) {
-          console.log(`[분석] Q${i + 1} 이미 처리됨 (백그라운드)`)
-          continue
-        }
+        if (a.transcript && a.transcript.length > 0) continue
         if (!a.videoBlob) continue
-        remaining++
 
-        // STT
-        setStatusText(`질문 ${i + 1}/${latestAnswers.length} 음성 변환 중...`)
-        setProgress(20 + Math.round((i / latestAnswers.length) * 20))
+        setStatusText(`질문 ${i + 1} 음성 변환 중...`)
         try {
           const result = await transcribeAudio(a.videoBlob)
-          updateAnswer(i, {
-            rawTranscript: result.transcript,
-            transcript: result.transcript,
-            fillerWordCount: result.fillerWordCount,
-            silenceSegments: result.silencePositions || [],
-          })
-
-          // 교정
-          setStatusText(`질문 ${i + 1}/${latestAnswers.length} 텍스트 교정 중...`)
+          updateAnswer(i, { rawTranscript: result.transcript, transcript: result.transcript, fillerWordCount: result.fillerWordCount, silenceSegments: result.silencePositions || [] })
           const corrected = await correctTranscript(result.transcript, a.questionText)
           updateAnswer(i, { transcript: corrected })
         } catch (e) {
-          console.warn(`Q${i + 1} 처리 실패:`, e.message)
+          console.warn(`Q${i + 1} 보완 처리 실패:`, e.message)
         }
       }
 
-      if (remaining === 0) {
-        console.log('[분석] 모든 질문이 백그라운드에서 처리 완료됨')
-      }
       setProgress(55)
+      console.log('[분석] 모든 답변 텍스트 준비 완료:', useInterviewStore.getState().answers.map((a, i) => `Q${i + 1}: ${a.transcript?.slice(0, 40) || '(없음)'}`))
 
       // --- 3단계: LLM 평가 (55~95%) ---
       setStep('llm')

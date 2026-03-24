@@ -15,6 +15,9 @@ export const useInterviewStore = create((set, get) => ({
   // 질문별 답변 데이터
   answers: [],
 
+  // 백그라운드 STT 처리 추적
+  pendingSTT: 0, // 처리 중인 질문 수
+
   // 분석 결과
   report: null,
   analysisProgress: 0,
@@ -62,6 +65,9 @@ export const useInterviewStore = create((set, get) => ({
     }
   },
 
+  incPendingSTT: () => set((s) => ({ pendingSTT: s.pendingSTT + 1 })),
+  decPendingSTT: () => set((s) => ({ pendingSTT: Math.max(0, s.pendingSTT - 1) })),
+
   setReport: (report) => set({ report, phase: 'report' }),
 
   setAnalysisProgress: (progress) => set({ analysisProgress: progress }),
@@ -75,5 +81,6 @@ export const useInterviewStore = create((set, get) => ({
     answers: [],
     report: null,
     analysisProgress: 0,
+    pendingSTT: 0,
   }),
 }))

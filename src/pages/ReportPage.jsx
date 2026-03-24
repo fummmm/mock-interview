@@ -268,23 +268,13 @@ function QuestionDetailCard({ data }) {
                   <span className="text-xs text-accent animate-recording-pulse">{playingClip.label} 재생 중...</span>
                 )}
               </div>
-              <div className="relative rounded-xl overflow-hidden bg-black">
-                <style>{`
-                  .mirror-video video::-webkit-media-controls { transform: scaleX(-1); }
-                  .mirror-video video { transform: scaleX(-1); }
-                  .mirror-video video::-webkit-media-controls-panel { transform: scaleX(-1); }
-                `}</style>
-                <div className="mirror-video">
-                  <video
-                    ref={videoRef}
-                    src={data.videoBlobUrl}
-                    controls
-                    className="w-full max-h-64"
-                    onPlay={() => {}}
-                    onPause={() => setPlayingClip(null)}
-                  />
-                </div>
-              </div>
+              <video
+                ref={videoRef}
+                src={data.videoBlobUrl}
+                controls
+                className="w-full rounded-xl bg-black max-h-64"
+                onPause={() => setPlayingClip(null)}
+              />
             </div>
           )}
 
