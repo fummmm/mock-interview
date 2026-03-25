@@ -168,7 +168,7 @@ function EvaluatorCard({ evaluator, questionData }) {
   const [open, setOpen] = useState(false)
   const ev = evaluator
 
-  const iconMap = { hr: '👔', expert_a: '🎮', expert_b: '🛠️', team_lead: '💼', executive: '🏢' }
+  const iconMap = { expert: '🎮', expert_a: '🎮', team_lead: '💼', coach: '📋', executive: '🏢', hr: '👔' }
   const roleIcon = iconMap[ev.id] || '👤'
 
   return (
