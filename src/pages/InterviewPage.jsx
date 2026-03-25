@@ -65,6 +65,13 @@ export default function InterviewPage() {
     }
   }, [mediaStatus])
 
+  // 브리핑 닫힌 후 비디오 스트림 재연결
+  useEffect(() => {
+    if (!showBriefing && videoRef.current && stream) {
+      videoRef.current.srcObject = stream
+    }
+  }, [showBriefing, stream, videoRef])
+
   // Web Speech API 초기화 (꼬리질문용 백그라운드)
   const initSpeech = useCallback(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
