@@ -7,11 +7,12 @@ import { useFrameCapture } from '../hooks/useFrameCapture'
 import { useAudioLevel } from '../hooks/useAudioLevel'
 import { transcribeAudio, preloadModel, isModelLoaded } from '../lib/whisper'
 import { correctTranscript, generateFollowUp } from '../lib/api'
+import { getEvaluators } from '../data/evaluators'
 import { useEffect, useCallback, useRef, useState } from 'react'
 
 /**
  * 상태 머신:
- * ready → recording → generating-followup →
+ * briefing → ready → recording → generating-followup →
  *   ├── followup-ready → followup-recording → next (ready or processing)
  *   └── no followup → next (ready or processing)
  */
@@ -33,10 +34,14 @@ export default function InterviewPage() {
   const speechRef = useRef(null)
   const roughTranscriptRef = useRef('')
 
-  // 꼬리질문 상태
+  // 브리핑 + 꼬리질문 상태
+  const [showBriefing, setShowBriefing] = useState(true)
   const [followUpQuestion, setFollowUpQuestion] = useState(null)
+  const [followUpEvaluator, setFollowUpEvaluator] = useState(null)
   const [isFollowUp, setIsFollowUp] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+
+  const evaluators = getEvaluators(track)
 
   const currentQuestion = questions[currentIndex]
 
@@ -45,11 +50,11 @@ export default function InterviewPage() {
     if (!track || questions.length === 0) navigate('/')
   }, [track, questions, navigate])
 
-  // 캠/마이크 권한 요청 + Whisper 모델 사전 로딩
+  // 캠/마이크 권한 요청
   useEffect(() => {
     if (mediaStatus === 'idle') {
       requestPermission().then((s) => {
-        if (s) { setMediaStream(s); setPhase('ready') }
+        if (s) setMediaStream(s)
       })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -177,18 +182,19 @@ export default function InterviewPage() {
     try {
       const rough = roughTranscriptRef.current.trim()
       console.log(`[꼬리질문] Q${idx + 1} 거친 텍스트:`, rough?.slice(0, 80))
-      const followUp = await generateFollowUp(questionText, rough)
+      const followUp = await generateFollowUp(questionText, rough, evaluators)
       console.log(`[꼬리질문] 판단:`, followUp)
 
       if (followUp.needed && followUp.question) {
-        // 꼬리질문 필요 → 표시
+        const asker = evaluators.find((e) => e.id === followUp.evaluatorId) || evaluators[0]
         setFollowUpQuestion(followUp.question)
+        setFollowUpEvaluator(asker)
         updateAnswer(idx, {
-          followUp: { question: followUp.question, transcript: '', rawTranscript: '', videoBlob: null, videoBlobUrl: null, frames: [], recordingDuration: 0 },
+          followUp: { question: followUp.question, evaluatorId: asker.id, evaluatorName: asker.name, transcript: '', rawTranscript: '', videoBlob: null, videoBlobUrl: null, frames: [], recordingDuration: 0 },
         })
         setIsFollowUp(true)
         setIsGenerating(false)
-        setPhase('ready') // 꼬리질문 대기
+        setPhase('ready')
         return
       }
     } catch (e) {
@@ -251,6 +257,67 @@ export default function InterviewPage() {
   }, [phase, stopStream, navigate])
 
   if (!currentQuestion) return null
+
+  // === 브리핑 화면 ===
+  if (showBriefing) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6">
+        <div className="max-w-2xl w-full space-y-8">
+          <div className="text-center space-y-2">
+            <h1 className="text-2xl font-bold">면접을 시작합니다</h1>
+            <p className="text-text-secondary">진행 방식을 확인하고 준비되면 시작해주세요</p>
+          </div>
+
+          {/* 진행 안내 */}
+          <div className="bg-bg-card border border-border rounded-2xl p-5 space-y-3">
+            <h2 className="font-semibold text-sm text-text-secondary">진행 방식</h2>
+            <ul className="space-y-2 text-sm">
+              <li className="flex gap-2"><span className="text-accent shrink-0">1.</span>질문이 화면에 표시되면 카메라를 보며 답변해주세요</li>
+              <li className="flex gap-2"><span className="text-accent shrink-0">2.</span>"답변 시작" 버튼을 누르면 녹화가 시작됩니다</li>
+              <li className="flex gap-2"><span className="text-accent shrink-0">3.</span>답변 후 면접관이 꼬리질문을 할 수 있습니다</li>
+              <li className="flex gap-2"><span className="text-accent shrink-0">4.</span>모든 질문이 끝나면 AI가 답변을 분석하여 리포트를 제공합니다</li>
+            </ul>
+            <div className="flex gap-4 text-xs text-text-secondary pt-2 border-t border-border/50">
+              <span>질문 {questions.length}개</span>
+              <span>예상 소요 {questions.length * 3}~{questions.length * 5}분</span>
+            </div>
+          </div>
+
+          {/* 면접관 소개 */}
+          <div className="space-y-3">
+            <h2 className="font-semibold text-sm text-text-secondary">오늘의 면접관</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {evaluators.map((ev) => (
+                <div key={ev.id} className="bg-bg-card border border-border rounded-xl p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{ev.icon}</span>
+                    <div>
+                      <p className="font-semibold text-sm">{ev.name}</p>
+                      <p className="text-xs text-text-secondary">{ev.role}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-text-secondary">{ev.description}</p>
+                  <p className="text-xs text-accent">평가 중점: {ev.focus}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={() => { setShowBriefing(false); setPhase('ready') }}
+            disabled={mediaStatus !== 'granted'}
+            className={`w-full py-4 rounded-xl text-lg font-semibold transition-all ${
+              mediaStatus === 'granted'
+                ? 'bg-accent hover:bg-accent-hover text-white cursor-pointer'
+                : 'bg-bg-elevated text-text-secondary cursor-not-allowed'
+            }`}
+          >
+            {mediaStatus === 'granted' ? '면접 시작' : '카메라/마이크 권한을 허용해주세요'}
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const formatTime = (sec) => {
     const m = Math.floor(sec / 60).toString().padStart(2, '0')
@@ -316,7 +383,13 @@ export default function InterviewPage() {
           <div className={`border rounded-xl p-5 transition-all ${
             isFollowUp ? 'bg-accent/5 border-accent/30' : 'bg-bg-card border-border'
           }`}>
-            {isFollowUp && <p className="text-xs text-accent mb-2">면접관 꼬리질문</p>}
+            {isFollowUp && followUpEvaluator && (
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">{followUpEvaluator.icon}</span>
+                <span className="text-sm font-medium text-accent">{followUpEvaluator.name}</span>
+                <span className="text-xs text-text-secondary">꼬리질문</span>
+              </div>
+            )}
             <p className="text-base sm:text-lg leading-relaxed">{displayQuestion}</p>
           </div>
         </div>
@@ -361,16 +434,18 @@ export default function InterviewPage() {
 
               {/* 꼬리질문 생성 중 로딩 */}
               {isGenerating && (
-                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3 pointer-events-none">
-                  <div className="flex gap-1.5">
-                    {[0, 1, 2].map((i) => (
-                      <div key={i} className="w-2 h-2 rounded-full bg-white" style={{
+                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-4 pointer-events-none">
+                  <div className="flex gap-3">
+                    {evaluators.map((ev, i) => (
+                      <div key={ev.id} className="flex flex-col items-center gap-1" style={{
                         animation: 'analyzing-dots 1.4s infinite ease-in-out both',
-                        animationDelay: `${i * 0.2}s`,
-                      }} />
+                        animationDelay: `${i * 0.3}s`,
+                      }}>
+                        <span className="text-2xl">{ev.icon}</span>
+                      </div>
                     ))}
                   </div>
-                  <p className="text-white text-sm">면접관이 답변을 검토하고 있습니다...</p>
+                  <p className="text-white text-sm">면접관들이 답변을 검토하고 있습니다...</p>
                 </div>
               )}
 
