@@ -11,6 +11,35 @@ const GRADE_COLOR = { S: 'text-yellow-400', A: 'text-success', B: 'text-info', C
 const scoreColor = (s) => s >= 80 ? 'text-success' : s >= 60 ? 'text-warning' : 'text-danger'
 const barColor = (s) => s >= 80 ? 'bg-success' : s >= 60 ? 'bg-warning' : 'bg-danger'
 
+function downloadSTTData(report) {
+  const data = {
+    timestamp: new Date().toISOString(),
+    questions: report.questionData.map((qd) => ({
+      questionIndex: qd.questionIndex + 1,
+      question: qd.questionText,
+      rawTranscript: qd.rawTranscript || '',
+      correctedTranscript: qd.transcript || '',
+      recordingDuration: qd.recordingDuration,
+    })),
+    evaluatorScores: report.evaluators.map((ev) => ({
+      name: ev.name,
+      role: ev.role,
+      avgScore: ev.avgScore,
+      pass: ev.pass,
+    })),
+    overallScore: report.overallScore,
+    grade: report.grade,
+  }
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `stt-data-${new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-')}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function ReportPage() {
   const navigate = useNavigate()
   const { report, reset: resetInterview } = useInterviewStore()
@@ -121,9 +150,14 @@ export default function ReportPage() {
           ))}
         </div>
 
-        <button onClick={handleRestart} className="w-full py-4 rounded-xl bg-accent hover:bg-accent-hover text-white font-semibold transition-all cursor-pointer">
-          다시 시작하기
-        </button>
+        <div className="flex gap-3">
+          <button onClick={handleRestart} className="flex-1 py-4 rounded-xl bg-accent hover:bg-accent-hover text-white font-semibold transition-all cursor-pointer">
+            다시 시작하기
+          </button>
+          <button onClick={() => downloadSTTData(report)} className="px-6 py-4 rounded-xl border border-border bg-bg-card text-text-secondary hover:border-accent/50 transition-all cursor-pointer text-sm">
+            STT 데이터 저장
+          </button>
+        </div>
       </div>
     </div>
   )

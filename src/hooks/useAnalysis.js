@@ -98,6 +98,7 @@ export function buildReport(textData, visionData, answers) {
       questionIndex: i,
       questionText: a.questionText,
       transcript: a.transcript,
+      rawTranscript: a.rawTranscript || '',
       videoBlobUrl: a.videoBlobUrl,
       recordingDuration: a.recordingDuration,
       frames: a.frames || [],
