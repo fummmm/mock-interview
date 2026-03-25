@@ -279,7 +279,7 @@ export default function InterviewPage() {
             </ul>
             <div className="flex gap-4 text-xs text-text-secondary pt-2 border-t border-border/50">
               <span>질문 {questions.length}개</span>
-              <span>예상 소요 {questions.length * 3}~{questions.length * 5}분</span>
+              <span>예상 소요 10~15분</span>
             </div>
           </div>
 

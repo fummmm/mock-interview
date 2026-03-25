@@ -12,7 +12,7 @@ export const EVALUATORS = {
       role: '업계 팀장급',
       icon: '💼',
       style: '솔직하고 실무적',
-      description: '경력 5년차. 실무 역량과 팀 적합성을 냉정하게 평가합니다.',
+      description: '경력 6년차. 실무 역량과 팀 적합성을 냉정하게 평가합니다.',
       focus: '실무 경험, 문제 해결력, 팀워크',
     },
     {

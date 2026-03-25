@@ -356,7 +356,7 @@ function getEvaluatorConfig(track, trackLabel) {
 
   if (track === 'behavioral') {
     return {
-      prompt: `1. **현직 팀장** (업계 팀장급, 경력 5년+)
+      prompt: `1. **현직 팀장** (업계 팀장급, 경력 6년+)
    - 실무 역량, 팀 적합성, 문제 해결 능력 위주 평가
    - 솔직하고 직설적. "현업에서는 이런 답변은 ___해서 아쉽다" 식 피드백.
 
