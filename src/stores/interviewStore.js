@@ -38,6 +38,7 @@ export const useInterviewStore = create((set, get) => ({
       fillerWordCount: 0,
       silenceSegments: [],
       wordTimestamps: [],
+      followUp: null, // { question, transcript, rawTranscript, videoBlob, videoBlobUrl, frames, recordingDuration }
     })),
     phase: 'setup',
     report: null,
