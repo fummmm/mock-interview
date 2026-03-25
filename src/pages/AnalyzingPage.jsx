@@ -15,7 +15,15 @@ export default function AnalyzingPage() {
   const [statusText, setStatusText] = useState('준비 중...')
   const [downloadInfo, setDownloadInfo] = useState(null)
   const [error, setError] = useState(null)
+  const [elapsed, setElapsed] = useState(0)
   const startedRef = useRef(false)
+  const timerRef = useRef(null)
+
+  // 경과 시간 타이머
+  useEffect(() => {
+    timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000)
+    return () => clearInterval(timerRef.current)
+  }, [])
 
   useEffect(() => {
     if (phase !== 'processing' || startedRef.current) return
@@ -190,7 +198,10 @@ export default function AnalyzingPage() {
           <div className="h-full bg-accent rounded-full transition-all duration-500 ease-out"
             style={{ width: `${progress}%` }} />
         </div>
-        <p className="text-sm text-text-secondary">{progress}%</p>
+        <div className="flex justify-between text-sm text-text-secondary">
+          <span>{progress}%</span>
+          <span>{Math.floor(elapsed / 60)}:{(elapsed % 60).toString().padStart(2, '0')} 경과</span>
+        </div>
 
         {error && (
           <div className="bg-danger/10 border border-danger/30 rounded-xl p-4 space-y-3">

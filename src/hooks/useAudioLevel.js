@@ -34,7 +34,9 @@ export function useAudioLevel(stream) {
         sum += dataArray[i] * dataArray[i]
       }
       const rms = Math.sqrt(sum / dataArray.length) / 255
-      setLevel(rms)
+      // 노이즈 플로어 제거 (0.08 이하는 배경 소음으로 무시)
+      const cleaned = rms > 0.08 ? (rms - 0.08) / 0.92 : 0
+      setLevel(cleaned)
       animFrameRef.current = requestAnimationFrame(tick)
     }
     tick()

@@ -189,7 +189,7 @@ export default function InterviewPage() {
     try {
       const rough = roughTranscriptRef.current.trim()
       console.log(`[꼬리질문] Q${idx + 1} 거친 텍스트:`, rough?.slice(0, 80))
-      const followUp = await generateFollowUp(questionText, rough, evaluators)
+      const followUp = await generateFollowUp(questionText, rough, evaluators, currentQuestion?.id || '')
       console.log(`[꼬리질문] 판단:`, followUp)
 
       if (followUp.needed && followUp.question) {
