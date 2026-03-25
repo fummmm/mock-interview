@@ -145,5 +145,6 @@ export function buildReport(textData, visionData, answers) {
     questionData,
     speechFeedback: textData?.speechFeedback || null,
     visionTips: visionData?.tips || [],
+    coachSummary: textData?.coachSummary || null,
   }
 }
