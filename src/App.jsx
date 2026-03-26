@@ -8,6 +8,7 @@ import SetupPage from './pages/SetupPage'
 import InterviewPage from './pages/InterviewPage'
 import AnalyzingPage from './pages/AnalyzingPage'
 import ReportPage from './pages/ReportPage'
+import MyPage from './pages/MyPage'
 
 function App() {
   return (
@@ -38,11 +39,8 @@ function App() {
         <ProtectedRoute><OnboardingGuard><Layout><ReportPage /></Layout></OnboardingGuard></ProtectedRoute>
       } />
 
-      {/* 마이페이지 (Step 4에서 구현) */}
       <Route path="/mypage" element={
-        <ProtectedRoute><OnboardingGuard><Layout>
-          <div className="flex-1 flex items-center justify-center"><p className="text-text-secondary">마이페이지 (준비 중)</p></div>
-        </Layout></OnboardingGuard></ProtectedRoute>
+        <ProtectedRoute><OnboardingGuard><Layout><MyPage /></Layout></OnboardingGuard></ProtectedRoute>
       } />
 
       {/* 어드민 (Step 6에서 구현) */}
