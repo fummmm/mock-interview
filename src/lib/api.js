@@ -162,6 +162,56 @@ ${nameList}
 }
 
 /**
+ * 이력서/포폴 기반 면접 질문 생성
+ */
+export async function generateDocumentQuestions(extractedText, track, count = 2) {
+  if (!extractedText || extractedText.trim().length < 50) return []
+
+  const trackLabel = getTrackLabel(track)
+
+  try {
+    const content = await callOpenRouter({
+      model: 'anthropic/claude-sonnet-4',
+      messages: [
+        {
+          role: 'system',
+          content: `당신은 면접관입니다. 지원자의 이력서/포트폴리오를 읽고 면접 질문을 생성합니다.
+
+규칙:
+- 이력서/포폴 내용에서 구체적으로 언급된 프로젝트, 경험, 기술을 기반으로 질문
+- "${trackLabel}" 직군 맥락에 맞는 질문
+- 답변자가 실제 경험을 구체적으로 설명해야 하는 질문 (예/아니오 불가)
+- ${count}개 질문 생성
+
+반드시 JSON 배열로만 응답:
+[
+  {
+    "id": "doc-001",
+    "text": "질문 내용",
+    "category": "document",
+    "difficulty": "intermediate",
+    "keywords": ["키워드1", "키워드2"],
+    "evaluationHints": "평가 포인트"
+  }
+]`
+        },
+        {
+          role: 'user',
+          content: `[이력서/포트폴리오 내용]\n${extractedText.slice(0, 3000)}`
+        },
+      ],
+      jsonMode: true,
+    })
+
+    const questions = safeParseJSON(content, 'generateDocumentQuestions')
+    return Array.isArray(questions) ? questions.slice(0, count) : []
+  } catch (e) {
+    console.warn('이력서 질문 생성 실패:', e.message)
+    return []
+  }
+}
+
+/**
  * 텍스트 분석 - 3명 평가자
  */
 export async function analyzeText({ questions, answers, track }) {

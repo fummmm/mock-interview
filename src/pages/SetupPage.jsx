@@ -3,6 +3,9 @@ import { useSettingsStore } from '../stores/settingsStore'
 import { useInterviewStore } from '../stores/interviewStore'
 import { useAuthStore } from '../stores/authStore'
 import { getQuestions } from '../lib/questions'
+import { generateDocumentQuestions } from '../lib/api'
+import { supabase } from '../lib/supabase'
+import { useState } from 'react'
 
 const TRACK_LABELS = {
   unity: 'Unity',
@@ -23,20 +26,53 @@ export default function SetupPage() {
   const remaining = quota ? Math.max(0, quota.total_quota - quota.used_count) : 0
   const canStart = !!track && remaining > 0
 
+  const [starting, setStarting] = useState(false)
+
   const handleStart = async () => {
-    if (!canStart) return
+    if (!canStart || starting) return
+    setStarting(true)
+
     reset()
-    const questions = getQuestions(questionCount, track)
+    let questions = getQuestions(questionCount, track)
+
+    // 이력서/포폴 기반 질문 생성 시도
+    try {
+      const { data: docs } = await supabase
+        .from('user_documents')
+        .select('extracted_text, doc_type')
+        .eq('user_id', profile.id)
+
+      const docTexts = (docs || [])
+        .filter((d) => d.extracted_text && d.extracted_text.length > 50)
+        .map((d) => `[${d.doc_type}]\n${d.extracted_text}`)
+        .join('\n\n')
+
+      if (docTexts) {
+        const docQuestions = await generateDocumentQuestions(docTexts, track, Math.min(2, questionCount - 2))
+        if (docQuestions.length > 0) {
+          // 자기소개 다음, 마무리 전에 삽입
+          const introIdx = questions.findIndex((q) => q.id === 'beh-intro')
+          const insertAt = introIdx >= 0 ? introIdx + 1 : 1
+          questions = [
+            ...questions.slice(0, insertAt),
+            ...docQuestions,
+            ...questions.slice(insertAt),
+          ].slice(0, questionCount + docQuestions.length) // 전체 수 조정
+        }
+      }
+    } catch (e) {
+      console.warn('이력서 질문 생성 스킵:', e.message)
+    }
+
     loadQuestions(questions)
 
-    // DB 세션 생성 + 쿼타 차감
     const { startSession } = useInterviewStore.getState()
     await startSession(profile.id, track, questionCount)
 
-    // 쿼타 새로고침
     const { refreshQuota } = useAuthStore.getState()
     await refreshQuota()
 
+    setStarting(false)
     navigate('/interview')
   }
 
@@ -108,14 +144,14 @@ export default function SetupPage() {
         {/* 시작 버튼 */}
         <button
           onClick={handleStart}
-          disabled={!canStart}
+          disabled={!canStart || starting}
           className={`w-full py-4 rounded-xl text-lg font-semibold transition-all ${
-            canStart
+            canStart && !starting
               ? 'bg-accent hover:bg-accent-hover text-white cursor-pointer'
               : 'bg-bg-elevated text-text-secondary cursor-not-allowed'
           }`}
         >
-          {remaining > 0 ? '면접 시작' : '면접 횟수가 없습니다 (관리자에게 문의)'}
+          {starting ? '준비 중...' : remaining > 0 ? '면접 시작' : '면접 횟수가 없습니다 (관리자에게 문의)'}
         </button>
       </div>
     </div>
