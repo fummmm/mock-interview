@@ -11,7 +11,10 @@ const SILENCE_THRESHOLD = 2.5
 
 let worker = null
 let isModelReady = false
-let useMainThread = false // Worker 실패 시 true
+let useMainThread = false
+
+// 순차 처리 큐 (동시 요청 시 답변 밀림 방지)
+let transcribeQueue = Promise.resolve()
 
 function getWorker() {
   if (!worker && !useMainThread) {
@@ -94,9 +97,19 @@ export async function preloadModel(onProgress, onStatus) {
 }
 
 /**
- * 오디오 Blob → 텍스트 변환
+ * 오디오 Blob → 텍스트 변환 (큐로 순차 처리 보장)
  */
-export async function transcribeAudio(blob) {
+export function transcribeAudio(blob) {
+  // 큐에 추가: 이전 작업이 끝난 후에 실행
+  const task = transcribeQueue.then(() => _transcribeAudio(blob)).catch((e) => {
+    console.warn('[Whisper] 변환 실패:', e.message)
+    throw e
+  })
+  transcribeQueue = task.catch(() => {}) // 에러가 큐를 끊지 않게
+  return task
+}
+
+async function _transcribeAudio(blob) {
   if (!isModelReady) await preloadModel()
 
   const audioData = await blobToAudioData(blob)

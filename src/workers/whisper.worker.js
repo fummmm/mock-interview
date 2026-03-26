@@ -51,10 +51,14 @@ self.addEventListener('message', async (event) => {
         chunk_length_s: 30,
       })
 
+      // 반복 환각 제거 (같은 구절 연속 반복 → 1회만)
+      let text = result.text || ''
+      text = removeRepetitions(text)
+
       self.postMessage({
         type: 'result',
         requestId,
-        text: result.text || '',
+        text,
         chunks: result.chunks || [],
       })
     } catch (err) {
@@ -62,3 +66,36 @@ self.addEventListener('message', async (event) => {
     }
   }
 })
+
+/**
+ * 반복 환각 제거
+ * Whisper가 같은 구절을 무한 반복 출력하는 버그 대응
+ * 5단어 이상의 구절이 연속 2회 이상 반복되면 1회만 남김
+ */
+function removeRepetitions(text) {
+  if (!text || text.length < 20) return text
+
+  // 문장 단위 반복 제거
+  const sentences = text.split(/(?<=[.!?。])\s*/)
+  const deduped = []
+  let prev = ''
+  for (const s of sentences) {
+    const trimmed = s.trim()
+    if (!trimmed) continue
+    // 이전 문장과 80% 이상 겹치면 스킵
+    if (prev && similarity(prev, trimmed) > 0.8) continue
+    deduped.push(trimmed)
+    prev = trimmed
+  }
+
+  return deduped.join(' ')
+}
+
+function similarity(a, b) {
+  if (!a || !b) return 0
+  const setA = new Set(a.split(/\s+/))
+  const setB = new Set(b.split(/\s+/))
+  let overlap = 0
+  for (const w of setA) if (setB.has(w)) overlap++
+  return overlap / Math.max(setA.size, setB.size)
+}
