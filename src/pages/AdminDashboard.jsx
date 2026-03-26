@@ -3,38 +3,74 @@ import { Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
 
+const TRACK_LABELS = { unity: 'Unity', unreal: 'Unreal', pm: 'PM', design: '게임기획' }
+
 export default function AdminDashboard() {
   const { profile } = useAuthStore()
   const isMain = profile?.role === 'main_admin'
-  const [stats, setStats] = useState(null)
+
+  const [users, setUsers] = useState([])
+  const [sessions, setSessions] = useState([])
+  const [results, setResults] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { loadStats() }, [])
+  const [filterTrack, setFilterTrack] = useState('')
+  const [filterCohort, setFilterCohort] = useState('')
 
-  async function loadStats() {
-    const { data: sessions } = await supabase.from('interview_sessions').select('status, track')
-    const { data: results } = await supabase.from('interview_results').select('overall_pass, overall_score')
-    const { data: users } = await supabase.from('users').select('role').eq('role', 'student')
+  useEffect(() => { loadData() }, [])
 
-    const completed = sessions?.filter((s) => s.status === 'completed') || []
-    const passed = results?.filter((r) => r.overall_pass) || []
-    const avgScore = results?.length > 0
-      ? Math.round(results.reduce((a, r) => a + (r.overall_score || 0), 0) / results.length)
-      : 0
-
-    setStats({
-      totalStudents: users?.length || 0,
-      totalSessions: completed.length,
-      passCount: passed.length,
-      passRate: completed.length > 0 ? Math.round((passed.length / results.length) * 100) : 0,
-      avgScore,
-    })
+  async function loadData() {
+    const [u, s, r] = await Promise.all([
+      supabase.from('users').select('id, track, cohort, role').eq('role', 'student'),
+      supabase.from('interview_sessions').select('id, user_id, track, status'),
+      supabase.from('interview_results').select('id, user_id, overall_pass, overall_score, created_at, interview_sessions(track)'),
+    ])
+    setUsers(u.data || [])
+    setSessions(s.data || [])
+    setResults(r.data || [])
     setLoading(false)
   }
 
+  // 필터 적용된 유저 ID 셋
+  const filteredUserIds = new Set(
+    users
+      .filter((u) => (!filterTrack || u.track === filterTrack) && (!filterCohort || u.cohort === parseInt(filterCohort)))
+      .map((u) => u.id)
+  )
+
+  // 필터 적용된 통계
+  function calcStats(userIds) {
+    const s = sessions.filter((x) => x.status === 'completed' && userIds.has(x.user_id))
+    const r = results.filter((x) => userIds.has(x.user_id))
+    const passed = r.filter((x) => x.overall_pass)
+    const avg = r.length > 0 ? Math.round(r.reduce((a, x) => a + (x.overall_score || 0), 0) / r.length) : 0
+    return {
+      students: userIds.size,
+      completed: s.length,
+      passed: passed.length,
+      passRate: r.length > 0 ? Math.round((passed.length / r.length) * 100) : 0,
+      avgScore: avg,
+    }
+  }
+
+  const stats = calcStats(filteredUserIds)
+
+  // 트랙별 통계
+  const trackStats = Object.keys(TRACK_LABELS).map((track) => {
+    const ids = new Set(users.filter((u) => u.track === track && (!filterCohort || u.cohort === parseInt(filterCohort))).map((u) => u.id))
+    return { track, label: TRACK_LABELS[track], ...calcStats(ids) }
+  }).filter((t) => t.students > 0)
+
+  // 기수별 통계
+  const cohorts = [...new Set(users.map((u) => u.cohort).filter(Boolean))].sort((a, b) => b - a)
+  const cohortStats = cohorts.map((cohort) => {
+    const ids = new Set(users.filter((u) => u.cohort === cohort && (!filterTrack || u.track === filterTrack)).map((u) => u.id))
+    return { cohort, ...calcStats(ids) }
+  }).filter((c) => c.students > 0)
+
   return (
     <div className="flex-1 p-4 sm:p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">어드민 대시보드</h1>
           <span className="text-xs px-3 py-1 rounded-full bg-accent/15 text-accent">
@@ -42,33 +78,111 @@ export default function AdminDashboard() {
           </span>
         </div>
 
-        {loading ? (
-          <p className="text-text-secondary">로딩 중...</p>
-        ) : (
+        {loading ? <p className="text-text-secondary">로딩 중...</p> : (
           <>
-            {/* 통계 카드 */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              <div className="bg-bg-card border border-border rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold">{stats.totalStudents}</p>
-                <p className="text-xs text-text-secondary mt-1">수강생</p>
-              </div>
-              <div className="bg-bg-card border border-border rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold">{stats.totalSessions}</p>
-                <p className="text-xs text-text-secondary mt-1">완료된 면접</p>
-              </div>
-              <div className="bg-bg-card border border-border rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold text-success">{stats.passCount}</p>
-                <p className="text-xs text-text-secondary mt-1">합격</p>
-              </div>
-              <div className="bg-bg-card border border-border rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold">{stats.passRate}%</p>
-                <p className="text-xs text-text-secondary mt-1">합격률</p>
-              </div>
-              <div className="bg-bg-card border border-border rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold">{stats.avgScore}</p>
-                <p className="text-xs text-text-secondary mt-1">평균 점수</p>
-              </div>
+            {/* 필터 */}
+            <div className="flex gap-3 flex-wrap">
+              <select value={filterTrack} onChange={(e) => setFilterTrack(e.target.value)}
+                className="px-3 py-2 rounded-lg bg-bg-card border border-border text-sm text-text-primary">
+                <option value="">전체 트랙</option>
+                {Object.entries(TRACK_LABELS).map(([id, label]) => (
+                  <option key={id} value={id}>{label}</option>
+                ))}
+              </select>
+              <select value={filterCohort} onChange={(e) => setFilterCohort(e.target.value)}
+                className="px-3 py-2 rounded-lg bg-bg-card border border-border text-sm text-text-primary">
+                <option value="">전체 기수</option>
+                {cohorts.map((c) => <option key={c} value={c}>{c}기</option>)}
+              </select>
+              {(filterTrack || filterCohort) && (
+                <button onClick={() => { setFilterTrack(''); setFilterCohort('') }}
+                  className="text-xs text-text-secondary hover:text-text-primary cursor-pointer">초기화</button>
+              )}
             </div>
+
+            {/* 전체 통계 */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {[
+                { value: stats.students, label: '수강생' },
+                { value: stats.completed, label: '완료된 면접' },
+                { value: stats.passed, label: '합격', color: 'text-success' },
+                { value: `${stats.passRate}%`, label: '합격률' },
+                { value: stats.avgScore, label: '평균 점수' },
+              ].map((s, i) => (
+                <div key={i} className="bg-bg-card border border-border rounded-xl p-4 text-center">
+                  <p className={`text-2xl font-bold ${s.color || ''}`}>{s.value}</p>
+                  <p className="text-xs text-text-secondary mt-1">{s.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* 트랙별 통계 */}
+            {!filterTrack && trackStats.length > 0 && (
+              <div className="space-y-2">
+                <h2 className="font-semibold text-sm text-text-secondary">트랙별</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-text-secondary text-left">
+                        <th className="py-2 px-3">트랙</th>
+                        <th className="py-2 px-3 text-right">수강생</th>
+                        <th className="py-2 px-3 text-right">면접</th>
+                        <th className="py-2 px-3 text-right">합격</th>
+                        <th className="py-2 px-3 text-right">합격률</th>
+                        <th className="py-2 px-3 text-right">평균</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {trackStats.map((t) => (
+                        <tr key={t.track} className="border-b border-border/50 hover:bg-bg-card/50 cursor-pointer"
+                          onClick={() => setFilterTrack(t.track)}>
+                          <td className="py-2 px-3 font-medium">{t.label}</td>
+                          <td className="py-2 px-3 text-right">{t.students}</td>
+                          <td className="py-2 px-3 text-right">{t.completed}</td>
+                          <td className="py-2 px-3 text-right text-success">{t.passed}</td>
+                          <td className="py-2 px-3 text-right">{t.passRate}%</td>
+                          <td className="py-2 px-3 text-right">{t.avgScore}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* 기수별 통계 */}
+            {!filterCohort && cohortStats.length > 0 && (
+              <div className="space-y-2">
+                <h2 className="font-semibold text-sm text-text-secondary">기수별</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-text-secondary text-left">
+                        <th className="py-2 px-3">기수</th>
+                        <th className="py-2 px-3 text-right">수강생</th>
+                        <th className="py-2 px-3 text-right">면접</th>
+                        <th className="py-2 px-3 text-right">합격</th>
+                        <th className="py-2 px-3 text-right">합격률</th>
+                        <th className="py-2 px-3 text-right">평균</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cohortStats.map((c) => (
+                        <tr key={c.cohort} className="border-b border-border/50 hover:bg-bg-card/50 cursor-pointer"
+                          onClick={() => setFilterCohort(c.cohort.toString())}>
+                          <td className="py-2 px-3 font-medium">{c.cohort}기</td>
+                          <td className="py-2 px-3 text-right">{c.students}</td>
+                          <td className="py-2 px-3 text-right">{c.completed}</td>
+                          <td className="py-2 px-3 text-right text-success">{c.passed}</td>
+                          <td className="py-2 px-3 text-right">{c.passRate}%</td>
+                          <td className="py-2 px-3 text-right">{c.avgScore}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* 메뉴 */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
