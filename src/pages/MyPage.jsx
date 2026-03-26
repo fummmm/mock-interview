@@ -83,13 +83,6 @@ export default function MyPage() {
         return
       }
 
-      // PDF 텍스트 추출 (간단 버전 - 향후 pdfjs-dist로 교체)
-      let extractedText = ''
-      try {
-        const text = await file.text()
-        extractedText = text.slice(0, 5000) // 간단히 텍스트 추출 시도
-      } catch (e) { /* PDF 바이너리면 실패, 무시 */ }
-
       // 기존 같은 타입 문서 삭제
       const existing = documents.find((d) => d.doc_type === docType)
       if (existing) {
@@ -97,15 +90,19 @@ export default function MyPage() {
         await supabase.from('user_documents').delete().eq('id', existing.id)
       }
 
-      // DB 레코드 생성
-      await supabase.from('user_documents').insert({
+      // DB 레코드 생성 (extracted_text는 별도 처리)
+      const { error: insertError } = await supabase.from('user_documents').insert({
         user_id: profile.id,
         doc_type: docType,
         file_name: file.name,
         file_path: filePath,
         file_size: file.size,
-        extracted_text: extractedText,
       })
+
+      if (insertError) {
+        console.error('문서 레코드 생성 실패:', insertError)
+        alert('파일은 업로드되었지만 기록 저장에 실패했습니다: ' + insertError.message)
+      }
 
       await loadData()
       setUploading(false)
