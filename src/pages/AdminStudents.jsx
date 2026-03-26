@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
 
 const TRACK_LABELS = { unity: 'Unity', unreal: 'Unreal', pm: 'PM', design: '게임기획', behavioral: '인성' }
+const TRACK_OPTIONS = { unity: 'Unity', unreal: 'Unreal', pm: 'PM', design: '게임기획' }
 
 export default function AdminStudents() {
   const { profile } = useAuthStore()
@@ -14,6 +15,9 @@ export default function AdminStudents() {
   const [loading, setLoading] = useState(true)
   const [filterTrack, setFilterTrack] = useState('')
   const [filterCohort, setFilterCohort] = useState('')
+  const [editingId, setEditingId] = useState(null)
+  const [editTrack, setEditTrack] = useState('')
+  const [editCohort, setEditCohort] = useState('')
 
   useEffect(() => { loadStudents() }, [])
 
@@ -57,6 +61,14 @@ export default function AdminStudents() {
 
     setStudents(merged)
     setLoading(false)
+  }
+
+  async function handleSaveStudent(userId) {
+    await supabase.from('users').update({
+      track: editTrack, cohort: parseInt(editCohort), updated_at: new Date().toISOString()
+    }).eq('id', userId)
+    setEditingId(null)
+    await loadStudents()
   }
 
   // 필터링
@@ -108,6 +120,7 @@ export default function AdminStudents() {
                   <th className="py-3 px-2 text-right">쿼타</th>
                   <th className="py-3 px-2 text-right">최근 점수</th>
                   <th className="py-3 px-2 text-center">합격 여부</th>
+                  <th className="py-3 px-2 text-center">수정</th>
                   {isMain && <th className="py-3 px-2 text-center">리포트</th>}
                 </tr>
               </thead>
@@ -115,8 +128,26 @@ export default function AdminStudents() {
                 {filtered.map((s) => (
                   <tr key={s.id} className="border-b border-border/50 hover:bg-bg-card/50">
                     <td className="py-3 px-2">{s.name || s.email}</td>
-                    <td className="py-3 px-2 text-text-secondary">{TRACK_LABELS[s.track] || s.track}</td>
-                    <td className="py-3 px-2 text-text-secondary">{s.cohort}기</td>
+                    {editingId === s.id ? (
+                      <>
+                        <td className="py-2 px-2">
+                          <select value={editTrack} onChange={(e) => setEditTrack(e.target.value)}
+                            className="px-2 py-1 rounded bg-bg-secondary border border-border text-xs text-text-primary">
+                            {Object.entries(TRACK_OPTIONS).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+                          </select>
+                        </td>
+                        <td className="py-2 px-2">
+                          <input type="text" inputMode="numeric" value={editCohort}
+                            onChange={(e) => setEditCohort(e.target.value.replace(/[^0-9]/g, ''))}
+                            className="w-14 px-2 py-1 rounded bg-bg-secondary border border-border text-xs text-text-primary" />
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="py-3 px-2 text-text-secondary">{TRACK_LABELS[s.track] || s.track}</td>
+                        <td className="py-3 px-2 text-text-secondary">{s.cohort}기</td>
+                      </>
+                    )}
                     <td className="py-3 px-2 text-right">{s.interviewCount}</td>
                     <td className="py-3 px-2 text-right text-text-secondary">{s.quota}</td>
                     <td className="py-3 px-2 text-right">
@@ -130,6 +161,17 @@ export default function AdminStudents() {
                       <span className={`text-xs px-2 py-0.5 rounded-full ${s.hasPass ? 'bg-success/15 text-success' : s.interviewCount > 0 ? 'bg-danger/15 text-danger' : 'bg-bg-elevated text-text-secondary'}`}>
                         {s.hasPass ? '합격' : s.interviewCount > 0 ? '미합격' : '미응시'}
                       </span>
+                    </td>
+                    <td className="py-3 px-2 text-center">
+                      {editingId === s.id ? (
+                        <div className="flex gap-1 justify-center">
+                          <button onClick={() => handleSaveStudent(s.id)} className="text-xs text-success hover:underline cursor-pointer">저장</button>
+                          <button onClick={() => setEditingId(null)} className="text-xs text-text-secondary hover:underline cursor-pointer">취소</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => { setEditingId(s.id); setEditTrack(s.track); setEditCohort(s.cohort?.toString() || '') }}
+                          className="text-xs text-text-secondary hover:text-accent cursor-pointer">수정</button>
+                      )}
                     </td>
                     {isMain && (
                       <td className="py-3 px-2 text-center">

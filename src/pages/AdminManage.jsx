@@ -19,6 +19,7 @@ export default function AdminManage() {
   // 부여 폼
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedUser, setSelectedUser] = useState(null)
+  const [selectedRole, setSelectedRole] = useState('sub_admin')
   const [assignTrack, setAssignTrack] = useState('')
   const [assignCohort, setAssignCohort] = useState('')
 
@@ -30,18 +31,19 @@ export default function AdminManage() {
     const { data: assigns } = await supabase.from('admin_assignments').select('*')
     const { data: users } = await supabase.from('users').select('id, name, email, role')
 
-    setSubAdmins((admins || []).filter((a) => a.role === 'sub_admin'))
+    setSubAdmins((admins || []).filter((a) => a.id !== profile?.id)) // 본인 제외 전체 어드민
     setAssignments(assigns || [])
     setAllUsers(users || [])
     setLoading(false)
   }
 
-  // 서브 어드민 부여
+  // 어드민 부여 (메인/서브 선택)
   async function handlePromote() {
     if (!selectedUser) return
-    await supabase.from('users').update({ role: 'sub_admin' }).eq('id', selectedUser)
+    await supabase.from('users').update({ role: selectedRole }).eq('id', selectedUser)
     setSelectedUser(null)
     setSearchTerm('')
+    setSelectedRole('sub_admin')
     await loadData()
   }
 
@@ -85,7 +87,7 @@ export default function AdminManage() {
           <>
             {/* 서브 어드민 부여 */}
             <div className="bg-bg-card border border-border rounded-2xl p-5 space-y-3">
-              <h2 className="font-semibold">서브 어드민 부여</h2>
+              <h2 className="font-semibold">어드민 부여</h2>
               <input type="text" value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setSelectedUser(null) }}
                 placeholder="수강생 검색 (이름 또는 이메일)"
@@ -101,22 +103,34 @@ export default function AdminManage() {
                 </div>
               )}
               {selectedUser && (
-                <button onClick={handlePromote} className="px-6 py-2 rounded-xl bg-accent text-white text-sm cursor-pointer">
-                  서브 어드민으로 지정
-                </button>
+                <div className="flex gap-3 items-center">
+                  <select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)}
+                    className="px-3 py-2 rounded-lg bg-bg-secondary border border-border text-sm text-text-primary">
+                    <option value="sub_admin">서브 어드민</option>
+                    <option value="main_admin">메인 어드민</option>
+                  </select>
+                  <button onClick={handlePromote} className="px-6 py-2 rounded-xl bg-accent text-white text-sm cursor-pointer">
+                    지정
+                  </button>
+                </div>
               )}
             </div>
 
             {/* 현재 서브 어드민 목록 */}
             <div className="space-y-3">
-              <h2 className="font-semibold">서브 어드민 목록 ({subAdmins.length}명)</h2>
+              <h2 className="font-semibold">어드민 목록 ({subAdmins.length}명)</h2>
               {subAdmins.map((admin) => {
                 const adminAssigns = assignments.filter((a) => a.admin_id === admin.id)
                 return (
                   <div key={admin.id} className="bg-bg-card border border-border rounded-xl p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium">{admin.name || admin.email}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{admin.name || admin.email}</p>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${admin.role === 'main_admin' ? 'bg-accent/15 text-accent' : 'bg-bg-elevated text-text-secondary'}`}>
+                            {admin.role === 'main_admin' ? '메인' : '서브'}
+                          </span>
+                        </div>
                         <p className="text-xs text-text-secondary">{admin.email}</p>
                       </div>
                       <button onClick={() => handleDemote(admin.id)}

@@ -285,24 +285,16 @@ export default function MyPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm text-text-secondary">트랙</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(TRACK_LABELS).map(([id, label]) => (
-                      <button key={id} onClick={() => setEditTrack(id)}
-                        className={`px-4 py-2.5 rounded-xl border text-sm cursor-pointer ${editTrack === id ? 'border-accent bg-accent/10 text-accent' : 'border-border bg-bg-card text-text-secondary'}`}>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+                  <p className="px-4 py-3 rounded-xl bg-bg-elevated text-text-secondary">{TRACK_LABELS[profile?.track] || profile?.track || '-'}</p>
+                  <p className="text-xs text-text-secondary">트랙/기수 변경은 관리자에게 문의해주세요.</p>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm text-text-secondary">기수</label>
-                  <input type="text" inputMode="numeric" value={editCohort}
-                    onChange={(e) => setEditCohort(e.target.value.replace(/[^0-9]/g, ''))} maxLength={3}
-                    className="w-full px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary focus:border-accent focus:outline-none [appearance:textfield]" />
+                  <p className="px-4 py-3 rounded-xl bg-bg-elevated text-text-secondary">{profile?.cohort ? `${profile.cohort}기` : '-'}</p>
                 </div>
                 <button onClick={handleSaveProfile} disabled={saving}
                   className="w-full py-3 rounded-xl bg-accent hover:bg-accent-hover text-white font-semibold cursor-pointer disabled:opacity-50">
-                  {saving ? '저장 중...' : '저장'}
+                  {saving ? '저장 중...' : '이름 저장'}
                 </button>
               </div>
             )}
