@@ -1,8 +1,13 @@
 import { create } from 'zustand'
 
+let sessionCounter = 0
+
 export const useInterviewStore = create((set, get) => ({
+  // 세션 ID (재진입 시 이전 백그라운드 작업 무효화)
+  sessionId: 0,
+
   // 상태 머신
-  phase: 'setup', // setup | ready | recording | processing | analyzing | report
+  phase: 'setup',
 
   // 질문
   questions: [],
@@ -23,7 +28,10 @@ export const useInterviewStore = create((set, get) => ({
   analysisProgress: 0,
 
   // 액션
-  loadQuestions: (questions) => set({
+  loadQuestions: (questions) => {
+    sessionCounter++
+    return set({
+    sessionId: sessionCounter,
     questions,
     currentIndex: 0,
     answers: questions.map((q) => ({
@@ -43,7 +51,9 @@ export const useInterviewStore = create((set, get) => ({
     phase: 'setup',
     report: null,
     analysisProgress: 0,
-  }),
+    pendingSTT: 0,
+  })
+  },
 
   setPhase: (phase) => set({ phase }),
 
@@ -73,15 +83,19 @@ export const useInterviewStore = create((set, get) => ({
 
   setAnalysisProgress: (progress) => set({ analysisProgress: progress }),
 
-  reset: () => set({
-    phase: 'setup',
-    questions: [],
-    currentIndex: 0,
-    mediaStream: null,
-    permissionStatus: 'pending',
-    answers: [],
-    report: null,
-    analysisProgress: 0,
-    pendingSTT: 0,
-  }),
+  reset: () => {
+    sessionCounter++
+    return set({
+      sessionId: sessionCounter,
+      phase: 'setup',
+      questions: [],
+      currentIndex: 0,
+      mediaStream: null,
+      permissionStatus: 'pending',
+      answers: [],
+      report: null,
+      analysisProgress: 0,
+      pendingSTT: 0,
+    })
+  },
 }))

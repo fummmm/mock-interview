@@ -37,28 +37,28 @@ self.addEventListener('message', async (event) => {
   }
 
   if (type === 'transcribe') {
+    const requestId = event.data.requestId || ''
     if (!transcriber) {
-      self.postMessage({ type: 'error', message: '모델이 아직 로딩되지 않았습니다.' })
+      self.postMessage({ type: 'error', requestId, message: '모델이 아직 로딩되지 않았습니다.' })
       return
     }
 
     try {
-      self.postMessage({ type: 'status', message: '음성을 텍스트로 변환 중...' })
-
       const result = await transcriber(audioData, {
         language: 'ko',
         task: 'transcribe',
-        return_timestamps: true, // sentence-level (word-level은 불안정)
+        return_timestamps: true,
         chunk_length_s: 30,
       })
 
       self.postMessage({
         type: 'result',
+        requestId,
         text: result.text || '',
         chunks: result.chunks || [],
       })
     } catch (err) {
-      self.postMessage({ type: 'error', message: `변환 실패: ${err.message}` })
+      self.postMessage({ type: 'error', requestId, message: `변환 실패: ${err.message}` })
     }
   }
 })

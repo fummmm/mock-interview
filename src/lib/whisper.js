@@ -109,14 +109,19 @@ export async function transcribeAudio(blob) {
     return { transcript: result.text || '', chunks: result.chunks || [], ...analyzeTranscript(result.text, result.chunks) }
   }
 
-  // Worker 방식
+  // Worker 방식 (requestId로 결과 매칭, 동시 요청 충돌 방지)
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       worker.removeEventListener('message', handler)
       reject(new Error('음성 변환 시간 초과'))
-    }, 180000) // 3분 타임아웃
+    }, 180000)
 
     const handler = (e) => {
+      // 내 요청의 응답만 처리
+      if (e.data.requestId && e.data.requestId !== requestId) return
+
       if (e.data.type === 'result') {
         clearTimeout(timeout)
         worker.removeEventListener('message', handler)
@@ -131,7 +136,7 @@ export async function transcribeAudio(blob) {
     }
 
     worker.addEventListener('message', handler)
-    worker.postMessage({ type: 'transcribe', audioData })
+    worker.postMessage({ type: 'transcribe', audioData, requestId })
   })
 }
 

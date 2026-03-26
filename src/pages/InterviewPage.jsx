@@ -119,39 +119,37 @@ export default function InterviewPage() {
     navigate('/')
   }, [stopStream, navigate])
 
-  // 백그라운드 STT + 교정
+  // 백그라운드 STT + 교정 (세션 ID로 이전 세션 작업 무효화)
   const processInBackground = useCallback((idx, blob, questionText, isFollowUpAnswer = false) => {
+    const mySession = useInterviewStore.getState().sessionId
     incPendingSTT()
     ;(async () => {
       try {
+        if (useInterviewStore.getState().sessionId !== mySession) return
+
         const result = await transcribeAudio(blob)
+        if (useInterviewStore.getState().sessionId !== mySession) return
+
         const corrected = await correctTranscript(result.transcript, questionText)
+        if (useInterviewStore.getState().sessionId !== mySession) return
 
         if (isFollowUpAnswer) {
           const state = useInterviewStore.getState()
           const answers = [...state.answers]
-          answers[idx] = {
-            ...answers[idx],
-            followUp: {
-              ...answers[idx].followUp,
-              rawTranscript: result.transcript,
-              transcript: corrected,
-              fillerWordCount: result.fillerWordCount,
-            },
+          if (answers[idx]) {
+            answers[idx] = {
+              ...answers[idx],
+              followUp: { ...answers[idx].followUp, rawTranscript: result.transcript, transcript: corrected, fillerWordCount: result.fillerWordCount },
+            }
+            useInterviewStore.setState({ answers })
           }
-          useInterviewStore.setState({ answers })
         } else {
-          updateAnswer(idx, {
-            rawTranscript: result.transcript,
-            transcript: corrected,
-            fillerWordCount: result.fillerWordCount,
-            silenceSegments: result.silencePositions || [],
-          })
+          updateAnswer(idx, { rawTranscript: result.transcript, transcript: corrected, fillerWordCount: result.fillerWordCount, silenceSegments: result.silencePositions || [] })
         }
       } catch (e) {
         console.warn(`[백그라운드] Q${idx + 1}${isFollowUpAnswer ? ' 꼬리' : ''} 실패:`, e.message)
       } finally {
-        decPendingSTT()
+        if (useInterviewStore.getState().sessionId === mySession) decPendingSTT()
       }
     })()
   }, [updateAnswer, incPendingSTT, decPendingSTT])
