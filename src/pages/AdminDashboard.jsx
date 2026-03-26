@@ -150,8 +150,8 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* 기수별 통계 */}
-            {!filterCohort && cohortStats.length > 0 && (
+            {/* 기수별 통계 (특정 트랙 선택 시에만 표시) */}
+            {filterTrack && !filterCohort && cohortStats.length > 0 && (
               <div className="space-y-2">
                 <h2 className="font-semibold text-sm text-text-secondary">기수별</h2>
                 <div className="overflow-x-auto">
