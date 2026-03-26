@@ -45,9 +45,10 @@ export const useAuthStore = create((set, get) => ({
         })
         if (insertError) console.error('프로필 생성 실패:', insertError.message)
 
-        // 쿼타도 생성
+        // 쿼타 생성 (@teamsparta.co면 3회, 나머지 0회)
+        const initialQuota = user.email?.endsWith('@teamsparta.co') ? 3 : 0
         await supabase.from('interview_quotas').insert({
-          user_id: user.id, total_quota: 0, used_count: 0,
+          user_id: user.id, total_quota: initialQuota, used_count: 0,
         })
 
         // 다시 로드

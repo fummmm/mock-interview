@@ -14,7 +14,7 @@ export default function Layout({ children }) {
     <div className="flex-1 flex flex-col">
       <nav className="border-b border-border bg-bg-secondary px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Link to="/" className="font-bold text-lg">AI Mock Interview</Link>
+          <Link to="/" className="font-bold text-lg">AI Mock Interview(테스트)</Link>
 
           <div className="flex items-center gap-4">
             {profile && (

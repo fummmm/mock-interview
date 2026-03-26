@@ -81,7 +81,7 @@ export default function SetupPage() {
       <div className="max-w-2xl w-full space-y-10">
         {/* 헤더 */}
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">AI Mock Interview</h1>
+          <h1 className="text-3xl font-bold">AI Mock Interview(테스트)</h1>
           <p className="text-text-secondary">AI 모의면접 연습 서비스</p>
           {/* 쿼타 표시 */}
           <div className={`inline-block px-4 py-1.5 rounded-full text-sm ${remaining > 0 ? 'bg-accent/10 text-accent' : 'bg-danger/10 text-danger'}`}>

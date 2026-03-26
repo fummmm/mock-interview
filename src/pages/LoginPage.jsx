@@ -18,7 +18,7 @@ export default function LoginPage() {
     <div className="flex-1 flex flex-col items-center justify-center p-6">
       <div className="max-w-md w-full space-y-8 text-center">
         <div className="space-y-3">
-          <h1 className="text-4xl font-bold">AI Mock Interview</h1>
+          <h1 className="text-4xl font-bold">AI Mock Interview(테스트)</h1>
           <p className="text-text-secondary">AI 모의면접으로 면접 역량을 키워보세요</p>
           <p className="text-sm text-text-secondary">캠과 마이크로 답변하면 3명의 면접관이 평가합니다</p>
         </div>
