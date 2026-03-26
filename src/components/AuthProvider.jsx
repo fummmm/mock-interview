@@ -12,11 +12,15 @@ export default function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
-          useAuthStore.setState({ user: session.user })
-          await loadProfile()
+          useAuthStore.setState({ user: session.user, loading: false })
+          // 약간의 딜레이 후 프로필 로드 (Supabase 트리거 실행 대기)
+          setTimeout(() => loadProfile(), 500)
         }
         if (event === 'SIGNED_OUT') {
-          useAuthStore.setState({ user: null, profile: null, quota: null })
+          useAuthStore.setState({ user: null, profile: null, quota: null, loading: false })
+        }
+        if (event === 'TOKEN_REFRESHED' && session?.user) {
+          useAuthStore.setState({ user: session.user })
         }
       }
     )

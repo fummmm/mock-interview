@@ -1,14 +1,15 @@
 import { useNavigate } from 'react-router-dom'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useInterviewStore } from '../stores/interviewStore'
+import { useAuthStore } from '../stores/authStore'
 import { getQuestions } from '../lib/questions'
 
-const TRACKS = [
-  { id: 'behavioral', label: '인성면접 (공통)', desc: '직군 무관, 인성/역량 중심 면접' },
-  { id: 'unity', label: 'Unity', desc: 'C# 기반 게임 클라이언트 개발' },
-  { id: 'unreal', label: 'Unreal Engine', desc: 'C++/Blueprint 기반 게임 개발' },
-  { id: 'design', label: '게임기획', desc: '시스템/레벨/밸런스 기획' },
-]
+const TRACK_LABELS = {
+  unity: 'Unity',
+  unreal: 'Unreal Engine',
+  pm: 'PM',
+  design: '게임기획',
+}
 
 const COUNTS = [2, 3, 4, 5, 7]
 
@@ -16,8 +17,11 @@ export default function SetupPage() {
   const navigate = useNavigate()
   const { track, questionCount, setTrack, setQuestionCount } = useSettingsStore()
   const { loadQuestions, reset } = useInterviewStore()
+  const { profile, quota } = useAuthStore()
 
-  const canStart = !!track
+  const userTrack = profile?.track
+  const remaining = quota ? Math.max(0, quota.total_quota - quota.used_count) : 0
+  const canStart = !!track && remaining > 0
 
   const handleStart = () => {
     if (!canStart) return
@@ -34,30 +38,42 @@ export default function SetupPage() {
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">AI Mock Interview</h1>
           <p className="text-text-secondary">AI 모의면접 연습 서비스</p>
+          {/* 쿼타 표시 */}
+          <div className={`inline-block px-4 py-1.5 rounded-full text-sm ${remaining > 0 ? 'bg-accent/10 text-accent' : 'bg-danger/10 text-danger'}`}>
+            남은 면접 횟수: {remaining}회
+          </div>
         </div>
 
-        {/* 트랙 선택 */}
+        {/* 면접 유형 선택 */}
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-text-secondary">지원 트랙</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {TRACKS.map((t) => (
+          <h2 className="text-lg font-semibold text-text-secondary">면접 유형</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              onClick={() => setTrack('behavioral')}
+              className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
+                track === 'behavioral'
+                  ? 'border-accent bg-accent/10 ring-1 ring-accent'
+                  : 'border-border bg-bg-card hover:border-accent/50'
+              }`}
+            >
+              <div className="font-semibold">인성면접 (공통)</div>
+              <div className="text-sm text-text-secondary mt-1">직군 무관, 인성/역량 중심 질문</div>
+            </button>
+
+            {userTrack && TRACK_LABELS[userTrack] && (
               <button
-                key={t.id}
-                onClick={() => setTrack(t.id)}
-                className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
-                  track === t.id
+                onClick={() => setTrack(userTrack)}
+                className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
+                  track === userTrack
                     ? 'border-accent bg-accent/10 ring-1 ring-accent'
                     : 'border-border bg-bg-card hover:border-accent/50'
                 }`}
               >
-                <div className="font-semibold">{t.label}</div>
-                <div className="text-sm text-text-secondary mt-1">{t.desc}</div>
+                <div className="font-semibold">{TRACK_LABELS[userTrack]} 면접</div>
+                <div className="text-sm text-text-secondary mt-1">기술 + 인성 종합 질문</div>
               </button>
-            ))}
+            )}
           </div>
-          <p className="text-xs text-text-secondary">
-            인성면접은 직군 무관 공통 질문, 직군 트랙은 기술+인성 종합 질문으로 출제됩니다.
-          </p>
         </section>
 
         {/* 질문 수 */}
@@ -90,7 +106,7 @@ export default function SetupPage() {
               : 'bg-bg-elevated text-text-secondary cursor-not-allowed'
           }`}
         >
-          면접 시작
+          {remaining > 0 ? '면접 시작' : '면접 횟수가 없습니다 (관리자에게 문의)'}
         </button>
       </div>
     </div>

@@ -28,11 +28,35 @@ export const useAuthStore = create((set, get) => ({
     const { user } = get()
     if (!user) return
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('users')
       .select('*')
       .eq('id', user.id)
       .single()
+
+    if (profileError) {
+      console.error('프로필 로드 실패:', profileError.message)
+      // 프로필이 없으면 수동 생성 (트리거 미작동 대비)
+      if (profileError.code === 'PGRST116') {
+        const { error: insertError } = await supabase.from('users').insert({
+          id: user.id,
+          email: user.email,
+          avatar_url: user.user_metadata?.avatar_url || null,
+        })
+        if (insertError) console.error('프로필 생성 실패:', insertError.message)
+
+        // 쿼타도 생성
+        await supabase.from('interview_quotas').insert({
+          user_id: user.id, total_quota: 0, used_count: 0,
+        })
+
+        // 다시 로드
+        const { data: retryProfile } = await supabase.from('users').select('*').eq('id', user.id).single()
+        const { data: retryQuota } = await supabase.from('interview_quotas').select('*').eq('user_id', user.id).single()
+        set({ profile: retryProfile, quota: retryQuota })
+        return
+      }
+    }
 
     const { data: quota } = await supabase
       .from('interview_quotas')
@@ -40,7 +64,7 @@ export const useAuthStore = create((set, get) => ({
       .eq('user_id', user.id)
       .single()
 
-    set({ profile, quota })
+    set({ profile: profile || null, quota: quota || null })
   },
 
   // Google 로그인

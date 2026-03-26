@@ -18,17 +18,17 @@ export default function ProtectedRoute({ children }) {
 }
 
 export function OnboardingGuard({ children }) {
-  const { profile, loading } = useAuthStore()
+  const { profile, loading, user } = useAuthStore()
 
-  if (loading) {
+  if (loading || (user && !profile)) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-text-secondary">로딩 중...</p>
+        <p className="text-text-secondary">프로필 로딩 중...</p>
       </div>
     )
   }
 
-  if (profile && !profile.onboarding_completed) {
+  if (!profile || !profile.onboarding_completed) {
     return <Navigate to="/onboarding" replace />
   }
 

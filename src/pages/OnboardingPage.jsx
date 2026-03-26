@@ -3,9 +3,9 @@ import { useNavigate, Navigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 
 const TRACKS = [
-  { id: 'behavioral', label: '인성면접 (공통)' },
   { id: 'unity', label: 'Unity' },
   { id: 'unreal', label: 'Unreal Engine' },
+  { id: 'pm', label: 'PM' },
   { id: 'design', label: '게임기획' },
 ]
 
@@ -80,12 +80,16 @@ export default function OnboardingPage() {
           <div className="space-y-2">
             <label className="text-sm font-medium text-text-secondary">기수</label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={cohort}
-              onChange={(e) => setCohort(e.target.value)}
-              placeholder="1"
-              min="1"
-              className="w-full px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary placeholder:text-text-secondary/50 focus:border-accent focus:outline-none"
+              onChange={(e) => {
+                const v = e.target.value.replace(/[^0-9]/g, '')
+                setCohort(v)
+              }}
+              placeholder="예: 6"
+              maxLength={3}
+              className="w-full px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary placeholder:text-text-secondary/50 focus:border-accent focus:outline-none [appearance:textfield]"
             />
           </div>
         </div>
