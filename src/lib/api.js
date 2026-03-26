@@ -1,38 +1,43 @@
 /**
  * OpenRouter API 호출 헬퍼
- *
- * 개발: 클라이언트에서 직접 OpenRouter 호출 (VITE_ 환경변수)
- * 배포: Vercel Serverless Function 프록시로 전환 가능
+ * 배포: /api/openrouter 서버 프록시 경유 (API 키 서버에만 보관)
+ * 개발: VITE_OPENROUTER_API_KEY 있으면 직접 호출 (폴백)
  */
 
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
-
-function getApiKey() {
-  const key = import.meta.env.VITE_OPENROUTER_API_KEY
-  if (!key) console.warn('VITE_OPENROUTER_API_KEY가 설정되지 않았습니다. .env 파일을 확인하세요.')
-  return key
-}
+const isDev = import.meta.env.DEV
+const DIRECT_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const PROXY_URL = '/api/openrouter'
 
 async function callOpenRouter({ model, messages, jsonMode = false }) {
   const body = { model, messages }
   if (jsonMode) body.response_format = { type: 'json_object' }
 
-  const res = await fetch(OPENROUTER_URL, {
+  // 개발 환경에서 VITE_ 키가 있으면 직접 호출 (프록시 없이)
+  const devKey = import.meta.env.VITE_OPENROUTER_API_KEY
+  if (isDev && devKey) {
+    const res = await fetch(DIRECT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${devKey}`,
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'AI Mock Interview',
+      },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) throw new Error(`OpenRouter error (${res.status}): ${await res.text()}`)
+    const data = await res.json()
+    return data.choices[0].message.content
+  }
+
+  // 배포 환경: 서버 프록시 경유
+  const res = await fetch(PROXY_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getApiKey()}`,
-      'HTTP-Referer': window.location.origin,
-      'X-Title': 'AI Mock Interview',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
 
-  if (!res.ok) {
-    const error = await res.text()
-    throw new Error(`OpenRouter API error (${res.status}): ${error}`)
-  }
-
+  if (!res.ok) throw new Error(`API proxy error (${res.status}): ${await res.text()}`)
   const data = await res.json()
   return data.choices[0].message.content
 }
