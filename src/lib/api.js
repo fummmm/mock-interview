@@ -100,7 +100,7 @@ export async function generateFollowUp(questionText, roughTranscript, evaluatorN
   }
 
   if (!roughTranscript || roughTranscript.trim().length < 5) {
-    return { needed: true, question: '답변을 조금 더 구체적으로 말씀해주시겠어요?', reason: '답변이 감지되지 않음', evaluatorId: evaluatorNames[0]?.id || 'team_lead' }
+    return { needed: false, noAnswer: true }
   }
 
   const nameList = evaluatorNames.map((e) => `- ${e.id}: ${e.name} (${e.role}, ${e.style})`).join('\n')

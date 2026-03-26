@@ -40,6 +40,7 @@ export default function InterviewPage() {
   const [followUpEvaluator, setFollowUpEvaluator] = useState(null)
   const [isFollowUp, setIsFollowUp] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [retryMessage, setRetryMessage] = useState(null)
 
   const evaluators = getEvaluators(track)
 
@@ -161,6 +162,7 @@ export default function InterviewPage() {
     startRecording()
     startCapture()
     startSpeech()
+    setRetryMessage(null)
     setPhase('recording')
   }, [stream, clearFrames, startRecording, startCapture, setPhase])
 
@@ -189,6 +191,14 @@ export default function InterviewPage() {
       console.log(`[꼬리질문] Q${idx + 1} 거친 텍스트:`, rough?.slice(0, 80))
       const followUp = await generateFollowUp(questionText, rough, evaluators, currentQuestion?.id || '')
       console.log(`[꼬리질문] 판단:`, followUp)
+
+      // 답변 미감지 → 재답변 기회
+      if (followUp.noAnswer) {
+        setIsGenerating(false)
+        setRetryMessage('답변이 감지되지 않았습니다. 마이크를 확인하고 다시 답변해주세요.')
+        setPhase('ready')
+        return
+      }
 
       if (followUp.needed && followUp.question) {
         const asker = evaluators.find((e) => e.id === followUp.evaluatorId) || evaluators[0]
@@ -433,6 +443,11 @@ export default function InterviewPage() {
                       {audioLevel > 0.05 ? '마이크 정상' : '소리가 감지되지 않습니다'}
                     </p>
                   </div>
+                  {retryMessage && (
+                    <div className="bg-warning/20 border border-warning/40 rounded-xl px-4 py-2.5">
+                      <p className="text-warning text-sm font-medium">{retryMessage}</p>
+                    </div>
+                  )}
                   <p className="text-white/60 text-xs">준비되면 아래 "답변 시작" 버튼을 눌러주세요</p>
                 </div>
               )}
