@@ -30,25 +30,24 @@ export default function MyPage() {
   async function loadData() {
     setLoading(true)
     const userId = profile?.id
-    if (!userId) return
+    if (!userId) { setLoading(false); return }
 
-    // 면접 결과
-    const { data: res } = await supabase
-      .from('interview_results')
-      .select('id, overall_score, grade, overall_pass, created_at, interview_sessions(track, question_count)')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+    // 병렬 로드
+    const [resResult, docsResult] = await Promise.all([
+      supabase
+        .from('interview_results')
+        .select('id, overall_score, grade, overall_pass, created_at, interview_sessions(track, question_count)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50),
+      supabase
+        .from('user_documents')
+        .select('id, doc_type, file_name, file_size, uploaded_at')
+        .eq('user_id', userId),
+    ])
 
-    setResults(res || [])
-
-    // 문서
-    const { data: docs } = await supabase
-      .from('user_documents')
-      .select('*')
-      .eq('user_id', userId)
-      .order('uploaded_at', { ascending: false })
-
-    setDocuments(docs || [])
+    setResults(resResult.data || [])
+    setDocuments(docsResult.data || [])
     setLoading(false)
   }
 

@@ -45,28 +45,36 @@ export default function ReportPage() {
   const { id: reportId } = useParams()
   const { report: memoryReport, reset: resetInterview } = useInterviewStore()
   const { reset: resetSettings } = useSettingsStore()
-  const [report, setReport] = useState(memoryReport)
-  const [loading, setLoading] = useState(false)
+  const [report, setReport] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  // DB에서 리포트 로드 (URL에 id가 있고 메모리에 없을 때)
   useEffect(() => {
-    if (memoryReport) { setReport(memoryReport); return }
-    if (!reportId) { navigate('/'); return }
+    // reportId가 있으면 항상 DB에서 로드 (과거 리포트)
+    if (reportId) {
+      setLoading(true)
+      import('../lib/supabase').then(({ supabase }) => {
+        supabase
+          .from('interview_results')
+          .select('report_json')
+          .eq('id', reportId)
+          .single()
+          .then(({ data, error }) => {
+            if (error || !data) { navigate('/'); return }
+            setReport(data.report_json)
+            setLoading(false)
+          })
+      })
+      return
+    }
 
-    setLoading(true)
-    import('../lib/supabase').then(({ supabase }) => {
-      supabase
-        .from('interview_results')
-        .select('report_json')
-        .eq('id', reportId)
-        .single()
-        .then(({ data, error }) => {
-          if (error || !data) { navigate('/'); return }
-          setReport(data.report_json)
-          setLoading(false)
-        })
-    })
-  }, [reportId, memoryReport, navigate])
+    // reportId 없으면 메모리 리포트 (현재 세션)
+    if (memoryReport) {
+      setReport(memoryReport)
+      setLoading(false)
+    } else {
+      navigate('/')
+    }
+  }, [reportId, navigate]) // memoryReport 의존성 제거 (무한 루프 방지)
 
   if (loading) {
     return (
