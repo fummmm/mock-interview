@@ -1,72 +1,151 @@
 import { create } from 'zustand'
+import { supabase } from '../lib/supabase'
 
 let sessionCounter = 0
 
 export const useInterviewStore = create((set, get) => ({
-  // 세션 ID (재진입 시 이전 백그라운드 작업 무효화)
   sessionId: 0,
+  dbSessionId: null, // Supabase interview_sessions.id
 
-  // 상태 머신
   phase: 'setup',
-
-  // 질문
   questions: [],
   currentIndex: 0,
 
-  // 미디어
   mediaStream: null,
-  permissionStatus: 'pending', // pending | granted | denied
+  permissionStatus: 'pending',
 
-  // 질문별 답변 데이터
   answers: [],
+  pendingSTT: 0,
 
-  // 백그라운드 STT 처리 추적
-  pendingSTT: 0, // 처리 중인 질문 수
-
-  // 분석 결과
   report: null,
   analysisProgress: 0,
 
-  // 액션
   loadQuestions: (questions) => {
     sessionCounter++
     return set({
-    sessionId: sessionCounter,
-    questions,
-    currentIndex: 0,
-    answers: questions.map((q) => ({
-      questionId: q.id,
-      questionText: q.text,
-      transcript: '',
-      rawTranscript: '',
-      videoBlob: null,
-      videoBlobUrl: null,
-      frames: [],
-      recordingDuration: 0,
-      fillerWordCount: 0,
-      silenceSegments: [],
-      wordTimestamps: [],
-      followUp: null, // { question, transcript, rawTranscript, videoBlob, videoBlobUrl, frames, recordingDuration }
-    })),
-    phase: 'setup',
-    report: null,
-    analysisProgress: 0,
-    pendingSTT: 0,
-  })
+      sessionId: sessionCounter,
+      dbSessionId: null,
+      questions,
+      currentIndex: 0,
+      answers: questions.map((q) => ({
+        questionId: q.id,
+        questionText: q.text,
+        transcript: '',
+        rawTranscript: '',
+        videoBlob: null,
+        videoBlobUrl: null,
+        frames: [],
+        recordingDuration: 0,
+        fillerWordCount: 0,
+        silenceSegments: [],
+        wordTimestamps: [],
+        followUp: null,
+      })),
+      phase: 'setup',
+      report: null,
+      analysisProgress: 0,
+      pendingSTT: 0,
+    })
+  },
+
+  // 면접 시작: DB 세션 생성 + 쿼타 차감
+  startSession: async (userId, track, questionCount) => {
+    try {
+      // 세션 생성
+      const { data: session, error: sessionError } = await supabase
+        .from('interview_sessions')
+        .insert({ user_id: userId, track, question_count: questionCount })
+        .select()
+        .single()
+
+      if (sessionError) throw sessionError
+
+      // 쿼타 차감 (used_count + 1)
+      const { data: currentQuota } = await supabase
+        .from('interview_quotas')
+        .select('used_count')
+        .eq('user_id', userId)
+        .single()
+
+      if (currentQuota) {
+        await supabase
+          .from('interview_quotas')
+          .update({ used_count: currentQuota.used_count + 1, updated_at: new Date().toISOString() })
+          .eq('user_id', userId)
+      }
+
+      set({ dbSessionId: session.id })
+      return session.id
+    } catch (e) {
+      console.error('세션 시작 실패:', e)
+      return null
+    }
+  },
+
+  // 면접 완료: 결과 DB 저장
+  saveResult: async (reportData) => {
+    const { dbSessionId } = get()
+    if (!dbSessionId) return null
+
+    try {
+      // 영상 blob은 저장 불가하므로 제거
+      const cleanReport = JSON.parse(JSON.stringify(reportData, (key, val) => {
+        if (key === 'videoBlob' || key === 'videoBlobUrl') return undefined
+        if (key === 'frames') return [] // base64 프레임도 DB에는 안 넣음 (용량)
+        return val
+      }))
+
+      const { data, error } = await supabase
+        .from('interview_results')
+        .insert({
+          session_id: dbSessionId,
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          report_json: cleanReport,
+          overall_score: reportData.overallScore,
+          grade: reportData.grade,
+          overall_pass: reportData.overallPass,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // 세션 상태 완료
+      await supabase
+        .from('interview_sessions')
+        .update({ status: 'completed', completed_at: new Date().toISOString() })
+        .eq('id', dbSessionId)
+
+      return data.id
+    } catch (e) {
+      console.error('결과 저장 실패:', e)
+      return null
+    }
+  },
+
+  // 면접 이탈
+  abandonSession: async () => {
+    const { dbSessionId } = get()
+    if (!dbSessionId) return
+    try {
+      await supabase
+        .from('interview_sessions')
+        .update({ status: 'abandoned', completed_at: new Date().toISOString() })
+        .eq('id', dbSessionId)
+    } catch (e) {
+      console.error('세션 이탈 처리 실패:', e)
+    }
   },
 
   setPhase: (phase) => set({ phase }),
-
   setMediaStream: (stream) => set({ mediaStream: stream, permissionStatus: stream ? 'granted' : 'denied' }),
 
-  // 녹화 완료 시 답변 데이터 업데이트
   updateAnswer: (index, data) => set((state) => {
     const answers = [...state.answers]
     answers[index] = { ...answers[index], ...data }
     return { answers }
   }),
 
-  // 다음 질문으로
   nextQuestion: () => {
     const { currentIndex, questions } = get()
     if (currentIndex < questions.length - 1) {
@@ -80,13 +159,13 @@ export const useInterviewStore = create((set, get) => ({
   decPendingSTT: () => set((s) => ({ pendingSTT: Math.max(0, s.pendingSTT - 1) })),
 
   setReport: (report) => set({ report, phase: 'report' }),
-
   setAnalysisProgress: (progress) => set({ analysisProgress: progress }),
 
   reset: () => {
     sessionCounter++
     return set({
       sessionId: sessionCounter,
+      dbSessionId: null,
       phase: 'setup',
       questions: [],
       currentIndex: 0,

@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useInterviewStore } from '../stores/interviewStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useEffect, useRef, useState } from 'react'
@@ -42,10 +42,39 @@ function downloadSTTData(report) {
 
 export default function ReportPage() {
   const navigate = useNavigate()
-  const { report, reset: resetInterview } = useInterviewStore()
+  const { id: reportId } = useParams()
+  const { report: memoryReport, reset: resetInterview } = useInterviewStore()
   const { reset: resetSettings } = useSettingsStore()
+  const [report, setReport] = useState(memoryReport)
+  const [loading, setLoading] = useState(false)
 
-  useEffect(() => { if (!report) navigate('/') }, [report, navigate])
+  // DB에서 리포트 로드 (URL에 id가 있고 메모리에 없을 때)
+  useEffect(() => {
+    if (memoryReport) { setReport(memoryReport); return }
+    if (!reportId) { navigate('/'); return }
+
+    setLoading(true)
+    import('../lib/supabase').then(({ supabase }) => {
+      supabase
+        .from('interview_results')
+        .select('report_json')
+        .eq('id', reportId)
+        .single()
+        .then(({ data, error }) => {
+          if (error || !data) { navigate('/'); return }
+          setReport(data.report_json)
+          setLoading(false)
+        })
+    })
+  }, [reportId, memoryReport, navigate])
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-text-secondary">리포트 로딩 중...</p>
+      </div>
+    )
+  }
   if (!report) return null
 
   const handleRestart = () => { resetInterview(); resetSettings(); navigate('/') }

@@ -138,10 +138,19 @@ export default function AnalyzingPage() {
       const { buildReport } = await import('../hooks/useAnalysis')
       const report = buildReport(textData, visionData, updatedAnswers)
 
+      setProgress(95)
+      setStatusText('결과 저장 중...')
+
+      // DB에 결과 저장
+      const { saveResult } = useInterviewStore.getState()
+      const resultId = await saveResult(report)
+
       setProgress(100)
       setStatusText('분석 완료!')
       setReport(report)
-      setTimeout(() => navigate('/report'), 500)
+
+      // resultId가 있으면 /report/:id로, 없으면 /report로
+      setTimeout(() => navigate(resultId ? `/report/${resultId}` : '/report'), 500)
 
     } catch (e) {
       setError(e.message)

@@ -114,9 +114,11 @@ export default function InterviewPage() {
     }
   }
 
-  const handleExit = useCallback(() => {
+  const handleExit = useCallback(async () => {
     stopSpeech()
     stopStream()
+    const { abandonSession } = useInterviewStore.getState()
+    await abandonSession()
     navigate('/')
   }, [stopStream, navigate])
 

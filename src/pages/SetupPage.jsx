@@ -23,11 +23,20 @@ export default function SetupPage() {
   const remaining = quota ? Math.max(0, quota.total_quota - quota.used_count) : 0
   const canStart = !!track && remaining > 0
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (!canStart) return
     reset()
     const questions = getQuestions(questionCount, track)
     loadQuestions(questions)
+
+    // DB 세션 생성 + 쿼타 차감
+    const { startSession } = useInterviewStore.getState()
+    await startSession(profile.id, track, questionCount)
+
+    // 쿼타 새로고침
+    const { refreshQuota } = useAuthStore.getState()
+    await refreshQuota()
+
     navigate('/interview')
   }
 
