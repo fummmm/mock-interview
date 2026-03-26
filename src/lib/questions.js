@@ -15,12 +15,12 @@ export function getQuestions(count = 4, track = 'behavioral') {
   const lastq = pool.find((q) => q.id === 'beh-lastq')
   const rest = shuffle(pool.filter((q) => q !== intro && q !== lastq))
 
-  if (count <= 2) {
-    // 2개 이하: 자기소개 + 랜덤 (마무리 생략)
+  if (count <= 3) {
+    // 3개 이하: 자기소개 + 랜덤 (마무리 생략)
     return intro ? [intro, ...rest.slice(0, count - 1)] : rest.slice(0, count)
   }
 
-  // 3개 이상: 자기소개 + 랜덤 + 마무리
+  // 4개 이상: 자기소개 + 랜덤 + 마무리
   const middleCount = count - (intro ? 1 : 0) - (lastq ? 1 : 0)
   const middle = rest.slice(0, Math.max(0, middleCount))
 
