@@ -102,6 +102,19 @@ export default function MyPage() {
       if (insertError) {
         console.error('문서 레코드 생성 실패:', insertError)
         alert('파일은 업로드되었지만 기록 저장에 실패했습니다: ' + insertError.message)
+      } else {
+        // 레코드 생성 성공 후 텍스트 추출 시도 (실패해도 무시)
+        try {
+          const text = await file.text()
+          // ASCII 제어문자 및 null byte 제거
+          const cleaned = text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '').slice(0, 5000)
+          if (cleaned.length > 50) {
+            await supabase.from('user_documents')
+              .update({ extracted_text: cleaned })
+              .eq('user_id', profile.id)
+              .eq('doc_type', docType)
+          }
+        } catch (e) { console.warn('텍스트 추출 스킵:', e.message) }
       }
 
       await loadData()
