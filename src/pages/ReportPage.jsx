@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { useInterviewStore } from '../stores/interviewStore'
 import { useSettingsStore } from '../stores/settingsStore'
+import { useAuthStore } from '../stores/authStore'
 import { useEffect, useRef, useState } from 'react'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -45,10 +46,12 @@ export default function ReportPage() {
   const { id: reportId } = useParams()
   const { report: memoryReport, reset: resetInterview } = useInterviewStore()
   const { reset: resetSettings } = useSettingsStore()
+  const { profile } = useAuthStore()
   const [report, setReport] = useState(null)
+  const [isOwnReport, setIsOwnReport] = useState(true) // 본인 리포트인지
   const [loading, setLoading] = useState(true)
   const memoryReportRef = useRef(memoryReport)
-  memoryReportRef.current = memoryReport // 항상 최신 참조
+  memoryReportRef.current = memoryReport
 
   useEffect(() => {
     if (reportId) {
@@ -56,11 +59,12 @@ export default function ReportPage() {
       import('../lib/supabase').then(({ supabase }) => {
         supabase
           .from('interview_results')
-          .select('report_json')
+          .select('report_json, user_id')
           .eq('id', reportId)
           .single()
           .then(({ data, error }) => {
             if (error || !data) { navigate('/'); return }
+            setIsOwnReport(data.user_id === profile?.id)
             let dbReport = data.report_json
 
             // 현재 세션 메모리에 영상/프레임이 있으면 DB 리포트에 머지
@@ -241,12 +245,20 @@ export default function ReportPage() {
         </div>
 
         <div className="flex gap-3">
-          <button onClick={handleRestart} className="flex-1 py-4 rounded-xl bg-accent hover:bg-accent-hover text-white font-semibold transition-all cursor-pointer">
-            다시 시작하기
-          </button>
-          <button onClick={() => downloadSTTData(report)} className="px-6 py-4 rounded-xl border border-border bg-bg-card text-text-secondary hover:border-accent/50 transition-all cursor-pointer text-sm">
-            STT 데이터 저장
-          </button>
+          {isOwnReport ? (
+            <button onClick={handleRestart} className="flex-1 py-4 rounded-xl bg-accent hover:bg-accent-hover text-white font-semibold transition-all cursor-pointer">
+              다시 시작하기
+            </button>
+          ) : (
+            <button onClick={() => navigate(-1)} className="flex-1 py-4 rounded-xl bg-bg-card border border-border hover:border-accent/50 text-text-primary font-semibold transition-all cursor-pointer">
+              돌아가기
+            </button>
+          )}
+          {isOwnReport && (
+            <button onClick={() => downloadSTTData(report)} className="px-6 py-4 rounded-xl border border-border bg-bg-card text-text-secondary hover:border-accent/50 transition-all cursor-pointer text-sm">
+              STT 데이터 저장
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -51,6 +51,7 @@ export default function AdminStudents() {
 
       return {
         ...u,
+        results: userResults.map((r) => ({ id: r.id, score: r.overall_score, grade: r.grade, pass: r.overall_pass, date: r.created_at })),
         latestResultId: latestResult?.id,
         latestScore: latestResult?.overall_score,
         latestGrade: latestResult?.grade,
@@ -176,10 +177,25 @@ export default function AdminStudents() {
                     </td>
                     {isMain && (
                       <td className="py-3 px-2 text-center">
-                        {s.latestResultId && (
-                          <button onClick={() => navigate(`/report/${s.latestResultId}`)} className="text-xs text-accent hover:underline cursor-pointer">
-                            최근 리포트
-                          </button>
+                        {s.results.length > 0 && (
+                          s.results.length === 1 ? (
+                            <button onClick={() => navigate(`/report/${s.results[0].id}`)} className="text-xs text-accent hover:underline cursor-pointer">
+                              리포트
+                            </button>
+                          ) : (
+                            <select
+                              onChange={(e) => { if (e.target.value) navigate(`/report/${e.target.value}`) }}
+                              defaultValue=""
+                              className="text-xs bg-bg-secondary border border-border rounded px-1 py-0.5 text-text-primary cursor-pointer"
+                            >
+                              <option value="">리포트 ({s.results.length})</option>
+                              {s.results.map((r, ri) => (
+                                <option key={r.id} value={r.id}>
+                                  {ri + 1}회 - {r.score}점 {r.pass ? '합격' : ''} ({new Date(r.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })})
+                                </option>
+                              ))}
+                            </select>
+                          )
                         )}
                       </td>
                     )}
