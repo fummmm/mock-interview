@@ -254,11 +254,9 @@ export default function ReportPage() {
               돌아가기
             </button>
           )}
-          {isOwnReport && (
-            <button onClick={() => downloadSTTData(report)} className="px-6 py-4 rounded-xl border border-border bg-bg-card text-text-secondary hover:border-accent/50 transition-all cursor-pointer text-sm">
-              STT 데이터 저장
-            </button>
-          )}
+          <button onClick={() => downloadSTTData(report)} className="px-6 py-4 rounded-xl border border-border bg-bg-card text-text-secondary hover:border-accent/50 transition-all cursor-pointer text-sm">
+            STT 데이터 저장
+          </button>
         </div>
       </div>
     </div>
