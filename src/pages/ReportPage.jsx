@@ -49,7 +49,6 @@ export default function ReportPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // reportId가 있으면 항상 DB에서 로드 (과거 리포트)
     if (reportId) {
       setLoading(true)
       import('../lib/supabase').then(({ supabase }) => {
@@ -60,21 +59,38 @@ export default function ReportPage() {
           .single()
           .then(({ data, error }) => {
             if (error || !data) { navigate('/'); return }
-            setReport(data.report_json)
+            let dbReport = data.report_json
+
+            // 현재 세션 메모리에 영상/프레임이 있으면 DB 리포트에 머지
+            if (memoryReport?.questionData) {
+              dbReport = {
+                ...dbReport,
+                questionData: (dbReport.questionData || []).map((qd, i) => {
+                  const memQ = memoryReport.questionData?.[i]
+                  if (!memQ) return qd
+                  return {
+                    ...qd,
+                    videoBlobUrl: memQ.videoBlobUrl || qd.videoBlobUrl,
+                    frames: (memQ.frames?.length > 0) ? memQ.frames : qd.frames,
+                  }
+                }),
+              }
+            }
+
+            setReport(dbReport)
             setLoading(false)
           })
       })
       return
     }
 
-    // reportId 없으면 메모리 리포트 (현재 세션)
     if (memoryReport) {
       setReport(memoryReport)
       setLoading(false)
     } else {
       navigate('/')
     }
-  }, [reportId, navigate]) // memoryReport 의존성 제거 (무한 루프 방지)
+  }, [reportId, navigate])
 
   if (loading) {
     return (

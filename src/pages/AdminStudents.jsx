@@ -34,7 +34,7 @@ export default function AdminStudents() {
     // 각 수강생의 최신 결과
     const { data: results } = await supabase
       .from('interview_results')
-      .select('user_id, overall_score, grade, overall_pass, created_at')
+      .select('id, user_id, overall_score, grade, overall_pass, created_at')
       .order('created_at', { ascending: false })
 
     // 쿼타
@@ -51,6 +51,7 @@ export default function AdminStudents() {
 
       return {
         ...u,
+        latestResultId: latestResult?.id,
         latestScore: latestResult?.overall_score,
         latestGrade: latestResult?.grade,
         hasPass,
@@ -175,9 +176,9 @@ export default function AdminStudents() {
                     </td>
                     {isMain && (
                       <td className="py-3 px-2 text-center">
-                        {s.interviewCount > 0 && (
-                          <button onClick={() => navigate(`/admin/student/${s.id}`)} className="text-xs text-accent hover:underline cursor-pointer">
-                            보기
+                        {s.latestResultId && (
+                          <button onClick={() => navigate(`/report/${s.latestResultId}`)} className="text-xs text-accent hover:underline cursor-pointer">
+                            최근 리포트
                           </button>
                         )}
                       </td>
