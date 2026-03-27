@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback } from 'react'
 
-const CAPTURE_INTERVAL = 5000 // 5초 간격
-const MAX_FRAMES = 6 // 질문당 최대 프레임 (비용 vs 커버리지 균형)
+const CAPTURE_INTERVAL = 5000
+const MAX_FRAMES = 6
 
 export function useFrameCapture(videoRef) {
   const [frames, setFrames] = useState([])
+  const framesRef = useRef([]) // 동기적 접근용 ref
   const intervalRef = useRef(null)
   const canvasRef = useRef(null)
 
@@ -20,50 +21,56 @@ export function useFrameCapture(videoRef) {
   const captureFrame = useCallback(() => {
     const video = videoRef?.current
     if (!video || video.readyState < 2) return null
-
     const canvas = getCanvas()
     const ctx = canvas.getContext('2d')
     ctx.drawImage(video, 0, 0, 640, 480)
-    return canvas.toDataURL('image/jpeg', 0.6) // 약간 압축 (프레임 수 늘었으니)
+    return canvas.toDataURL('image/jpeg', 0.6)
   }, [videoRef])
 
+  const updateFrames = (newFrames) => {
+    framesRef.current = newFrames
+    setFrames(newFrames)
+  }
+
   const startCapture = useCallback(() => {
-    setFrames([])
+    updateFrames([])
     const first = captureFrame()
-    if (first) setFrames([first])
+    if (first) updateFrames([first])
 
     intervalRef.current = setInterval(() => {
       const frame = captureFrame()
       if (!frame) return
-
-      setFrames((prev) => {
-        if (prev.length < MAX_FRAMES) return [...prev, frame]
-        // 초과 시: 첫 프레임 유지, 균등 간격으로 대표 프레임 선택
+      const prev = framesRef.current
+      if (prev.length < MAX_FRAMES) {
+        updateFrames([...prev, frame])
+      } else {
         const step = Math.floor(prev.length / (MAX_FRAMES - 1))
         const kept = [prev[0]]
         for (let i = 1; i < MAX_FRAMES - 1; i++) {
           kept.push(prev[Math.min(i * step, prev.length - 1)])
         }
-        kept.push(frame) // 최신 프레임
-        return kept
-      })
+        kept.push(frame)
+        updateFrames(kept)
+      }
     }, CAPTURE_INTERVAL)
   }, [captureFrame])
 
+  // stopCapture: 최종 frames 배열을 동기적으로 반환
   const stopCapture = useCallback(() => {
     clearInterval(intervalRef.current)
     const last = captureFrame()
     if (last) {
-      setFrames((prev) => {
-        if (prev.length < MAX_FRAMES) return [...prev, last]
-        return [...prev.slice(0, MAX_FRAMES - 1), last]
-      })
+      const prev = framesRef.current
+      const final = prev.length < MAX_FRAMES ? [...prev, last] : [...prev.slice(0, MAX_FRAMES - 1), last]
+      updateFrames(final)
+      return final
     }
+    return framesRef.current
   }, [captureFrame])
 
   const clearFrames = useCallback(() => {
-    setFrames([])
+    updateFrames([])
   }, [])
 
-  return { frames, startCapture, stopCapture, clearFrames }
+  return { frames, framesRef, startCapture, stopCapture, clearFrames }
 }

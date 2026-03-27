@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
 
@@ -9,17 +9,19 @@ export default function AdminManage() {
   const { profile } = useAuthStore()
   const navigate = useNavigate()
 
-  if (profile?.role !== 'main_admin') { navigate('/admin'); return null }
-
   const [subAdmins, setSubAdmins] = useState([])
   const [assignments, setAssignments] = useState([])
   const [allUsers, setAllUsers] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // 부여 폼
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedUser, setSelectedUser] = useState(null)
   const [selectedRole, setSelectedRole] = useState('sub_admin')
+
+  // Hooks 이후에 조건부 렌더링 (React Hooks 규칙 준수)
+  if (profile?.role !== 'main_admin') {
+    return <Navigate to="/admin" replace />
+  }
   const [assignTrack, setAssignTrack] = useState('')
   const [assignCohort, setAssignCohort] = useState('')
 

@@ -42,7 +42,7 @@ export default function MyPage() {
         .limit(50),
       supabase
         .from('user_documents')
-        .select('id, doc_type, file_name, file_size, uploaded_at')
+        .select('id, doc_type, file_name, file_path, file_size, uploaded_at')
         .eq('user_id', userId),
     ])
 

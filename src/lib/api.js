@@ -14,9 +14,12 @@ async function callOpenRouter({ model, messages, jsonMode = false }) {
 
   // 개발 환경에서 VITE_ 키가 있으면 직접 호출 (프록시 없이)
   const devKey = import.meta.env.VITE_OPENROUTER_API_KEY
+  const timeout = AbortSignal.timeout ? AbortSignal.timeout(30000) : undefined // 30초 타임아웃
+
   if (isDev && devKey) {
     const res = await fetch(DIRECT_URL, {
       method: 'POST',
+      signal: timeout,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${devKey}`,
@@ -30,9 +33,9 @@ async function callOpenRouter({ model, messages, jsonMode = false }) {
     return data.choices[0].message.content
   }
 
-  // 배포 환경: 서버 프록시 경유
   const res = await fetch(PROXY_URL, {
     method: 'POST',
+    signal: timeout,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })

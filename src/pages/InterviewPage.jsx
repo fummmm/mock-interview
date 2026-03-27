@@ -43,6 +43,8 @@ export default function InterviewPage() {
   const [retryMessage, setRetryMessage] = useState(null)
 
   const evaluators = getEvaluators(track)
+  const isMountedRef = useRef(true)
+  useEffect(() => () => { isMountedRef.current = false }, [])
 
   const currentQuestion = questions[currentIndex]
 
@@ -171,8 +173,9 @@ export default function InterviewPage() {
   // === 메인 답변 완료 → 꼬리질문 판단 ===
   const handleStopAnswer = useCallback(async () => {
     stopSpeech()
-    stopCapture()
+    const finalFrames = stopCapture()
     const result = await stopRecording()
+    if (!isMountedRef.current) return // 언마운트 후 setState 방지
     const idx = currentIndex
     const questionText = currentQuestion?.text || ''
 
@@ -181,7 +184,7 @@ export default function InterviewPage() {
         videoBlob: result.blob,
         videoBlobUrl: result.blobUrl,
         recordingDuration: result.duration,
-        frames,
+        frames: finalFrames || frames,
       })
       processInBackground(idx, result.blob, questionText, false)
     }
@@ -210,10 +213,11 @@ export default function InterviewPage() {
         return
       }
     } catch (e) {
-      console.warn('[꼬리질문] 생성 실패:', e.message)
+      console.warn('[꼬리질문] 생성 실패 (타임아웃 또는 API 오류):', e.message)
+      // 실패해도 무조건 다음으로 진행
     }
 
-    // 꼬리질문 불필요 → 다음 메인 질문
+    // 꼬리질문 불필요 또는 실패 → 다음 메인 질문
     setIsGenerating(false)
     setFollowUpQuestion(null)
     setIsFollowUp(false)
@@ -233,7 +237,7 @@ export default function InterviewPage() {
   // === 꼬리질문 답변 완료 → 다음 메인 질문 ===
   const handleStopFollowUp = useCallback(async () => {
     stopSpeech()
-    stopCapture()
+    const finalFrames = stopCapture()
     const result = await stopRecording()
     const idx = currentIndex
 
@@ -247,7 +251,7 @@ export default function InterviewPage() {
           videoBlob: result.blob,
           videoBlobUrl: result.blobUrl,
           recordingDuration: result.duration,
-          frames,
+          frames: finalFrames || frames,
         },
       }
       useInterviewStore.setState({ answers })
@@ -497,7 +501,7 @@ export default function InterviewPage() {
         <div className="flex justify-center gap-4 py-2">
           <button
             onClick={handleExit}
-            disabled={isRecording || isGenerating}
+            disabled={isRecording}
             className="px-5 py-2.5 rounded-xl border border-border bg-bg-card text-text-secondary hover:border-accent/50 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             나가기

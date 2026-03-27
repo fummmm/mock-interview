@@ -60,18 +60,15 @@ export const useInterviewStore = create((set, get) => ({
 
       if (sessionError) throw sessionError
 
-      // 쿼타 차감 (used_count + 1)
-      const { data: currentQuota } = await supabase
-        .from('interview_quotas')
-        .select('used_count')
-        .eq('user_id', userId)
-        .single()
-
-      if (currentQuota) {
-        await supabase
-          .from('interview_quotas')
-          .update({ used_count: currentQuota.used_count + 1, updated_at: new Date().toISOString() })
-          .eq('user_id', userId)
+      // 쿼타 atomic 차감 (race condition 방지)
+      // used_count < total_quota 조건으로 초과 사용도 방지
+      const { data: updated, error: quotaErr } = await supabase.rpc('increment_used_count', { p_user_id: userId })
+      if (quotaErr) {
+        // RPC 없으면 직접 UPDATE (폴백)
+        const { data: q } = await supabase.from('interview_quotas').select('used_count, total_quota').eq('user_id', userId).single()
+        if (q && q.used_count < q.total_quota) {
+          await supabase.from('interview_quotas').update({ used_count: q.used_count + 1, updated_at: new Date().toISOString() }).eq('user_id', userId)
+        }
       }
 
       set({ dbSessionId: session.id })

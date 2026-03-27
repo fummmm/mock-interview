@@ -47,6 +47,8 @@ export default function ReportPage() {
   const { reset: resetSettings } = useSettingsStore()
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(true)
+  const memoryReportRef = useRef(memoryReport)
+  memoryReportRef.current = memoryReport // 항상 최신 참조
 
   useEffect(() => {
     if (reportId) {
@@ -62,11 +64,12 @@ export default function ReportPage() {
             let dbReport = data.report_json
 
             // 현재 세션 메모리에 영상/프레임이 있으면 DB 리포트에 머지
-            if (memoryReport?.questionData) {
+            const memReport = memoryReportRef.current
+            if (memReport?.questionData) {
               dbReport = {
                 ...dbReport,
                 questionData: (dbReport.questionData || []).map((qd, i) => {
-                  const memQ = memoryReport.questionData?.[i]
+                  const memQ = memReport.questionData?.[i]
                   if (!memQ) return qd
                   return {
                     ...qd,
@@ -430,7 +433,7 @@ function QuestionDetailCard({ data }) {
           )}
 
           {/* 문제 프레임만 표시 */}
-          {data.frames.length > 0 && data.vision?.problemFrames?.length > 0 && (
+          {data.frames?.length > 0 && data.vision?.problemFrames?.length > 0 && (
             <div>
               <p className="text-xs text-text-secondary font-medium mb-2">문제 감지 구간 (클릭하면 해당 시점 재생)</p>
               <div className="flex gap-2 flex-wrap">
