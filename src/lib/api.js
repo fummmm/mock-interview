@@ -122,7 +122,7 @@ export async function generateFollowUp(questionText, roughTranscript, evaluatorN
   }
 
   if (!roughTranscript || roughTranscript.trim().length < 5) {
-    return { needed: false, noAnswer: true }
+    return { needed: false }
   }
 
   const nameList = evaluatorNames.map((e) => `- ${e.id}: ${e.name} (${e.role}, ${e.style})`).join('\n')

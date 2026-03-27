@@ -190,17 +190,20 @@ export default function InterviewPage() {
     setIsGenerating(true)
     try {
       const rough = roughTranscriptRef.current.trim()
-      console.log(`[꼬리질문] Q${idx + 1} 거친 텍스트:`, rough?.slice(0, 80))
-      const followUp = await generateFollowUp(questionText, rough, evaluators, currentQuestion?.id || '')
-      console.log(`[꼬리질문] 판단:`, followUp)
+      const recordedDuration = result?.duration || 0
+      console.log(`[꼬리질문] Q${idx + 1} 거친 텍스트:`, rough?.slice(0, 80), `녹화:${recordedDuration}초`)
 
-      // 답변 미감지 → 재답변 기회
-      if (followUp.noAnswer) {
+      // 진짜 답변 안 한 경우만 재답변 (녹화 3초 미만 + 텍스트 없음)
+      // 녹화가 됐으면(3초 이상) Web Speech API 실패와 무관하게 진행
+      if (!rough && recordedDuration < 3) {
         setIsGenerating(false)
         setRetryMessage('답변이 감지되지 않았습니다. 마이크를 확인하고 다시 답변해주세요.')
         setPhase('ready')
         return
       }
+
+      const followUp = await generateFollowUp(questionText, rough || '(음성 인식 실패, 녹화는 완료됨)', evaluators, currentQuestion?.id || '')
+      console.log(`[꼬리질문] 판단:`, followUp)
 
       if (followUp.needed && followUp.question) {
         const asker = evaluators.find((e) => e.id === followUp.evaluatorId) || evaluators[0]
