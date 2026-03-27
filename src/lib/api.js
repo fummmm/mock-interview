@@ -312,14 +312,7 @@ ${evaluatorConfig.jsonExample}
   },
   "sampleAnswers": [
     { "questionIndex": 0, "answer": "모범 답안 (2~3문장)" }
-  ],
-  "coachSummary": {
-    "currentLevel": "현재 면접 준비 수준 한 줄 요약 (예: '기본기는 있으나 구체성이 부족한 단계')",
-    "topPriority": "가장 먼저 개선해야 할 것 1가지와 구체적 연습 방법",
-    "strengths": "계속 유지하고 발전시켜야 할 강점 정리",
-    "practiceGuide": "다음 연습에서 시도해볼 것 3가지 (실천 가능한 수준으로)",
-    "encouragement": "격려 한 마디 (진정성 있게)"
-  }
+  ]
 }`
 
   console.log('[analyzeText] 요청 전송 중...')

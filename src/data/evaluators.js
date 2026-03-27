@@ -63,13 +63,6 @@ export const EVALUATORS = {
       focus: '성장 가능성, 가치관, 장기 비전',
     },
   ],
-  // 리포트 전용 코치 (채점 안 함, 종합 코칭만)
-  coach: {
-    id: 'coach',
-    name: '면접 코치',
-    icon: '📋',
-    description: '면접관 평가를 종합하여 앞으로의 개선 방향과 연습 전략을 제시합니다.',
-  },
 }
 
 export function getEvaluators(track) {

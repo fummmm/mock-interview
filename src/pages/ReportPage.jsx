@@ -202,40 +202,6 @@ export default function ReportPage() {
           </div>
         )}
 
-        {/* 면접 코치 총평 */}
-        {report.coachSummary && (
-          <div className="bg-accent/5 border border-accent/20 rounded-2xl p-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📋</span>
-              <h2 className="font-semibold">면접 코치 총평</h2>
-            </div>
-
-            <div className="bg-bg-card rounded-xl p-4">
-              <p className="text-xs text-text-secondary mb-1">현재 수준</p>
-              <p className="text-sm font-medium">{report.coachSummary.currentLevel}</p>
-            </div>
-
-            <div className="bg-bg-card rounded-xl p-4">
-              <p className="text-xs text-danger mb-1">최우선 개선 포인트</p>
-              <p className="text-sm">{report.coachSummary.topPriority}</p>
-            </div>
-
-            <div className="bg-bg-card rounded-xl p-4">
-              <p className="text-xs text-success mb-1">유지할 강점</p>
-              <p className="text-sm">{report.coachSummary.strengths}</p>
-            </div>
-
-            <div className="bg-bg-card rounded-xl p-4">
-              <p className="text-xs text-accent mb-1">다음 연습에서 시도해볼 것</p>
-              <p className="text-sm whitespace-pre-line">{report.coachSummary.practiceGuide}</p>
-            </div>
-
-            <p className="text-sm text-text-secondary italic text-center pt-2 border-t border-accent/10">
-              "{report.coachSummary.encouragement}"
-            </p>
-          </div>
-        )}
-
         {/* 질문별 상세 (영상 재생 + 모범 답안) */}
         <div className="space-y-4">
           <h2 className="font-semibold text-lg">질문별 상세</h2>
