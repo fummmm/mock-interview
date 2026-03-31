@@ -51,9 +51,10 @@ self.addEventListener('message', async (event) => {
         chunk_length_s: 30,
       })
 
-      // 반복 환각 제거 (같은 구절 연속 반복 → 1회만)
+      // 반복 환각 제거 + 짧은 환각 제거
       let text = result.text || ''
       text = removeRepetitions(text)
+      text = removeShortHallucinations(text, audioData?.length || 0)
 
       self.postMessage({
         type: 'result',
@@ -66,6 +67,25 @@ self.addEventListener('message', async (event) => {
     }
   }
 })
+
+/**
+ * 짧은 오디오에서 Whisper 환각 제거
+ * 침묵인데 "감사합니다", "네", "수고하셨습니다" 등을 만들어내는 문제 대응
+ */
+function removeShortHallucinations(text, audioSamples) {
+  if (!text || !text.trim()) return ''
+  // 16kHz 기준 3초 = 48000 샘플
+  const durationSec = audioSamples / 16000
+  const trimmed = text.trim()
+  // 5초 미만 오디오에서 10자 이하 텍스트는 환각일 가능성 높음
+  if (durationSec < 5 && trimmed.length < 15) {
+    const hallucinations = ['감사합니다', '네', '수고하셨습니다', '고맙습니다', '알겠습니다', '예']
+    for (const h of hallucinations) {
+      if (trimmed.replace(/[.,!?]/g, '').trim() === h) return ''
+    }
+  }
+  return text
+}
 
 /**
  * 반복 환각 제거
