@@ -122,17 +122,27 @@ export default function AnalyzingPage() {
       setProgress(90)
       setStatusText('종합 리포트 생성 중...')
 
-      if (textResult.status === 'rejected') {
-        console.error('[분석] 텍스트 분석 실패:', textResult.reason)
+      const textError = textResult.status === 'rejected' ? textResult.reason?.message || '알 수 없는 오류' : null
+      const visionError = visionResult.status === 'rejected' ? visionResult.reason?.message || '알 수 없는 오류' : null
+
+      if (textError) {
+        console.error('[분석] 텍스트 분석 실패:', textError)
+        setStatusText(`텍스트 분석 실패: ${textError.slice(0, 100)}`)
       }
-      if (visionResult.status === 'rejected') {
-        console.error('[분석] 비전 분석 실패:', visionResult.reason)
+      if (visionError) {
+        console.error('[분석] 비전 분석 실패:', visionError)
       }
 
       const textData = textResult.status === 'fulfilled' ? textResult.value : null
       const visionData = visionResult.status === 'fulfilled' ? visionResult.value : null
 
-      if (!textData && !visionData) throw new Error('분석에 실패했습니다. 콘솔(F12)에서 상세 오류를 확인해주세요.')
+      // API 키 체크
+      if (!textData) {
+        const hasKey = !!import.meta.env.VITE_OPENROUTER_API_KEY
+        console.error('[분석] API 키 존재:', hasKey, '텍스트 에러:', textError)
+      }
+
+      if (!textData && !visionData) throw new Error(`분석 실패. 텍스트: ${textError || '없음'}, 비전: ${visionError || '없음'}`)
 
       // 리포트 빌드 (useAnalysis에서 가져온 로직을 인라인)
       const { buildReport } = await import('../hooks/useAnalysis')
