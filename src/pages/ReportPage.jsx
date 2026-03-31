@@ -473,6 +473,21 @@ function QuestionDetailCard({ data }) {
             </div>
           )}
 
+          {/* 꼬리질문 답변 */}
+          {data.followUp?.question && (
+            <div className="bg-accent/5 border border-accent/20 rounded-xl p-3 space-y-2">
+              <p className="text-xs text-accent font-medium">꼬리질문: {data.followUp.question}</p>
+              {data.followUp.transcript ? (
+                <div>
+                  <p className="text-xs text-text-secondary mb-1">꼬리질문 답변</p>
+                  <p className="text-sm leading-relaxed">{data.followUp.transcript}</p>
+                </div>
+              ) : (
+                <p className="text-xs text-text-secondary">꼬리질문 답변이 기록되지 않았습니다.</p>
+              )}
+            </div>
+          )}
+
           {/* 모범 답안 */}
           {data.sampleAnswer && (
             <div className="bg-info/5 border border-info/20 rounded-xl p-3">

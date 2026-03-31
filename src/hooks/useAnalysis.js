@@ -105,6 +105,7 @@ export function buildReport(textData, visionData, answers) {
       vision: visionByQuestion[i] || null,
       sampleAnswer: textData?.sampleAnswers?.find((s) => s.questionIndex === i)?.answer || '',
       problemPhrases: allProblemPhrases,
+      followUp: a.followUp || null,
     }
   })
 
