@@ -193,12 +193,10 @@ export default function InterviewPage() {
     setIsGenerating(true)
     try {
       const rough = roughTranscriptRef.current.trim()
-      console.log(`[꼬리질문] Q${idx + 1} 거친 텍스트:`, rough?.slice(0, 80))
 
       // 녹화 완료 → 무조건 진행 (답변 미감지 차단 제거)
       // Web Speech API 실패해도 Whisper가 나중에 처리함
       const followUp = await generateFollowUp(questionText, rough || '', evaluators, currentQuestion?.id || '')
-      console.log(`[꼬리질문] 판단:`, followUp)
 
       if (followUp.needed && followUp.question) {
         const asker = evaluators.find((e) => e.id === followUp.evaluatorId) || evaluators[0]

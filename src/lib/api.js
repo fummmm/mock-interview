@@ -326,8 +326,6 @@ ${evaluatorConfig.jsonExample}
   ]
 }`
 
-  console.log('[analyzeText] 요청 전송 중...')
-  console.log('[analyzeText] 답변 요약:', answersText.slice(0, 200))
 
   const content = await callOpenRouter({
     model: 'anthropic/claude-sonnet-4',
@@ -338,7 +336,6 @@ ${evaluatorConfig.jsonExample}
     jsonMode: true,
   })
 
-  console.log('[analyzeText] 원본 응답:', content?.slice(0, 300))
   return safeParseJSON(content, 'analyzeText')
 }
 
@@ -416,7 +413,6 @@ export async function analyzeVision({ answers }) {
     jsonMode: true,
   })
 
-  console.log('[analyzeVision] 원본 응답:', content?.slice(0, 300))
   return safeParseJSON(content, 'analyzeVision')
 }
 

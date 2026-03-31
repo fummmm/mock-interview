@@ -89,7 +89,6 @@ export default function AnalyzingPage() {
       }
 
       setProgress(55)
-      console.log('[분석] 모든 답변 텍스트 준비 완료:', useInterviewStore.getState().answers.map((a, i) => `Q${i + 1}: ${a.transcript?.slice(0, 40) || '(없음)'}`))
 
       // --- 3단계: LLM 평가 (55~95%) ---
       setStep('llm')
@@ -97,23 +96,13 @@ export default function AnalyzingPage() {
 
       const updatedAnswers = useInterviewStore.getState().answers
 
-      // 디버깅: transcript 확인
-      console.log('[분석] 답변 데이터:', updatedAnswers.map((a, i) => ({
-        q: i + 1,
-        transcript: a.transcript?.slice(0, 50) || '(없음)',
-        hasVideo: !!a.videoBlob,
-        frames: a.frames?.length || 0,
-      })))
-
       const [textResult, visionResult] = await Promise.allSettled([
         analyzeText({ questions, answers: updatedAnswers, track }).then((r) => {
-          console.log('[분석] 텍스트 분석 결과:', r)
           setProgress(75)
           setStatusText('텍스트 분석 완료, 영상 분석 중...')
           return r
         }),
         analyzeVision({ answers: updatedAnswers }).then((r) => {
-          console.log('[분석] 비전 분석 결과:', r)
           setProgress(85)
           return r
         }),
@@ -135,12 +124,6 @@ export default function AnalyzingPage() {
 
       const textData = textResult.status === 'fulfilled' ? textResult.value : null
       const visionData = visionResult.status === 'fulfilled' ? visionResult.value : null
-
-      // API 키 체크
-      if (!textData) {
-        const hasKey = !!import.meta.env.VITE_OPENROUTER_API_KEY
-        console.error('[분석] API 키 존재:', hasKey, '텍스트 에러:', textError)
-      }
 
       if (!textData && !visionData) throw new Error(`분석 실패. 텍스트: ${textError || '없음'}, 비전: ${visionError || '없음'}`)
 
