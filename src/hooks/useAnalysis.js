@@ -130,8 +130,13 @@ export function buildReport(textData, visionData, answers) {
 
   const grade = overallScore >= 90 ? 'S' : overallScore >= 80 ? 'A' : overallScore >= 70 ? 'B' : overallScore >= 60 ? 'C' : 'D'
 
-  // 합격 여부 (3명 중 과반)
-  const passCount = evaluatorReports.filter((e) => e.pass).length
+  // 합격 여부: 점수 기반 판정 (LLM의 pass 필드 대신)
+  // 각 면접관 avgScore >= 60이면 해당 면접관 합격
+  const evaluatorReportsWithPass = evaluatorReports.map((e) => ({
+    ...e,
+    pass: e.avgScore >= 60,
+  }))
+  const passCount = evaluatorReportsWithPass.filter((e) => e.pass).length
   const overallPass = passCount >= 2
 
   return {
@@ -141,7 +146,7 @@ export function buildReport(textData, visionData, answers) {
     passCount,
     questionCount,
     categoryScores,
-    evaluators: evaluatorReports,
+    evaluators: evaluatorReportsWithPass,
     questionData,
     speechFeedback: textData?.speechFeedback || null,
     visionTips: visionData?.tips || [],

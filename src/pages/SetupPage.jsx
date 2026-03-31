@@ -14,7 +14,7 @@ const TRACK_LABELS = {
   design: '게임기획',
 }
 
-const COUNTS = [2, 3, 4, 5, 7]
+const COUNTS = [4, 5]
 
 export default function SetupPage() {
   const navigate = useNavigate()
@@ -81,8 +81,7 @@ export default function SetupPage() {
       <div className="max-w-2xl w-full space-y-10">
         {/* 헤더 */}
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">AI Mock Interview(테스트)</h1>
-          <p className="text-text-secondary">AI 모의면접 연습 서비스</p>
+          <h1 className="text-3xl font-extrabold tracking-tight">AI 모의면접 연습</h1>
           {/* 쿼타 표시 */}
           <div className={`inline-block px-4 py-1.5 rounded-full text-sm ${remaining > 0 ? 'bg-accent/10 text-accent' : 'bg-danger/10 text-danger'}`}>
             남은 면접 횟수: {remaining}회
@@ -139,6 +138,7 @@ export default function SetupPage() {
               </button>
             ))}
           </div>
+          <p className="text-xs text-text-secondary">꼬리질문으로 인한 추가 질문이 발생할 수 있습니다.</p>
         </section>
 
         {/* 시작 버튼 */}

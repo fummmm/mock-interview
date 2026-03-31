@@ -146,10 +146,10 @@ export default function ReportPage() {
             <p className="text-sm text-text-secondary text-center mb-2">카테고리별 점수</p>
             <ResponsiveContainer width="100%" height={220}>
               <RadarChart data={radarData}>
-                <PolarGrid stroke="#2a3042" />
-                <PolarAngleAxis dataKey="label" tick={{ fill: '#8b92a5', fontSize: 11 }} />
-                <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#8b92a5', fontSize: 10 }} />
-                <Radar dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.25} strokeWidth={2} />
+                <PolarGrid stroke="#d4d4de" />
+                <PolarAngleAxis dataKey="label" tick={{ fill: '#6e6e82', fontSize: 11 }} />
+                <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#6e6e82', fontSize: 10 }} />
+                <Radar dataKey="value" stroke="#E8344E" fill="#E8344E" fillOpacity={0.25} strokeWidth={2} />
               </RadarChart>
             </ResponsiveContainer>
           </div>

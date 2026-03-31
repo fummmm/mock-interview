@@ -3,19 +3,23 @@
 @theme {
   --font-pretendard: 'Pretendard Variable', 'Pretendard', system-ui, sans-serif;
 
-  /* 모의면접 서비스 고유 색상 */
-  --color-bg-primary: #0c0f14;
-  --color-bg-secondary: #151922;
-  --color-bg-card: #1c2130;
-  --color-bg-elevated: #242a3a;
-  --color-text-primary: #e8eaf0;
-  --color-text-secondary: #8b92a5;
-  --color-border: #2a3042;
+  /* 소프트 그레이 (약간 어둡게) + 웜 레드 */
+  --color-bg-primary: #e4e4ea;
+  --color-bg-secondary: #dcdce3;
+  --color-bg-card: #f5f5f8;
+  --color-bg-elevated: #e0e0e7;
+  --color-text-primary: #1a1a2e;
+  --color-text-secondary: #5e5e72;
+  --color-border: #c8c8d4;
 
-  --color-accent: #6366f1;
-  --color-accent-hover: #818cf8;
+  /* 소프트 스파르타 레드 */
+  --color-accent: #d14558;
+  --color-accent-hover: #be3a4c;
+  --color-accent-muted: #d1455815;
+
+  /* 기능 색상 */
   --color-recording: #ef4444;
-  --color-success: #22c55e;
+  --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
   --color-info: #3b82f6;
@@ -27,6 +31,8 @@ body {
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -35,9 +41,22 @@ body {
   flex-direction: column;
 }
 
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c4c4ce; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #a4a4b0; }
+
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236e6e82' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  appearance: none;
+  padding-right: 28px;
+}
+
 @keyframes recording-pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  50% { opacity: 0.3; }
 }
 
 @keyframes analyzing-dots {
@@ -50,10 +69,19 @@ body {
   to { transform: scale(1); opacity: 1; }
 }
 
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .animate-recording-pulse {
   animation: recording-pulse 1.5s ease-in-out infinite;
 }
 
 .animate-score-reveal {
   animation: score-reveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
 }

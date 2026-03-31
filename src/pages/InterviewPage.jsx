@@ -411,7 +411,7 @@ export default function InterviewPage() {
         </div>
 
         {/* 캠 프리뷰 */}
-        <div className="flex-1 relative min-h-[280px] rounded-2xl overflow-hidden bg-bg-secondary border border-border">
+        <div className="relative rounded-2xl overflow-hidden bg-bg-secondary border border-border" style={{ height: '55vh', maxHeight: '500px' }}>
           {mediaStatus === 'granted' ? (
             <>
               <video

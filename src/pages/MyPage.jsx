@@ -195,11 +195,11 @@ export default function MyPage() {
                     <p className="text-sm text-text-secondary mb-3">점수 추이</p>
                     <ResponsiveContainer width="100%" height={180}>
                       <LineChart data={chartData}>
-                        <CartesianGrid stroke="#2a3042" strokeDasharray="3 3" />
-                        <XAxis dataKey="date" tick={{ fill: '#8b92a5', fontSize: 11 }} />
-                        <YAxis domain={[0, 100]} tick={{ fill: '#8b92a5', fontSize: 11 }} />
-                        <Tooltip contentStyle={{ background: '#1c2130', border: '1px solid #2a3042', borderRadius: '8px' }} />
-                        <Line type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} />
+                        <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
+                        <XAxis dataKey="date" tick={{ fill: '#6e6e82', fontSize: 11 }} />
+                        <YAxis domain={[0, 100]} tick={{ fill: '#6e6e82', fontSize: 11 }} />
+                        <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #d4d4de', borderRadius: '8px', color: '#1a1a2e' }} />
+                        <Line type="monotone" dataKey="score" stroke="#E8344E" strokeWidth={2} dot={{ r: 4 }} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
