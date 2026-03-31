@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
 
-const TRACK_LABELS = { unity: 'Unity', unreal: 'Unreal', pm: 'PM', design: '게임기획' }
+const TRACK_LABELS = { behavioral: '인성면접', unity: 'Unity', unreal: 'Unreal', pm: 'PM', design: '게임기획' }
 
 export default function AdminDashboard() {
   const { profile } = useAuthStore()
@@ -21,7 +21,7 @@ export default function AdminDashboard() {
 
   async function loadData() {
     const [u, s, r] = await Promise.all([
-      supabase.from('users').select('id, track, cohort, role').eq('role', 'student'),
+      supabase.from('users').select('id, track, cohort, role'),
       supabase.from('interview_sessions').select('id, user_id, track, status'),
       supabase.from('interview_results').select('id, user_id, overall_pass, overall_score, created_at, interview_sessions(track)'),
     ])
@@ -55,11 +55,33 @@ export default function AdminDashboard() {
 
   const stats = calcStats(filteredUserIds)
 
-  // 트랙별 통계
-  const trackStats = Object.keys(TRACK_LABELS).map((track) => {
-    const ids = new Set(users.filter((u) => u.track === track && (!filterCohort || u.cohort === parseInt(filterCohort))).map((u) => u.id))
-    return { track, label: TRACK_LABELS[track], ...calcStats(ids) }
-  }).filter((t) => t.students > 0)
+  // 트랙별 통계 (면접 세션의 실제 트랙 기준)
+  const trackStats = Object.keys(TRACK_LABELS).map((trackKey) => {
+    let trackSessions = sessions.filter((s) => s.track === trackKey && s.status === 'completed')
+    let trackResults = results.filter((r) => r.interview_sessions?.track === trackKey)
+
+    if (filterCohort) {
+      const cohortIds = new Set(users.filter((u) => u.cohort === parseInt(filterCohort)).map((u) => u.id))
+      trackSessions = trackSessions.filter((s) => cohortIds.has(s.user_id))
+      trackResults = trackResults.filter((r) => cohortIds.has(r.user_id))
+    }
+
+    const uniqueUsers = new Set(trackResults.map((r) => r.user_id))
+    const passed = trackResults.filter((r) => r.overall_pass)
+    const avg = trackResults.length > 0
+      ? Math.round(trackResults.reduce((a, r) => a + (r.overall_score || 0), 0) / trackResults.length)
+      : 0
+
+    return {
+      track: trackKey,
+      label: TRACK_LABELS[trackKey],
+      students: uniqueUsers.size,
+      completed: trackSessions.length,
+      passed: passed.length,
+      passRate: trackResults.length > 0 ? Math.round((passed.length / trackResults.length) * 100) : 0,
+      avgScore: avg,
+    }
+  }).filter((t) => t.completed > 0)
 
   // 기수별 통계
   const cohorts = [...new Set(users.map((u) => u.cohort).filter(Boolean))].sort((a, b) => b - a)
