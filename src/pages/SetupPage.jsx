@@ -20,11 +20,12 @@ export default function SetupPage() {
   const navigate = useNavigate()
   const { track, questionCount, setTrack, setQuestionCount } = useSettingsStore()
   const { loadQuestions, reset } = useInterviewStore()
-  const { profile, quota } = useAuthStore()
+  const { profile, quota, isMainAdmin } = useAuthStore()
+  const mainAdmin = isMainAdmin()
 
   const userTrack = profile?.track
   const remaining = quota ? Math.max(0, quota.total_quota - quota.used_count) : 0
-  const canStart = !!track && remaining > 0
+  const canStart = !!track && (mainAdmin || remaining > 0)
 
   const [starting, setStarting] = useState(false)
 
@@ -83,8 +84,8 @@ export default function SetupPage() {
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-extrabold tracking-tight">AI 모의면접 연습</h1>
           {/* 쿼타 표시 */}
-          <div className={`inline-block px-4 py-1.5 rounded-full text-sm ${remaining > 0 ? 'bg-accent/10 text-accent' : 'bg-danger/10 text-danger'}`}>
-            남은 면접 횟수: {remaining}회
+          <div className={`inline-block px-4 py-1.5 rounded-full text-sm ${mainAdmin || remaining > 0 ? 'bg-accent/10 text-accent' : 'bg-danger/10 text-danger'}`}>
+            {mainAdmin ? '관리자 (무제한)' : `남은 면접 횟수: ${remaining}회`}
           </div>
         </div>
 
@@ -104,19 +105,35 @@ export default function SetupPage() {
               <div className="text-sm text-text-secondary mt-1">직군 무관, 인성/역량 중심 질문</div>
             </button>
 
-            {userTrack && TRACK_LABELS[userTrack] && (
-              <button
-                onClick={() => setTrack(userTrack)}
-                className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
-                  track === userTrack
-                    ? 'border-accent bg-accent/10 ring-1 ring-accent'
-                    : 'border-border bg-bg-card hover:border-accent/50'
-                }`}
-              >
-                <div className="font-semibold">{TRACK_LABELS[userTrack]} 면접</div>
-                <div className="text-sm text-text-secondary mt-1">기술 + 인성 종합 질문</div>
-              </button>
-            )}
+            {mainAdmin
+              ? Object.entries(TRACK_LABELS).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setTrack(key)}
+                    className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
+                      track === key
+                        ? 'border-accent bg-accent/10 ring-1 ring-accent'
+                        : 'border-border bg-bg-card hover:border-accent/50'
+                    }`}
+                  >
+                    <div className="font-semibold">{label} 면접</div>
+                    <div className="text-sm text-text-secondary mt-1">기술 + 인성 종합 질문</div>
+                  </button>
+                ))
+              : userTrack && TRACK_LABELS[userTrack] && (
+                  <button
+                    onClick={() => setTrack(userTrack)}
+                    className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
+                      track === userTrack
+                        ? 'border-accent bg-accent/10 ring-1 ring-accent'
+                        : 'border-border bg-bg-card hover:border-accent/50'
+                    }`}
+                  >
+                    <div className="font-semibold">{TRACK_LABELS[userTrack]} 면접</div>
+                    <div className="text-sm text-text-secondary mt-1">기술 + 인성 종합 질문</div>
+                  </button>
+                )
+            }
           </div>
         </section>
 
@@ -151,7 +168,7 @@ export default function SetupPage() {
               : 'bg-bg-elevated text-text-secondary cursor-not-allowed'
           }`}
         >
-          {starting ? '준비 중...' : remaining > 0 ? '면접 시작' : '면접 횟수가 없습니다 (관리자에게 문의)'}
+          {starting ? '준비 중...' : mainAdmin || remaining > 0 ? '면접 시작' : '면접 횟수가 없습니다 (관리자에게 문의)'}
         </button>
       </div>
     </div>
