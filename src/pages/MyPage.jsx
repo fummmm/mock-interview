@@ -138,7 +138,6 @@ export default function MyPage() {
 
   const tabs = [
     { id: 'history', label: '면접 이력' },
-    { id: 'documents', label: '이력서/포폴' },
     { id: 'profile', label: '내 정보' },
   ]
 
@@ -146,6 +145,49 @@ export default function MyPage() {
     <div className="flex-1 p-4 sm:p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold">마이페이지</h1>
+
+        {/* 이력서/포폴 등록 상태 */}
+        {!loading && (
+          <div className="bg-bg-card border border-border rounded-xl p-5">
+            <h2 className="text-sm font-semibold text-text-secondary mb-3">이력서/포트폴리오</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {['resume', 'portfolio'].map((docType) => {
+                const doc = documents.find((d) => d.doc_type === docType)
+                const label = docType === 'resume' ? '이력서' : '포트폴리오'
+                return (
+                  <div key={docType} className="flex items-center justify-between p-3 rounded-lg bg-bg-elevated">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${doc ? 'bg-success' : 'bg-text-secondary/30'}`} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{label}</p>
+                        {doc ? (
+                          <p className="text-xs text-text-secondary truncate">{doc.file_name}</p>
+                        ) : (
+                          <p className="text-xs text-text-secondary/60">미등록</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 shrink-0 ml-2">
+                      {doc && (
+                        <button onClick={() => handleDeleteDoc(doc)}
+                          className="px-2.5 py-1 rounded-lg border border-border text-xs text-text-secondary hover:text-danger transition-all cursor-pointer">
+                          삭제
+                        </button>
+                      )}
+                      <button onClick={() => handleUpload(docType)} disabled={uploading}
+                        className="px-2.5 py-1 rounded-lg bg-accent text-white text-xs cursor-pointer disabled:opacity-50">
+                        {uploading ? '...' : doc ? '교체' : '등록'}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            {documents.some((d) => d.doc_type === 'resume' || d.doc_type === 'portfolio') && (
+              <p className="text-xs text-text-secondary mt-3">등록된 문서는 면접 시 맞춤형 질문 생성에 활용됩니다.</p>
+            )}
+          </div>
+        )}
 
         {/* 요약 */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -234,49 +276,6 @@ export default function MyPage() {
                     ))}
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* 이력서/포폴 */}
-            {tab === 'documents' && (
-              <div className="space-y-4">
-                {['resume', 'portfolio'].map((docType) => {
-                  const doc = documents.find((d) => d.doc_type === docType)
-                  const label = docType === 'resume' ? '이력서' : '포트폴리오'
-                  return (
-                    <div key={docType} className="bg-bg-card border border-border rounded-xl p-5">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{label}</p>
-                          {doc ? (
-                            <p className="text-xs text-text-secondary mt-1">{doc.file_name} ({(doc.file_size / 1024 / 1024).toFixed(1)}MB)</p>
-                          ) : (
-                            <p className="text-xs text-text-secondary mt-1">등록된 파일 없음</p>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          {doc && (
-                            <button onClick={() => handleDeleteDoc(doc)} className="px-3 py-1.5 rounded-lg border border-border text-xs text-text-secondary hover:text-danger transition-all cursor-pointer">
-                              삭제
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleUpload(docType)}
-                            disabled={uploading}
-                            className="px-3 py-1.5 rounded-lg bg-accent text-white text-xs cursor-pointer disabled:opacity-50"
-                          >
-                            {uploading ? '업로드 중...' : doc ? '교체' : '업로드'}
-                          </button>
-                        </div>
-                      </div>
-                      {doc && (
-                        <p className="text-xs text-text-secondary mt-2">
-                          면접 시 이 {label}에서 질문 1~2개가 자동 생성됩니다.
-                        </p>
-                      )}
-                    </div>
-                  )
-                })}
               </div>
             )}
 

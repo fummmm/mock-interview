@@ -5,7 +5,7 @@ import { useAuthStore } from '../stores/authStore'
 import { getQuestions } from '../lib/questions'
 import { generateDocumentQuestions } from '../lib/api'
 import { supabase } from '../lib/supabase'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const TRACK_LABELS = {
   unity: 'Unity',
@@ -28,6 +28,17 @@ export default function SetupPage() {
   const canStart = !!track && (mainAdmin || remaining > 0)
 
   const [starting, setStarting] = useState(false)
+  const [docs, setDocs] = useState([])
+
+  const hasResume = docs.some((d) => d.doc_type === 'resume')
+  const hasPortfolio = docs.some((d) => d.doc_type === 'portfolio')
+
+  useEffect(() => {
+    if (profile?.id) {
+      supabase.from('user_documents').select('doc_type').eq('user_id', profile.id)
+        .then(({ data }) => setDocs(data || []))
+    }
+  }, [profile?.id])
 
   const handleStart = async () => {
     if (!canStart || starting) return
@@ -87,6 +98,24 @@ export default function SetupPage() {
           <div className={`inline-block px-4 py-1.5 rounded-full text-sm ${mainAdmin || remaining > 0 ? 'bg-accent/10 text-accent' : 'bg-danger/10 text-danger'}`}>
             {mainAdmin ? '관리자 (무제한)' : `남은 면접 횟수: ${remaining}회`}
           </div>
+
+          {/* 이력서/포폴 등록 상태 */}
+          <div className="flex items-center justify-center gap-4 text-sm mt-1">
+            <span className={`flex items-center gap-1.5 ${hasResume ? 'text-success' : 'text-text-secondary'}`}>
+              <span className={`w-2 h-2 rounded-full ${hasResume ? 'bg-success' : 'bg-text-secondary/30'}`} />
+              이력서 {hasResume ? '등록' : '미등록'}
+            </span>
+            <span className="text-border">|</span>
+            <span className={`flex items-center gap-1.5 ${hasPortfolio ? 'text-success' : 'text-text-secondary'}`}>
+              <span className={`w-2 h-2 rounded-full ${hasPortfolio ? 'bg-success' : 'bg-text-secondary/30'}`} />
+              포트폴리오 {hasPortfolio ? '등록' : '미등록'}
+            </span>
+          </div>
+          {(!hasResume || !hasPortfolio) && (
+            <p className="text-xs text-accent">
+              이력서/포트폴리오 등록 시 해당 문서를 분석하고 상황에 맞는 맞춤형 질문을 추가로 제공합니다.
+            </p>
+          )}
         </div>
 
         {/* 면접 유형 선택 */}
