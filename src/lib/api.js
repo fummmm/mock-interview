@@ -12,17 +12,18 @@ async function callOpenRouter({ model, messages, jsonMode = false }) {
   const body = { model, messages }
   if (jsonMode) body.response_format = { type: 'json_object' }
 
-  // 개발 환경에서 VITE_ 키가 있으면 직접 호출 (프록시 없이)
-  const devKey = import.meta.env.VITE_OPENROUTER_API_KEY
-  const timeout = AbortSignal.timeout ? AbortSignal.timeout(30000) : undefined // 30초 타임아웃
+  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY
+  const timeout = AbortSignal.timeout ? AbortSignal.timeout(120000) : undefined // 2분 타임아웃
 
-  if (isDev && devKey) {
+  // VITE_ 키가 있으면 직접 호출 (개발/배포 모두)
+  // Vercel Serverless는 10초 타임아웃이라 LLM 호출에 부적합
+  if (apiKey) {
     const res = await fetch(DIRECT_URL, {
       method: 'POST',
       signal: timeout,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${devKey}`,
+        'Authorization': `Bearer ${apiKey}`,
         'HTTP-Referer': window.location.origin,
         'X-Title': 'AI Mock Interview',
       },
@@ -33,6 +34,7 @@ async function callOpenRouter({ model, messages, jsonMode = false }) {
     return data.choices[0].message.content
   }
 
+  // 폴백: 서버 프록시
   const res = await fetch(PROXY_URL, {
     method: 'POST',
     signal: timeout,
