@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import SnakeGame from '../components/SnakeGame'
 import { useNavigate } from 'react-router-dom'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useInterviewStore } from '../stores/interviewStore'
@@ -16,6 +17,10 @@ export default function AnalyzingPage() {
   const [downloadInfo, setDownloadInfo] = useState(null)
   const [error, setError] = useState(null)
   const [elapsed, setElapsed] = useState(0)
+  const [gameActive, setGameActive] = useState(false)
+  const [gameReady, setGameReady] = useState(false)
+  const [initialDir, setInitialDir] = useState(null)
+  const [showHint, setShowHint] = useState(false)
   const startedRef = useRef(false)
   const timerRef = useRef(null)
 
@@ -31,9 +36,44 @@ export default function AnalyzingPage() {
     runPipeline()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 5초 후 힌트 표시
+  useEffect(() => {
+    const timer = setTimeout(() => setShowHint(true), 5000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // 게임 전환 딜레이 (점 페이드아웃 → 캔버스 마운트)
+  useEffect(() => {
+    if (gameActive) {
+      const timer = setTimeout(() => setGameReady(true), 350)
+      return () => clearTimeout(timer)
+    } else {
+      setGameReady(false)
+    }
+  }, [gameActive])
+
+  // 화살표 키로 게임 시작
+  useEffect(() => {
+    if (gameActive || step === 'error') return
+    const handler = (e) => {
+      const dirMap = {
+        ArrowUp: 'UP', ArrowDown: 'DOWN', ArrowLeft: 'LEFT', ArrowRight: 'RIGHT',
+        w: 'UP', s: 'DOWN', a: 'LEFT', d: 'RIGHT',
+        W: 'UP', S: 'DOWN', A: 'LEFT', D: 'RIGHT',
+      }
+      if (dirMap[e.key]) {
+        e.preventDefault()
+        setInitialDir(dirMap[e.key])
+        setGameActive(true)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [gameActive, step])
+
   async function runPipeline() {
     try {
-      setProgress(1) // 즉시 1%로 올려서 시작 확인
+      setProgress(1)
 
       // --- 1단계: 모델 로딩 (0~20%) ---
       if (!isModelLoaded()) {
@@ -55,7 +95,6 @@ export default function AnalyzingPage() {
       setStep('whisper')
       setStatusText('음성 변환 완료를 기다리는 중...')
 
-      // 백그라운드 처리가 끝날 때까지 대기
       await new Promise((resolve) => {
         const check = () => {
           const pending = useInterviewStore.getState().pendingSTT
@@ -70,7 +109,6 @@ export default function AnalyzingPage() {
         check()
       })
 
-      // 혹시 백그라운드에서 못 처리한 질문 보완
       const latestAnswers = useInterviewStore.getState().answers
       for (let i = 0; i < latestAnswers.length; i++) {
         const a = latestAnswers[i]
@@ -127,14 +165,12 @@ export default function AnalyzingPage() {
 
       if (!textData && !visionData) throw new Error(`분석 실패. 텍스트: ${textError || '없음'}, 비전: ${visionError || '없음'}`)
 
-      // 리포트 빌드 (useAnalysis에서 가져온 로직을 인라인)
       const { buildReport } = await import('../hooks/useAnalysis')
       const report = buildReport(textData, visionData, updatedAnswers)
 
       setProgress(95)
       setStatusText('결과 저장 중...')
 
-      // DB에 결과 저장
       const { saveResult } = useInterviewStore.getState()
       const resultId = await saveResult(report)
 
@@ -142,7 +178,6 @@ export default function AnalyzingPage() {
       setStatusText('분석 완료!')
       setReport(report)
 
-      // resultId가 있으면 /report/:id로, 없으면 /report로
       setTimeout(() => navigate(resultId ? `/report/${resultId}` : '/report'), 500)
 
     } catch (e) {
@@ -155,18 +190,63 @@ export default function AnalyzingPage() {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-6">
-      <div className="max-w-md w-full text-center space-y-8">
+      <div className="max-w-lg w-full text-center space-y-8">
+
+        {/* 게임 힌트 (점 위에 표시, 5초 후 페이드인) */}
+        {step !== 'error' && !gameActive && (
+          <p className="text-sm text-text-secondary"
+            style={{ opacity: showHint ? 1 : 0, transition: 'opacity 1s ease-in' }}>
+            방향키를 눌러보세요
+          </p>
+        )}
+        {step !== 'error' && gameActive && (
+          <p className="text-xs text-text-secondary/60">방향키/WASD 조작 | ESC 닫기</p>
+        )}
+
+        {/* 게임/점 영역 */}
         {step !== 'error' && (
-          <div className="flex justify-center gap-2">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="w-3 h-3 rounded-full bg-accent" style={{
-                animation: 'analyzing-dots 1.4s infinite ease-in-out both',
-                animationDelay: `${i * 0.16}s`,
-              }} />
-            ))}
+          <div className="flex justify-center">
+            <div
+              className="relative overflow-hidden rounded-xl"
+              style={{
+                width: gameActive ? 418 : 52,
+                height: gameActive ? 318 : 24,
+                backgroundColor: gameActive ? '#1a1a2e' : 'transparent',
+                borderWidth: 1,
+                borderStyle: 'solid',
+                borderColor: gameActive ? 'rgba(255,255,255,0.08)' : 'transparent',
+                transition: 'width 0.5s ease-out, height 0.5s ease-out, background-color 0.4s ease-out, border-color 0.4s ease-out',
+              }}
+            >
+              {/* 점 3개 — 항상 렌더, gameActive 시 페이드아웃 */}
+              <div
+                className="absolute inset-0 flex justify-center items-center gap-2"
+                style={{
+                  opacity: gameActive ? 0 : 1,
+                  transition: 'opacity 0.3s ease-out',
+                  pointerEvents: gameActive ? 'none' : 'auto',
+                }}
+              >
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="w-3 h-3 rounded-full bg-accent" style={{
+                    animation: gameActive ? 'none' : 'analyzing-dots 1.4s infinite ease-in-out both',
+                    animationDelay: `${i * 0.16}s`,
+                  }} />
+                ))}
+              </div>
+
+              {/* 스네이크 게임 — 점 페이드아웃 후 마운트 */}
+              {gameReady && (
+                <SnakeGame
+                  initialDir={initialDir}
+                  onClose={() => setGameActive(false)}
+                />
+              )}
+            </div>
           </div>
         )}
 
+        {/* 분석 상태 텍스트 */}
         <div className="space-y-2">
           <h1 className="text-2xl font-bold">
             {step === 'error' ? '분석 중 오류 발생' : '답변을 분석하고 있습니다'}
@@ -196,6 +276,7 @@ export default function AnalyzingPage() {
           )}
         </div>
 
+        {/* 프로그레스 바 */}
         <div className="w-full h-2 bg-bg-elevated rounded-full overflow-hidden">
           <div className="h-full bg-accent rounded-full transition-all duration-500 ease-out"
             style={{ width: `${progress}%` }} />
@@ -205,6 +286,7 @@ export default function AnalyzingPage() {
           <span>{Math.floor(elapsed / 60)}:{(elapsed % 60).toString().padStart(2, '0')} 경과</span>
         </div>
 
+        {/* 에러 */}
         {error && (
           <div className="bg-danger/10 border border-danger/30 rounded-xl p-4 space-y-3">
             <p className="text-danger text-sm">{error}</p>
