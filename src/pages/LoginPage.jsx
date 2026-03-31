@@ -23,10 +23,10 @@ export default function LoginPage() {
       </div>
 
       {/* 콘텐츠 */}
-      <div className="relative z-10 max-w-md w-full px-6 space-y-6 animate-fade-in">
+      <div className="relative z-10 w-full max-w-2xl mx-auto px-6 space-y-6 animate-fade-in text-center">
         {/* 타이틀 */}
         <div className="text-center space-y-3">
-          <h1 className="text-5xl sm:text-7xl font-black tracking-tighter text-white leading-none whitespace-nowrap">
+          <h1 className="text-5xl sm:text-7xl font-black tracking-tighter text-white leading-none">
             AI 모의면접 연습
           </h1>
           <p className="text-white/50 text-sm tracking-wide">AI 면접관이 당신의 면접을 평가합니다</p>
@@ -35,7 +35,7 @@ export default function LoginPage() {
         {/* 로그인 버튼 */}
         <button
           onClick={signInWithGoogle}
-          className="w-full py-3.5 rounded-2xl bg-white text-gray-800 font-bold text-base flex items-center justify-center gap-3 hover:bg-gray-100 transition-all cursor-pointer shadow-2xl"
+          className="w-full max-w-sm mx-auto py-3.5 rounded-2xl bg-white text-gray-800 font-bold text-base flex items-center justify-center gap-3 hover:bg-gray-100 transition-all cursor-pointer shadow-2xl"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
