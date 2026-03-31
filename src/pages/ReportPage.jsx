@@ -158,9 +158,13 @@ export default function ReportPage() {
         {/* 3명 평가자 카드 */}
         <div className="space-y-3">
           <h2 className="font-semibold text-lg">면접관별 평가</h2>
-          {report.evaluators.map((ev) => (
-            <EvaluatorCard key={ev.id} evaluator={ev} questionData={report.questionData} />
-          ))}
+          {report.evaluators?.length > 0 ? (
+            report.evaluators.map((ev) => (
+              <EvaluatorCard key={ev.id} evaluator={ev} questionData={report.questionData} />
+            ))
+          ) : (
+            <p className="text-text-secondary text-sm bg-bg-card border border-border rounded-xl p-4">면접관별 상세 평가 데이터가 없습니다. (분석 시점의 LLM 응답 오류 가능성)</p>
+          )}
         </div>
 
         {/* 말하기 분석 */}
