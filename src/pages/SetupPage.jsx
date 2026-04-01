@@ -59,7 +59,7 @@ export default function SetupPage() {
     reset()
     let questions = getQuestions(effectiveCount, effectiveTrack, companySize)
 
-    const customCount = effectiveCount <= 4 ? 1 : 2
+    const customCount = mode === 'job' ? 2 : (effectiveCount <= 4 ? 1 : 2)
     try {
       let customQuestions = []
 
@@ -402,7 +402,7 @@ export default function SetupPage() {
               <span className="text-2xl font-bold text-accent">4</span>
               <div>
                 <p className="text-sm font-medium">질문 4개 고정</p>
-                <p className="text-xs text-text-secondary">공고 기반 맞춤 질문 1개 + 인성 질문 3개로 구성됩니다</p>
+                <p className="text-xs text-text-secondary">채용 공고 기반 맞춤 질문을 포함하여 준비됩니다</p>
               </div>
             </div>
           )}
