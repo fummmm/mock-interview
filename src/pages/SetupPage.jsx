@@ -135,10 +135,10 @@ export default function SetupPage() {
       )}
 
       {/* 메인: 좌측 모드 선택 + 구분선 + 우측 콘텐츠 */}
-      <div className="w-full max-w-5xl flex gap-0 items-stretch">
+      <div className="w-full max-w-5xl flex gap-0 items-start">
 
         {/* 좌측 모드 선택 */}
-        <div className="shrink-0 flex flex-col gap-1 pr-6 w-48 pt-2">
+        <div className="shrink-0 flex flex-col gap-1 pr-6 w-48 pt-2 sticky top-6">
           {[
             { id: 'general', label: '일반 모의면접', sub: '트랙별 기본 질문' },
             { id: 'job', label: '공고 맞춤 면접', sub: '채용 공고 기반 질문' },
@@ -167,7 +167,7 @@ export default function SetupPage() {
         </div>
 
         {/* 구분선 */}
-        <div className="w-px bg-border shrink-0" />
+        <div className="w-px bg-border shrink-0 self-stretch" />
 
         {/* 우측 콘텐츠 */}
         <div className="flex-1 pl-6 space-y-8 min-w-0">
