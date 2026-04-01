@@ -18,7 +18,7 @@ import { useEffect, useCallback, useRef, useState } from 'react'
  */
 export default function InterviewPage() {
   const navigate = useNavigate()
-  const { track } = useSettingsStore()
+  const { track, companySize } = useSettingsStore()
   const {
     phase, questions, currentIndex,
     setPhase, updateAnswer, nextQuestion, setMediaStream,
@@ -42,7 +42,7 @@ export default function InterviewPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [retryMessage, setRetryMessage] = useState(null)
 
-  const evaluators = getEvaluators(track)
+  const evaluators = getEvaluators(track, companySize)
   const isMountedRef = useRef(true)
   useEffect(() => () => { isMountedRef.current = false }, [])
 
@@ -300,7 +300,7 @@ export default function InterviewPage() {
           {/* 면접관 소개 */}
           <div className="space-y-3">
             <h2 className="font-semibold text-sm text-text-secondary">오늘의 면접관</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className={`grid grid-cols-1 gap-3 ${evaluators.length === 2 ? 'sm:grid-cols-2' : evaluators.length === 4 ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'}`}>
               {evaluators.map((ev) => (
                 <div key={ev.id} className="bg-bg-card border border-border rounded-xl p-4 space-y-2">
                   <div>

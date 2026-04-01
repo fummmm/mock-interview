@@ -44,7 +44,7 @@ export function useAnalysis() {
   return { report, isAnalyzing, progress, error, analyze }
 }
 
-export function buildReport(textData, visionData, answers) {
+export function buildReport(textData, visionData, answers, companySize = 'medium') {
   const questionCount = answers.length
   const evaluators = textData?.evaluators || []
 
@@ -131,14 +131,26 @@ export function buildReport(textData, visionData, answers) {
 
   const grade = overallScore >= 90 ? 'S' : overallScore >= 80 ? 'A' : overallScore >= 70 ? 'B' : overallScore >= 60 ? 'C' : 'D'
 
-  // 합격 여부: 점수 기반 판정 (LLM의 pass 필드 대신)
-  // 각 면접관 avgScore >= 60이면 해당 면접관 합격
+  // 합격 여부: 기업 규모별 판정 로직
   const evaluatorReportsWithPass = evaluatorReports.map((e) => ({
     ...e,
-    pass: e.avgScore >= 60,
+    pass: companySize === 'large' ? e.avgScore >= 60 : e.avgScore >= 60,
   }))
   const passCount = evaluatorReportsWithPass.filter((e) => e.pass).length
-  const overallPass = passCount >= 2
+
+  let overallPass = false
+  if (companySize === 'small') {
+    // 소규모: 평균 60+ AND 대표 점수 > 실무 점수
+    const ceo = evaluatorReportsWithPass.find((e) => e.id === 'ceo')
+    const senior = evaluatorReportsWithPass.find((e) => e.id === 'senior')
+    overallPass = overallScore >= 60 && ceo && senior && ceo.avgScore > senior.avgScore
+  } else if (companySize === 'large') {
+    // 대기업: 4명 중 3명 합격 AND 전체 평균 80+
+    overallPass = passCount >= 3 && overallScore >= 80
+  } else {
+    // 중규모: 과반 합격 (2/3)
+    overallPass = passCount >= 2
+  }
 
   return {
     overallScore,

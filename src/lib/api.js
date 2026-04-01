@@ -3,6 +3,7 @@
  * 배포: /api/openrouter 서버 프록시 경유 (API 키 서버에만 보관)
  * 개발: VITE_OPENROUTER_API_KEY 있으면 직접 호출 (폴백)
  */
+import { getEvaluators } from '../data/evaluators'
 
 const isDev = import.meta.env.DEV
 const DIRECT_URL = 'https://openrouter.ai/api/v1/chat/completions'
@@ -248,7 +249,7 @@ export async function generateDocumentQuestions(extractedText, track, count = 2)
 /**
  * 텍스트 분석 - 3명 평가자
  */
-export async function analyzeText({ questions, answers, track }) {
+export async function analyzeText({ questions, answers, track, companySize = 'medium' }) {
   const answersText = answers
     .map((a, i) => {
       let text = `[질문 ${i + 1}] ${a.questionText}\n[답변] ${a.transcript || '(답변 없음)'}\n[녹화 시간] ${a.recordingDuration}초`
@@ -260,7 +261,7 @@ export async function analyzeText({ questions, answers, track }) {
     .join('\n\n---\n\n')
 
   const trackLabel = getTrackLabel(track)
-  const evaluatorConfig = getEvaluatorConfig(track, trackLabel)
+  const evaluatorConfig = getEvaluatorConfig(track, trackLabel, companySize)
 
   const systemPrompt = `당신은 면접 평가 시스템입니다.
 이 서비스는 취업 준비 수강생이 튜터와의 1:1 모의면접 전에 연습하는 도구입니다.
@@ -452,7 +453,7 @@ function getTrackLabel(track) {
   return labels[track] || '종합'
 }
 
-function getEvaluatorConfig(track, trackLabel) {
+function getEvaluatorConfig(track, trackLabel, companySize = 'medium') {
   const feedbackTemplate = `"questionFeedbacks": [
         {
           "questionIndex": 0,
@@ -468,70 +469,22 @@ function getEvaluatorConfig(track, trackLabel) {
       "improvements": ["개선점1 (어떻게 고치면 좋은지 방법까지)", "개선점2", "개선점3"],
       "pass": true`
 
-  if (track === 'behavioral') {
-    return {
-      prompt: `1. **현직 팀장** (업계 팀장급, 경력 6년+)
-   - 실무 역량, 팀 적합성, 문제 해결 능력 위주 평가
-   - 솔직하고 직설적. "현업에서는 이런 답변은 ___해서 아쉽다" 식 피드백.
+  const evaluators = getEvaluators(track, companySize)
 
-2. **HR 담당자** (인사 매니저, 경력 4년+)
-   - 인성, 조직 문화 적합성, 소통 능력, 태도 위주 평가
-   - 따뜻하지만 핵심을 짚는 피드백. 면접 에티켓과 태도에 민감.
+  const prompt = evaluators.map((ev, i) => (
+    `${i + 1}. **${ev.name}** (${ev.role})
+   - ${ev.focus} 위주 평가
+   - ${ev.prompt}`
+  )).join('\n\n')
 
-3. **임원 면접관** (이사/본부장급, 경력 8년+)
-   - 성장 가능성, 가치관, 리더십 잠재력, 조직 적합성 위주 평가
-   - 큰 그림을 보는 전략적 피드백. 이 사람을 뽑을지 말지의 관점.`,
-      jsonExample: `    {
-      "id": "team_lead",
-      "name": "현직 팀장",
-      "role": "팀장급",
+  const jsonExample = evaluators.map((ev) => (
+    `    {
+      "id": "${ev.id}",
+      "name": "${ev.name}",
+      "role": "${ev.role}",
       ${feedbackTemplate}
-    },
-    {
-      "id": "hr",
-      "name": "HR 담당자",
-      "role": "인사 매니저",
-      ${feedbackTemplate}
-    },
-    {
-      "id": "executive",
-      "name": "임원 면접관",
-      "role": "이사급",
-      ${feedbackTemplate}
-    }`,
-    }
-  }
+    }`
+  )).join(',\n')
 
-  // 기술 트랙 (Unity/Unreal/기획)
-  return {
-    prompt: `1. **실무 전문가** (${trackLabel} 시니어, 경력 4년+)
-   - 기술적 정확성, 실무 적용 가능성, 문제 해결 역량 위주 평가
-   - 솔직하고 직설적. "현업에서는 ___" 맥락의 실무 관점.
-
-2. **HR 담당자** (인사 매니저, 경력 4년+)
-   - 인성, 조직 문화 적합성, 소통 능력, 태도 위주 평가
-   - 따뜻하지만 핵심을 짚는 피드백. 면접 에티켓과 태도에 민감.
-
-3. **임원 면접관** (이사/본부장급, 경력 8년+)
-   - 성장 가능성, 조직 적합성, 장기 비전 위주 평가
-   - 큰 그림을 보는 전략적 피드백. 이 사람을 뽑을지 말지의 관점.`,
-    jsonExample: `    {
-      "id": "expert",
-      "name": "실무 전문가",
-      "role": "${trackLabel} 시니어",
-      ${feedbackTemplate}
-    },
-    {
-      "id": "hr",
-      "name": "HR 담당자",
-      "role": "인사 매니저",
-      ${feedbackTemplate}
-    },
-    {
-      "id": "executive",
-      "name": "임원 면접관",
-      "role": "이사급",
-      ${feedbackTemplate}
-    }`,
-  }
+  return { prompt, jsonExample }
 }

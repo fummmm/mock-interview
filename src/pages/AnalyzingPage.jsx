@@ -8,7 +8,7 @@ import { preloadModel, transcribeAudio, isModelLoaded } from '../lib/whisper'
 
 export default function AnalyzingPage() {
   const navigate = useNavigate()
-  const { track } = useSettingsStore()
+  const { track, companySize } = useSettingsStore()
   const { questions, answers, phase, setReport, updateAnswer } = useInterviewStore()
 
   const [progress, setProgress] = useState(0)
@@ -135,7 +135,7 @@ export default function AnalyzingPage() {
       const updatedAnswers = useInterviewStore.getState().answers
 
       const [textResult, visionResult] = await Promise.allSettled([
-        analyzeText({ questions, answers: updatedAnswers, track }).then((r) => {
+        analyzeText({ questions, answers: updatedAnswers, track, companySize }).then((r) => {
           setProgress(75)
           setStatusText('텍스트 분석 완료, 영상 분석 중...')
           return r
@@ -166,7 +166,7 @@ export default function AnalyzingPage() {
       if (!textData && !visionData) throw new Error(`분석 실패. 텍스트: ${textError || '없음'}, 비전: ${visionError || '없음'}`)
 
       const { buildReport } = await import('../hooks/useAnalysis')
-      const report = buildReport(textData, visionData, updatedAnswers)
+      const report = buildReport(textData, visionData, updatedAnswers, companySize)
 
       setProgress(95)
       setStatusText('결과 저장 중...')

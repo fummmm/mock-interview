@@ -18,7 +18,7 @@ const COUNTS = [4, 5]
 
 export default function SetupPage() {
   const navigate = useNavigate()
-  const { track, questionCount, setTrack, setQuestionCount } = useSettingsStore()
+  const { companySize, track, questionCount, setCompanySize, setTrack, setQuestionCount } = useSettingsStore()
   const { loadQuestions, reset } = useInterviewStore()
   const { profile, quota, isMainAdmin } = useAuthStore()
   const mainAdmin = isMainAdmin()
@@ -117,6 +117,32 @@ export default function SetupPage() {
             </p>
           )}
         </div>
+
+        {/* 기업 규모 선택 */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold text-text-secondary">기업 규모</h2>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { id: 'small', label: '소규모', sub: '30명 이하', desc: '대표 + 실무 선배' },
+              { id: 'medium', label: '중규모', sub: '100~200명', desc: '팀장 + HR + 임원' },
+              { id: 'large', label: '대기업', sub: '1000명+', desc: '기술 2명 + HR + 본부장' },
+            ].map((size) => (
+              <button
+                key={size.id}
+                onClick={() => setCompanySize(size.id)}
+                className={`p-4 rounded-xl border text-center transition-all cursor-pointer ${
+                  companySize === size.id
+                    ? 'border-accent bg-accent/10 ring-1 ring-accent'
+                    : 'border-border bg-bg-card hover:border-accent/50'
+                }`}
+              >
+                <div className="font-semibold">{size.label}</div>
+                <div className="text-xs text-text-secondary mt-0.5">{size.sub}</div>
+                <div className="text-xs text-text-secondary/60 mt-1">{size.desc}</div>
+              </button>
+            ))}
+          </div>
+        </section>
 
         {/* 면접 유형 선택 */}
         <section className="space-y-3">
