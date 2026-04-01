@@ -25,7 +25,10 @@ export default function SetupPage() {
 
   const userTrack = profile?.track
   const remaining = quota ? Math.max(0, quota.total_quota - quota.used_count) : 0
-  const canStart = !!track && (mainAdmin || remaining > 0)
+  // 공고 맞춤 모드: 트랙 자동 설정(behavioral), 질문 4개 고정
+  const effectiveTrack = mode === 'job' ? 'behavioral' : track
+  const effectiveCount = mode === 'job' ? 4 : questionCount
+  const canStart = (mode === 'job' || !!track) && (mainAdmin || remaining > 0)
 
   const [starting, setStarting] = useState(false)
   const [docs, setDocs] = useState([])
@@ -53,16 +56,16 @@ export default function SetupPage() {
     setStarting(true)
 
     reset()
-    let questions = getQuestions(questionCount, track, companySize)
+    let questions = getQuestions(effectiveCount, effectiveTrack, companySize)
 
-    const customCount = questionCount <= 4 ? 1 : 2
+    const customCount = effectiveCount <= 4 ? 1 : 2
     try {
       let customQuestions = []
 
       if (hasJobInfo) {
         customQuestions = await generateJobPostingQuestions(
           { companyName: jobCompany, position: jobPosition, screenshots: jobScreenshots },
-          track, customCount,
+          effectiveTrack, customCount,
         )
       }
 
@@ -79,7 +82,7 @@ export default function SetupPage() {
           .join('\n\n')
 
         if (docTexts) {
-          const docQuestions = await generateDocumentQuestions(docTexts, track, docRemaining)
+          const docQuestions = await generateDocumentQuestions(docTexts, effectiveTrack, docRemaining)
           customQuestions = [...customQuestions, ...docQuestions]
         }
       }
@@ -101,7 +104,7 @@ export default function SetupPage() {
     loadQuestions(questions)
 
     const { startSession } = useInterviewStore.getState()
-    await startSession(profile.id, track, questionCount)
+    await startSession(profile.id, effectiveTrack, effectiveCount)
 
     const { refreshQuota } = useAuthStore.getState()
     await refreshQuota()
@@ -319,74 +322,86 @@ export default function SetupPage() {
             </div>
           </section>
 
-          {/* 면접 유형 */}
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold text-text-secondary">면접 유형</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                onClick={() => setTrack('behavioral')}
-                className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
-                  track === 'behavioral'
-                    ? 'border-accent bg-accent/10 ring-1 ring-accent'
-                    : 'border-border bg-bg-card hover:border-accent/50'
-                }`}
-              >
-                <div className="font-semibold">인성면접 (공통)</div>
-                <div className="text-sm text-text-secondary mt-1">직군 무관, 인성/역량 중심 질문</div>
-              </button>
-
-              {mainAdmin
-                ? Object.entries(TRACK_LABELS).map(([key, label]) => (
-                    <button
-                      key={key}
-                      onClick={() => setTrack(key)}
-                      className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
-                        track === key
-                          ? 'border-accent bg-accent/10 ring-1 ring-accent'
-                          : 'border-border bg-bg-card hover:border-accent/50'
-                      }`}
-                    >
-                      <div className="font-semibold">{label} 면접</div>
-                      <div className="text-sm text-text-secondary mt-1">기술 + 인성 종합 질문</div>
-                    </button>
-                  ))
-                : userTrack && TRACK_LABELS[userTrack] && (
-                    <button
-                      onClick={() => setTrack(userTrack)}
-                      className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
-                        track === userTrack
-                          ? 'border-accent bg-accent/10 ring-1 ring-accent'
-                          : 'border-border bg-bg-card hover:border-accent/50'
-                      }`}
-                    >
-                      <div className="font-semibold">{TRACK_LABELS[userTrack]} 면접</div>
-                      <div className="text-sm text-text-secondary mt-1">기술 + 인성 종합 질문</div>
-                    </button>
-                  )
-              }
-            </div>
-          </section>
-
-          {/* 질문 수 */}
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold text-text-secondary">질문 수</h2>
-            <div className="flex gap-3">
-              {COUNTS.map((c) => (
+          {/* 면접 유형 (일반 모드만) */}
+          {mode === 'general' && (
+            <section className="space-y-3">
+              <h2 className="text-lg font-semibold text-text-secondary">면접 유형</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
-                  key={c}
-                  onClick={() => setQuestionCount(c)}
-                  className={`w-16 h-16 rounded-xl border text-xl font-bold transition-all cursor-pointer ${
-                    questionCount === c
-                      ? 'border-accent bg-accent/10 text-accent'
-                      : 'border-border bg-bg-card hover:border-accent/50 text-text-secondary'
+                  onClick={() => setTrack('behavioral')}
+                  className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
+                    track === 'behavioral'
+                      ? 'border-accent bg-accent/10 ring-1 ring-accent'
+                      : 'border-border bg-bg-card hover:border-accent/50'
                   }`}
                 >
-                  {c}
+                  <div className="font-semibold">인성면접 (공통)</div>
+                  <div className="text-sm text-text-secondary mt-1">직군 무관, 인성/역량 중심 질문</div>
                 </button>
-              ))}
+
+                {mainAdmin
+                  ? Object.entries(TRACK_LABELS).map(([key, label]) => (
+                      <button
+                        key={key}
+                        onClick={() => setTrack(key)}
+                        className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
+                          track === key
+                            ? 'border-accent bg-accent/10 ring-1 ring-accent'
+                            : 'border-border bg-bg-card hover:border-accent/50'
+                        }`}
+                      >
+                        <div className="font-semibold">{label} 면접</div>
+                        <div className="text-sm text-text-secondary mt-1">기술 + 인성 종합 질문</div>
+                      </button>
+                    ))
+                  : userTrack && TRACK_LABELS[userTrack] && (
+                      <button
+                        onClick={() => setTrack(userTrack)}
+                        className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
+                          track === userTrack
+                            ? 'border-accent bg-accent/10 ring-1 ring-accent'
+                            : 'border-border bg-bg-card hover:border-accent/50'
+                        }`}
+                      >
+                        <div className="font-semibold">{TRACK_LABELS[userTrack]} 면접</div>
+                        <div className="text-sm text-text-secondary mt-1">기술 + 인성 종합 질문</div>
+                      </button>
+                    )
+                }
+              </div>
+            </section>
+          )}
+
+          {/* 질문 수 (일반 모드만) */}
+          {mode === 'general' ? (
+            <section className="space-y-3">
+              <h2 className="text-lg font-semibold text-text-secondary">질문 수</h2>
+              <div className="flex gap-3">
+                {COUNTS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setQuestionCount(c)}
+                    className={`w-16 h-16 rounded-xl border text-xl font-bold transition-all cursor-pointer ${
+                      questionCount === c
+                        ? 'border-accent bg-accent/10 text-accent'
+                        : 'border-border bg-bg-card hover:border-accent/50 text-text-secondary'
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-text-secondary">꼬리질문으로 인한 추가 질문이 발생할 수 있습니다.</p>
+            </section>
+          ) : (
+            <div className="bg-bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+              <span className="text-2xl font-bold text-accent">4</span>
+              <div>
+                <p className="text-sm font-medium">질문 4개 고정</p>
+                <p className="text-xs text-text-secondary">공고 기반 맞춤 질문 1개 + 인성 질문 3개로 구성됩니다</p>
+              </div>
             </div>
-            <p className="text-xs text-text-secondary">꼬리질문으로 인한 추가 질문이 발생할 수 있습니다.</p>
-          </section>
+          )}
 
           {/* 시작 버튼 */}
           <button
