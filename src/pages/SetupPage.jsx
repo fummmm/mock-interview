@@ -115,7 +115,7 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center p-4 sm:p-6 sm:pt-12 relative">
+    <div className="flex-1 flex flex-col items-center p-4 sm:p-6 sm:pt-24 relative">
       {/* 로딩 오버레이 */}
       {starting && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-bg-primary/50 backdrop-blur-sm">
