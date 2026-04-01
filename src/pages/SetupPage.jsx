@@ -138,29 +138,32 @@ export default function SetupPage() {
       <div className="w-full max-w-5xl flex gap-0 items-stretch">
 
         {/* 좌측 모드 선택 */}
-        <div className="shrink-0 flex flex-col gap-3 pr-6 w-52 pt-2">
-          <button
-            onClick={() => setMode('general')}
-            className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
-              mode === 'general'
-                ? 'border-accent bg-accent/10 ring-1 ring-accent'
-                : 'border-border bg-bg-card hover:border-accent/50'
-            }`}
-          >
-            <div className="font-semibold text-sm">일반 모의면접</div>
-            <div className="text-xs text-text-secondary mt-1">트랙별 기본 질문으로 연습</div>
-          </button>
-          <button
-            onClick={() => setMode('job')}
-            className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
-              mode === 'job'
-                ? 'border-accent bg-accent/10 ring-1 ring-accent'
-                : 'border-border bg-bg-card hover:border-accent/50'
-            }`}
-          >
-            <div className="font-semibold text-sm">공고 맞춤 면접</div>
-            <div className="text-xs text-text-secondary mt-1">특정 채용 공고 기반 질문</div>
-          </button>
+        <div className="shrink-0 flex flex-col gap-1 pr-6 w-48 pt-2">
+          {[
+            { id: 'general', label: '일반 모의면접', sub: '트랙별 기본 질문' },
+            { id: 'job', label: '공고 맞춤 면접', sub: '채용 공고 기반 질문' },
+          ].map((m) => (
+            <button
+              key={m.id}
+              onClick={() => setMode(m.id)}
+              className={`relative text-left px-4 py-3 rounded-r-lg transition-all cursor-pointer group ${
+                mode === m.id
+                  ? 'bg-accent/5'
+                  : 'hover:bg-bg-elevated/50'
+              }`}
+            >
+              {/* 좌측 인디케이터 바 */}
+              <div className={`absolute left-0 top-2 bottom-2 w-[3px] rounded-full transition-all ${
+                mode === m.id ? 'bg-accent' : 'bg-transparent group-hover:bg-border'
+              }`} />
+              <div className={`text-sm font-semibold transition-colors ${
+                mode === m.id ? 'text-accent' : 'text-text-primary'
+              }`}>{m.label}</div>
+              <div className={`text-xs mt-0.5 transition-colors ${
+                mode === m.id ? 'text-accent/60' : 'text-text-secondary/60'
+              }`}>{m.sub}</div>
+            </button>
+          ))}
         </div>
 
         {/* 구분선 */}
