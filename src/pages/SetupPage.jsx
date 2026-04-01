@@ -57,6 +57,11 @@ export default function SetupPage() {
     setStarting(true)
 
     reset()
+    // 공고 맞춤 모드일 때 settingsStore에 effective 값 반영 (InterviewPage에서 참조)
+    if (mode === 'job') {
+      setTrack('behavioral')
+      setQuestionCount(4)
+    }
     let questions = getQuestions(effectiveCount, effectiveTrack, companySize)
 
     const customCount = mode === 'job' ? 2 : (effectiveCount <= 4 ? 1 : 2)
