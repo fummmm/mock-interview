@@ -134,30 +134,11 @@ export default function SetupPage() {
         </div>
       )}
 
-      {/* 헤더 */}
-      <div className="text-center space-y-2 mb-8">
-        <h1 className="text-3xl font-extrabold tracking-tight">AI 모의면접 연습</h1>
-        <div className={`inline-block px-4 py-1.5 rounded-full text-sm ${mainAdmin || remaining > 0 ? 'bg-accent/10 text-accent' : 'bg-danger/10 text-danger'}`}>
-          {mainAdmin ? '관리자 (무제한)' : `남은 면접 횟수: ${remaining}회`}
-        </div>
-        <div className="flex items-center justify-center gap-4 text-sm mt-1">
-          <span className={`flex items-center gap-1.5 ${hasResume ? 'text-success' : 'text-text-secondary'}`}>
-            <span className={`w-2 h-2 rounded-full ${hasResume ? 'bg-success' : 'bg-text-secondary/30'}`} />
-            이력서 {hasResume ? '등록' : '미등록'}
-          </span>
-          <span className="text-border">|</span>
-          <span className={`flex items-center gap-1.5 ${hasPortfolio ? 'text-success' : 'text-text-secondary'}`}>
-            <span className={`w-2 h-2 rounded-full ${hasPortfolio ? 'bg-success' : 'bg-text-secondary/30'}`} />
-            포트폴리오 {hasPortfolio ? '등록' : '미등록'}
-          </span>
-        </div>
-      </div>
-
       {/* 메인: 좌측 모드 선택 + 구분선 + 우측 콘텐츠 */}
       <div className="w-full max-w-5xl flex gap-0 items-stretch">
 
         {/* 좌측 모드 선택 */}
-        <div className="shrink-0 flex flex-col gap-3 pr-6 w-52">
+        <div className="shrink-0 flex flex-col gap-3 pr-6 w-52 pt-2">
           <button
             onClick={() => setMode('general')}
             className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
@@ -187,6 +168,25 @@ export default function SetupPage() {
 
         {/* 우측 콘텐츠 */}
         <div className="flex-1 pl-6 space-y-8 min-w-0">
+
+          {/* 헤더 */}
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-extrabold tracking-tight">AI 모의면접 연습</h1>
+            <div className={`inline-block px-4 py-1.5 rounded-full text-sm ${mainAdmin || remaining > 0 ? 'bg-accent/10 text-accent' : 'bg-danger/10 text-danger'}`}>
+              {mainAdmin ? '관리자 (무제한)' : `남은 면접 횟수: ${remaining}회`}
+            </div>
+            <div className="flex items-center justify-center gap-4 text-sm mt-1">
+              <span className={`flex items-center gap-1.5 ${hasResume ? 'text-success' : 'text-text-secondary'}`}>
+                <span className={`w-2 h-2 rounded-full ${hasResume ? 'bg-success' : 'bg-text-secondary/30'}`} />
+                이력서 {hasResume ? '등록' : '미등록'}
+              </span>
+              <span className="text-border">|</span>
+              <span className={`flex items-center gap-1.5 ${hasPortfolio ? 'text-success' : 'text-text-secondary'}`}>
+                <span className={`w-2 h-2 rounded-full ${hasPortfolio ? 'bg-success' : 'bg-text-secondary/30'}`} />
+                포트폴리오 {hasPortfolio ? '등록' : '미등록'}
+              </span>
+            </div>
+          </div>
 
           {/* 공고 정보 입력 (공고 맞춤 모드일 때만) */}
           {mode === 'job' && (
