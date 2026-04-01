@@ -89,7 +89,25 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6">
+    <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
+      {/* 면접 준비 로딩 오버레이 */}
+      {starting && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-bg-primary/80 backdrop-blur-sm">
+          <div className="flex gap-2">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="w-3 h-3 rounded-full bg-accent" style={{
+                animation: 'analyzing-dots 1.4s infinite ease-in-out both',
+                animationDelay: `${i * 0.16}s`,
+              }} />
+            ))}
+          </div>
+          <p className="text-lg font-semibold text-text-primary">
+            {(hasResume || hasPortfolio) ? '면접관이 이력서와 포트폴리오를 열람하고 있습니다' : '면접을 준비하고 있습니다'}
+          </p>
+          <p className="text-sm text-text-secondary">잠시만 기다려주세요</p>
+        </div>
+      )}
+
       <div className="max-w-2xl w-full space-y-10">
         {/* 헤더 */}
         <div className="text-center space-y-2">
