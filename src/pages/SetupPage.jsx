@@ -73,7 +73,7 @@ export default function SetupPage() {
       let customQuestions = []
 
       // 1) 공고 기반 질문 (우선)
-      if (jobText) {
+      if (jobText && jobText.trim().length >= 100) {
         customQuestions = await generateJobPostingQuestions(jobText, track, customCount)
       }
 
@@ -266,15 +266,17 @@ export default function SetupPage() {
           <p className="text-xs text-text-secondary">꼬리질문으로 인한 추가 질문이 발생할 수 있습니다.</p>
         </section>
 
-        {/* 채용 공고 링크 */}
+        {/* 채용 공고 */}
         <section className="space-y-3">
           <h2 className="text-lg font-semibold text-text-secondary">채용 공고 (선택)</h2>
+
+          {/* URL 입력 */}
           <div className="flex gap-2">
             <input
               type="url"
               value={jobUrl}
-              onChange={(e) => { setJobUrl(e.target.value); setJobText(''); setJobError('') }}
-              placeholder="채용 공고 URL을 붙여넣으세요"
+              onChange={(e) => { setJobUrl(e.target.value); if (!jobText || jobText === jobUrl) { setJobText(''); } setJobError('') }}
+              placeholder="채용 공고 URL 붙여넣기"
               className="flex-1 px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary placeholder:text-text-secondary/40 focus:border-accent focus:outline-none text-sm"
             />
             <button
@@ -282,19 +284,34 @@ export default function SetupPage() {
               disabled={!jobUrl.trim() || jobLoading}
               className="px-5 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed bg-bg-card border border-border hover:border-accent/50 text-text-primary"
             >
-              {jobLoading ? '분석 중...' : jobText ? '분석 완료' : '분석'}
+              {jobLoading ? '분석 중...' : '불러오기'}
             </button>
           </div>
-          {jobText && (
+
+          {/* 에러 시 안내 */}
+          {jobError && (
+            <p className="text-sm text-danger">{jobError} - 아래에 공고 내용을 직접 붙여넣어 주세요.</p>
+          )}
+
+          {/* 텍스트 직접 입력 (항상 표시, URL 실패 시 필수) */}
+          <textarea
+            value={jobText}
+            onChange={(e) => setJobText(e.target.value)}
+            placeholder="또는 채용 공고 내용을 직접 붙여넣으세요 (자격요건, 우대사항, 직무내용 등)"
+            rows={4}
+            className="w-full px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary placeholder:text-text-secondary/40 focus:border-accent focus:outline-none text-sm resize-none"
+          />
+
+          {jobText.trim().length >= 100 && (
             <div className="flex items-center gap-2 text-sm text-success">
               <span className="w-2 h-2 rounded-full bg-success" />
-              공고 분석 완료 - 면접 시 맞춤형 질문이 포함됩니다
+              공고 내용 확인됨 - 면접 시 맞춤형 질문이 포함됩니다
             </div>
           )}
-          {jobError && (
-            <p className="text-sm text-danger">{jobError}</p>
+          {jobText.trim().length > 0 && jobText.trim().length < 100 && (
+            <p className="text-xs text-warning">공고 내용이 너무 짧습니다. 자격요건, 우대사항 등을 더 붙여넣어 주세요.</p>
           )}
-          <p className="text-xs text-text-secondary">공고 링크를 넣으면 해당 직무의 요구사항에 맞는 맞춤형 질문을 생성합니다.</p>
+          <p className="text-xs text-text-secondary">공고 내용을 분석하여 해당 직무의 요구사항에 맞는 맞춤형 질문을 생성합니다.</p>
         </section>
 
         {/* 시작 버튼 */}
