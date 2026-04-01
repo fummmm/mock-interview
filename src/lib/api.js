@@ -291,14 +291,7 @@ export async function generateJobPostingQuestions({ companyName, position, scree
     userContent.push({ type: 'text', text: '위 이미지는 채용 공고의 자격요건/우대사항 캡처입니다. 이 내용을 분석하여 면접 질문을 생성해주세요.' })
   }
 
-  try {
-    const content = await callOpenRouter({
-      model: screenshots.length > 0 ? 'openai/gpt-4o-mini' : 'anthropic/claude-sonnet-4',
-      maxTokens: 4096,
-      messages: [
-        {
-          role: 'system',
-          content: `당신은 채용 면접관입니다. 채용 공고의 요구사항을 분석하고, 지원자가 해당 직무에 적합한지 검증하는 면접 질문을 생성합니다.
+  const systemPrompt = `당신은 채용 면접관입니다. 채용 공고의 요구사항을 분석하고, 지원자가 해당 직무에 적합한지 검증하는 면접 질문을 생성합니다.
 
 핵심 규칙:
 - 공고에 명시된 **자격요건, 우대사항, 직무내용, 기술스택을 직접 인용하며** 질문할 것
@@ -309,7 +302,7 @@ export async function generateJobPostingQuestions({ companyName, position, scree
 - ${count}개 질문 생성
 - 이미지가 있으면 이미지의 텍스트를 정확히 읽고 인용할 것
 
-반드시 JSON 배열로만 응답:
+반드시 아래 JSON 배열 형식으로만 응답하세요. 다른 텍스트 없이 JSON만 출력:
 [
   {
     "id": "job-001",
@@ -320,14 +313,31 @@ export async function generateJobPostingQuestions({ companyName, position, scree
     "evaluationHints": "평가 포인트"
   }
 ]`
-        },
-        { role: 'user', content: userContent },
+
+  try {
+    // 스크린샷이 있으면 비전 모델 사용 (jsonMode 제외 - 비전+JSON 호환 문제)
+    const useVision = screenshots.length > 0
+    const content = await callOpenRouter({
+      model: useVision ? 'openai/gpt-4o-mini' : 'anthropic/claude-sonnet-4',
+      maxTokens: 4096,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: useVision ? userContent : (userContent.map(c => c.text).join('\n')) },
       ],
-      jsonMode: true,
+      jsonMode: !useVision,
     })
 
-    const questions = safeParseJSON(content, 'generateJobPostingQuestions')
-    return Array.isArray(questions) ? questions.slice(0, count) : []
+    // JSON 파싱 (비전 모델은 JSON 외 텍스트가 섞일 수 있으므로 추출)
+    let parsed = null
+    try {
+      parsed = JSON.parse(content)
+    } catch {
+      const jsonMatch = content.match(/\[[\s\S]*\]/)
+      if (jsonMatch) parsed = JSON.parse(jsonMatch[0])
+    }
+
+    const questions = Array.isArray(parsed) ? parsed : (parsed?.questions || [])
+    return questions.slice(0, count)
   } catch (e) {
     console.warn('공고 질문 생성 실패:', e.message)
     return []
