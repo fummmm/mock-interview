@@ -303,12 +303,9 @@ export default function InterviewPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {evaluators.map((ev) => (
                 <div key={ev.id} className="bg-bg-card border border-border rounded-xl p-4 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{ev.icon}</span>
-                    <div>
-                      <p className="font-semibold text-sm">{ev.name}</p>
-                      <p className="text-xs text-text-secondary">{ev.role}</p>
-                    </div>
+                  <div>
+                    <p className="font-semibold text-sm">{ev.name}</p>
+                    <p className="text-xs text-text-secondary">{ev.role}</p>
                   </div>
                   <p className="text-xs text-text-secondary">{ev.description}</p>
                   <p className="text-xs text-accent">평가 중점: {ev.focus}</p>
@@ -462,14 +459,12 @@ export default function InterviewPage() {
               {/* 꼬리질문 생성 중 로딩 */}
               {isGenerating && (
                 <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-4 pointer-events-none">
-                  <div className="flex gap-3">
-                    {evaluators.map((ev, i) => (
-                      <div key={ev.id} className="flex flex-col items-center gap-1" style={{
+                  <div className="flex gap-2">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="w-2.5 h-2.5 rounded-full bg-accent" style={{
                         animation: 'analyzing-dots 1.4s infinite ease-in-out both',
-                        animationDelay: `${i * 0.3}s`,
-                      }}>
-                        <span className="text-2xl">{ev.icon}</span>
-                      </div>
+                        animationDelay: `${i * 0.2}s`,
+                      }} />
                     ))}
                   </div>
                   <p className="text-white text-sm">면접관들이 답변을 검토하고 있습니다...</p>
