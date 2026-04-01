@@ -299,16 +299,17 @@ export default function SetupPage() {
                   <input
                     value={jobCompany}
                     onChange={(e) => setJobCompany(e.target.value)}
-                    placeholder="회사명"
+                    placeholder="회사명 (선택)"
                     className="px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary placeholder:text-text-secondary/40 focus:border-accent focus:outline-none text-sm"
                   />
                   <input
                     value={jobPosition}
                     onChange={(e) => setJobPosition(e.target.value)}
-                    placeholder="지원 직무 (예: Unity 클라이언트 개발)"
+                    placeholder="지원 직무 (선택)"
                     className="px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary placeholder:text-text-secondary/40 focus:border-accent focus:outline-none text-sm"
                   />
                 </div>
+                <p className="text-xs text-text-secondary">입력하면 해당 회사/직무에 맞는 더 정교한 질문이 생성됩니다</p>
 
                 {/* 스크린샷 붙여넣기 */}
                 <div
