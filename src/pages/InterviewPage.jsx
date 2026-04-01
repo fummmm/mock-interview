@@ -48,6 +48,24 @@ export default function InterviewPage() {
 
   const currentQuestion = questions[currentIndex]
 
+  // 질문 카테고리에 맞는 면접관 배정
+  function getQuestionAsker(question, index) {
+    // 인성면접 트랙은 전원 균등 배분 (전부 behavioral 카테고리)
+    if (track === 'behavioral') return evaluators[index % evaluators.length]
+
+    // 기술 트랙: 질문 카테고리에 따라 매칭
+    const techIds = ['team_lead', 'expert', 'tech_a', 'tech_b', 'senior']
+    const behavIds = ['hr', 'hr_expert', 'executive', 'director', 'ceo']
+
+    const isTech = question?.category === 'technical'
+    const pool = isTech
+      ? evaluators.filter((e) => techIds.includes(e.id))
+      : evaluators.filter((e) => behavIds.includes(e.id))
+
+    if (pool.length > 0) return pool[index % pool.length]
+    return evaluators[index % evaluators.length]
+  }
+
   // 설정 없으면 홈으로
   useEffect(() => {
     if (!track || questions.length === 0) navigate('/')
@@ -405,7 +423,7 @@ export default function InterviewPage() {
             ) : (
               <div className="mb-3">
                 <span className="text-sm font-medium text-text-secondary">
-                  {evaluators[currentIndex % evaluators.length]?.name}
+                  {getQuestionAsker(currentQuestion, currentIndex)?.name}
                 </span>
               </div>
             )}
