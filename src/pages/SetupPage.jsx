@@ -191,116 +191,7 @@ export default function SetupPage() {
             </div>
           </div>
 
-          {/* 공고 정보 입력 (공고 맞춤 모드일 때만) */}
-          {mode === 'job' && (
-            <section className="space-y-4">
-              <h2 className="text-lg font-semibold text-text-secondary">채용 공고 정보</h2>
-
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  value={jobCompany}
-                  onChange={(e) => setJobCompany(e.target.value)}
-                  placeholder="회사명"
-                  className="px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary placeholder:text-text-secondary/40 focus:border-accent focus:outline-none text-sm"
-                />
-                <input
-                  value={jobPosition}
-                  onChange={(e) => setJobPosition(e.target.value)}
-                  placeholder="지원 직무 (예: Unity 클라이언트 개발)"
-                  className="px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary placeholder:text-text-secondary/40 focus:border-accent focus:outline-none text-sm"
-                />
-              </div>
-
-              {/* 스크린샷 붙여넣기 */}
-              <div
-                className={`relative border-2 border-dashed rounded-xl p-4 transition-all ${
-                  jobScreenshots.length > 0 ? 'border-success bg-success/5' : 'border-border hover:border-accent/50'
-                }`}
-                onPaste={(e) => {
-                  const items = e.clipboardData?.items
-                  if (!items) return
-                  for (const item of items) {
-                    if (item.type.startsWith('image/')) {
-                      e.preventDefault()
-                      const blob = item.getAsFile()
-                      const reader = new FileReader()
-                      reader.onload = () => {
-                        setJobScreenshots((prev) => [...prev, reader.result])
-                      }
-                      reader.readAsDataURL(blob)
-                    }
-                  }
-                }}
-                tabIndex={0}
-              >
-                {jobScreenshots.length === 0 ? (
-                  <div className="text-center py-3 space-y-3">
-                    <p className="text-sm font-medium text-text-primary">자격요건 / 우대사항 캡처 붙여넣기</p>
-                    <div className="flex justify-center gap-6">
-                      <div className="text-left">
-                        <p className="text-xs text-text-secondary/60 mb-1">Windows</p>
-                        <p className="text-xs text-text-secondary">
-                          <span className="px-1.5 py-0.5 rounded bg-bg-elevated text-accent font-mono text-[11px]">Win + Shift + S</span>
-                          <span className="mx-1.5">→ 영역 선택 →</span>
-                          <span className="px-1.5 py-0.5 rounded bg-bg-elevated text-accent font-mono text-[11px]">Ctrl + V</span>
-                        </p>
-                      </div>
-                      <div className="text-left">
-                        <p className="text-xs text-text-secondary/60 mb-1">Mac</p>
-                        <p className="text-xs text-text-secondary">
-                          <span className="px-1.5 py-0.5 rounded bg-bg-elevated text-accent font-mono text-[11px]">Cmd + Shift + 4</span>
-                          <span className="mx-1.5">→ 영역 선택 →</span>
-                          <span className="px-1.5 py-0.5 rounded bg-bg-elevated text-accent font-mono text-[11px]">Cmd + V</span>
-                        </p>
-                      </div>
-                    </div>
-                    <div className="bg-bg-elevated rounded-lg p-3 text-xs text-text-secondary space-y-1">
-                      <p>1. 채용 공고 페이지에서 <strong className="text-text-primary">자격요건/우대사항</strong> 부분을 영역 캡처</p>
-                      <p>2. 이 영역을 클릭한 후 붙여넣기 (여러 장 가능)</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-success font-medium">캡처 {jobScreenshots.length}장 등록됨</p>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setJobScreenshots([]) }}
-                        className="text-xs text-text-secondary hover:text-danger transition-colors cursor-pointer"
-                      >
-                        전체 삭제
-                      </button>
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                      {jobScreenshots.map((src, i) => (
-                        <div key={i} className="relative group">
-                          <img src={src} alt={`캡처 ${i + 1}`} className="h-24 rounded-lg border border-border object-cover" />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setJobScreenshots((prev) => prev.filter((_, j) => j !== i))
-                            }}
-                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-danger text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                          >
-                            x
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-xs text-text-secondary">추가 캡처를 더 붙여넣을 수 있습니다</p>
-                  </div>
-                )}
-              </div>
-
-              {hasJobInfo && (
-                <div className="flex items-center gap-2 text-sm text-success">
-                  <span className="w-2 h-2 rounded-full bg-success" />
-                  공고 정보 등록됨 - 면접 시 맞춤형 질문이 포함됩니다
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* 기업 규모 */}
+          {/* 기업 규모 (항상 같은 위치) */}
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-text-secondary">기업 규모</h2>
             <div className="grid grid-cols-3 gap-3">
@@ -326,85 +217,196 @@ export default function SetupPage() {
             </div>
           </section>
 
-          {/* 면접 유형 (일반 모드만) */}
-          {mode === 'general' && (
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold text-text-secondary">면접 유형</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  onClick={() => setTrack('behavioral')}
-                  className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
-                    track === 'behavioral'
-                      ? 'border-accent bg-accent/10 ring-1 ring-accent'
-                      : 'border-border bg-bg-card hover:border-accent/50'
-                  }`}
-                >
-                  <div className="font-semibold">인성면접 (공통)</div>
-                  <div className="text-sm text-text-secondary mt-1">직군 무관, 인성/역량 중심 질문</div>
-                </button>
-
-                {mainAdmin
-                  ? Object.entries(TRACK_LABELS).map(([key, label]) => (
-                      <button
-                        key={key}
-                        onClick={() => setTrack(key)}
-                        className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
-                          track === key
-                            ? 'border-accent bg-accent/10 ring-1 ring-accent'
-                            : 'border-border bg-bg-card hover:border-accent/50'
-                        }`}
-                      >
-                        <div className="font-semibold">{label} 면접</div>
-                        <div className="text-sm text-text-secondary mt-1">기술 + 인성 종합 질문</div>
-                      </button>
-                    ))
-                  : userTrack && TRACK_LABELS[userTrack] && (
-                      <button
-                        onClick={() => setTrack(userTrack)}
-                        className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
-                          track === userTrack
-                            ? 'border-accent bg-accent/10 ring-1 ring-accent'
-                            : 'border-border bg-bg-card hover:border-accent/50'
-                        }`}
-                      >
-                        <div className="font-semibold">{TRACK_LABELS[userTrack]} 면접</div>
-                        <div className="text-sm text-text-secondary mt-1">기술 + 인성 종합 질문</div>
-                      </button>
-                    )
-                }
-              </div>
-            </section>
-          )}
-
-          {/* 질문 수 (일반 모드만) */}
+          {/* 모드별 콘텐츠 */}
           {mode === 'general' ? (
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold text-text-secondary">질문 수</h2>
-              <div className="flex gap-3">
-                {COUNTS.map((c) => (
+            <>
+              {/* 면접 유형 */}
+              <section className="space-y-3">
+                <h2 className="text-lg font-semibold text-text-secondary">면접 유형</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
-                    key={c}
-                    onClick={() => setQuestionCount(c)}
-                    className={`w-16 h-16 rounded-xl border text-xl font-bold transition-all cursor-pointer ${
-                      questionCount === c
-                        ? 'border-accent bg-accent/10 text-accent'
-                        : 'border-border bg-bg-card hover:border-accent/50 text-text-secondary'
+                    onClick={() => setTrack('behavioral')}
+                    className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
+                      track === 'behavioral'
+                        ? 'border-accent bg-accent/10 ring-1 ring-accent'
+                        : 'border-border bg-bg-card hover:border-accent/50'
                     }`}
                   >
-                    {c}
+                    <div className="font-semibold">인성면접 (공통)</div>
+                    <div className="text-sm text-text-secondary mt-1">직군 무관, 인성/역량 중심 질문</div>
                   </button>
-                ))}
-              </div>
-              <p className="text-xs text-text-secondary">꼬리질문으로 인한 추가 질문이 발생할 수 있습니다.</p>
-            </section>
+
+                  {mainAdmin
+                    ? Object.entries(TRACK_LABELS).map(([key, label]) => (
+                        <button
+                          key={key}
+                          onClick={() => setTrack(key)}
+                          className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
+                            track === key
+                              ? 'border-accent bg-accent/10 ring-1 ring-accent'
+                              : 'border-border bg-bg-card hover:border-accent/50'
+                          }`}
+                        >
+                          <div className="font-semibold">{label} 면접</div>
+                          <div className="text-sm text-text-secondary mt-1">기술 + 인성 종합 질문</div>
+                        </button>
+                      ))
+                    : userTrack && TRACK_LABELS[userTrack] && (
+                        <button
+                          onClick={() => setTrack(userTrack)}
+                          className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
+                            track === userTrack
+                              ? 'border-accent bg-accent/10 ring-1 ring-accent'
+                              : 'border-border bg-bg-card hover:border-accent/50'
+                          }`}
+                        >
+                          <div className="font-semibold">{TRACK_LABELS[userTrack]} 면접</div>
+                          <div className="text-sm text-text-secondary mt-1">기술 + 인성 종합 질문</div>
+                        </button>
+                      )
+                  }
+                </div>
+              </section>
+
+              {/* 질문 수 */}
+              <section className="space-y-3">
+                <h2 className="text-lg font-semibold text-text-secondary">질문 수</h2>
+                <div className="flex gap-3">
+                  {COUNTS.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setQuestionCount(c)}
+                      className={`w-16 h-16 rounded-xl border text-xl font-bold transition-all cursor-pointer ${
+                        questionCount === c
+                          ? 'border-accent bg-accent/10 text-accent'
+                          : 'border-border bg-bg-card hover:border-accent/50 text-text-secondary'
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-text-secondary">꼬리질문으로 인한 추가 질문이 발생할 수 있습니다.</p>
+              </section>
+            </>
           ) : (
-            <div className="bg-bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-              <span className="text-2xl font-bold text-accent">4</span>
-              <div>
-                <p className="text-sm font-medium">질문 4개 고정</p>
-                <p className="text-xs text-text-secondary">채용 공고 기반 맞춤 질문을 포함하여 준비됩니다</p>
+            <>
+              {/* 채용 공고 정보 */}
+              <section className="space-y-4">
+                <h2 className="text-lg font-semibold text-text-secondary">채용 공고 정보</h2>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    value={jobCompany}
+                    onChange={(e) => setJobCompany(e.target.value)}
+                    placeholder="회사명"
+                    className="px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary placeholder:text-text-secondary/40 focus:border-accent focus:outline-none text-sm"
+                  />
+                  <input
+                    value={jobPosition}
+                    onChange={(e) => setJobPosition(e.target.value)}
+                    placeholder="지원 직무 (예: Unity 클라이언트 개발)"
+                    className="px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary placeholder:text-text-secondary/40 focus:border-accent focus:outline-none text-sm"
+                  />
+                </div>
+
+                {/* 스크린샷 붙여넣기 */}
+                <div
+                  className={`relative border-2 border-dashed rounded-xl p-4 transition-all ${
+                    jobScreenshots.length > 0 ? 'border-success bg-success/5' : 'border-border hover:border-accent/50'
+                  }`}
+                  onPaste={(e) => {
+                    const items = e.clipboardData?.items
+                    if (!items) return
+                    for (const item of items) {
+                      if (item.type.startsWith('image/')) {
+                        e.preventDefault()
+                        const blob = item.getAsFile()
+                        const reader = new FileReader()
+                        reader.onload = () => {
+                          setJobScreenshots((prev) => [...prev, reader.result])
+                        }
+                        reader.readAsDataURL(blob)
+                      }
+                    }
+                  }}
+                  tabIndex={0}
+                >
+                  {jobScreenshots.length === 0 ? (
+                    <div className="text-center py-3 space-y-3">
+                      <p className="text-sm font-medium text-text-primary">자격요건 / 우대사항 캡처 붙여넣기</p>
+                      <div className="flex justify-center gap-6">
+                        <div className="text-left">
+                          <p className="text-xs text-text-secondary/60 mb-1">Windows</p>
+                          <p className="text-xs text-text-secondary">
+                            <span className="px-1.5 py-0.5 rounded bg-bg-elevated text-accent font-mono text-[11px]">Win + Shift + S</span>
+                            <span className="mx-1.5">→ 영역 선택 →</span>
+                            <span className="px-1.5 py-0.5 rounded bg-bg-elevated text-accent font-mono text-[11px]">Ctrl + V</span>
+                          </p>
+                        </div>
+                        <div className="text-left">
+                          <p className="text-xs text-text-secondary/60 mb-1">Mac</p>
+                          <p className="text-xs text-text-secondary">
+                            <span className="px-1.5 py-0.5 rounded bg-bg-elevated text-accent font-mono text-[11px]">Cmd + Shift + 4</span>
+                            <span className="mx-1.5">→ 영역 선택 →</span>
+                            <span className="px-1.5 py-0.5 rounded bg-bg-elevated text-accent font-mono text-[11px]">Cmd + V</span>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="bg-bg-elevated rounded-lg p-3 text-xs text-text-secondary space-y-1">
+                        <p>1. 채용 공고 페이지에서 <strong className="text-text-primary">자격요건/우대사항</strong> 부분을 영역 캡처</p>
+                        <p>2. 이 영역을 클릭한 후 붙여넣기 (여러 장 가능)</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-success font-medium">캡처 {jobScreenshots.length}장 등록됨</p>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setJobScreenshots([]) }}
+                          className="text-xs text-text-secondary hover:text-danger transition-colors cursor-pointer"
+                        >
+                          전체 삭제
+                        </button>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        {jobScreenshots.map((src, i) => (
+                          <div key={i} className="relative group">
+                            <img src={src} alt={`캡처 ${i + 1}`} className="h-24 rounded-lg border border-border object-cover" />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setJobScreenshots((prev) => prev.filter((_, j) => j !== i))
+                              }}
+                              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-danger text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            >
+                              x
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-text-secondary">추가 캡처를 더 붙여넣을 수 있습니다</p>
+                    </div>
+                  )}
+                </div>
+
+                {hasJobInfo && (
+                  <div className="flex items-center gap-2 text-sm text-success">
+                    <span className="w-2 h-2 rounded-full bg-success" />
+                    공고 정보 등록됨 - 면접 시 맞춤형 질문이 포함됩니다
+                  </div>
+                )}
+              </section>
+
+              {/* 질문 수 고정 안내 */}
+              <div className="bg-bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                <span className="text-2xl font-bold text-accent">4</span>
+                <div>
+                  <p className="text-sm font-medium">질문 4개 고정</p>
+                  <p className="text-xs text-text-secondary">채용 공고 기반 맞춤 질문을 포함하여 준비됩니다</p>
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* 시작 버튼 */}
