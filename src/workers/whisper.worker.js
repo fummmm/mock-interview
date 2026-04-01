@@ -90,20 +90,24 @@ function removeShortHallucinations(text, audioSamples) {
 /**
  * 반복 환각 제거
  * Whisper가 같은 구절을 무한 반복 출력하는 버그 대응
- * 5단어 이상의 구절이 연속 2회 이상 반복되면 1회만 남김
+ * 1) 정규식으로 동일 구절 3회+ 연속 반복을 1회로 축소
+ * 2) 문장 단위에서 95% 이상 일치(거의 완전 동일)만 제거
  */
 function removeRepetitions(text) {
   if (!text || text.length < 20) return text
 
-  // 문장 단위 반복 제거
+  // 1단계: 동일 구절이 연속 3회 이상 반복되면 1회로 (Whisper 전형적 환각)
+  // 예: "공동의 목표는 프로젝트에서 공동의 목표는 프로젝트에서 공동의 목표는 프로젝트에서" → 1회
+  text = text.replace(/(.{8,}?)\1{2,}/g, '$1')
+
+  // 2단계: 문장 단위 거의 동일한 반복만 제거 (95% 이상)
   const sentences = text.split(/(?<=[.!?。])\s*/)
   const deduped = []
   let prev = ''
   for (const s of sentences) {
     const trimmed = s.trim()
     if (!trimmed) continue
-    // 이전 문장과 80% 이상 겹치면 스킵
-    if (prev && similarity(prev, trimmed) > 0.8) continue
+    if (prev && similarity(prev, trimmed) > 0.95) continue
     deduped.push(trimmed)
     prev = trimmed
   }
@@ -113,8 +117,10 @@ function removeRepetitions(text) {
 
 function similarity(a, b) {
   if (!a || !b) return 0
-  const setA = new Set(a.split(/\s+/))
-  const setB = new Set(b.split(/\s+/))
+  const wordsA = a.split(/\s+/)
+  const wordsB = b.split(/\s+/)
+  const setA = new Set(wordsA)
+  const setB = new Set(wordsB)
   let overlap = 0
   for (const w of setA) if (setB.has(w)) overlap++
   return overlap / Math.max(setA.size, setB.size)

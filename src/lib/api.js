@@ -9,9 +9,10 @@ const isDev = import.meta.env.DEV
 const DIRECT_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const PROXY_URL = '/api/openrouter'
 
-async function callOpenRouter({ model, messages, jsonMode = false }) {
+async function callOpenRouter({ model, messages, jsonMode = false, maxTokens = null }) {
   const body = { model, messages }
   if (jsonMode) body.response_format = { type: 'json_object' }
+  if (maxTokens) body.max_tokens = maxTokens
 
   const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY
   const timeout = AbortSignal.timeout ? AbortSignal.timeout(120000) : undefined // 2분 타임아웃
@@ -57,6 +58,7 @@ export async function correctTranscript(rawTranscript, questionText) {
 
   const content = await callOpenRouter({
     model: 'anthropic/claude-sonnet-4',
+    maxTokens: 8192,
     messages: [
       {
         role: 'system',
@@ -342,6 +344,7 @@ ${evaluatorConfig.jsonExample}
 
   const content = await callOpenRouter({
     model: 'anthropic/claude-sonnet-4',
+    maxTokens: 16384,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: answersText },
