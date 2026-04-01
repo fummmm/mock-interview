@@ -46,6 +46,7 @@ export default function InterviewPage() {
   // 하드모드 전용 state
   const [typingText, setTypingText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [countdown, setCountdown] = useState(0) // 3→2→1→0 카운트다운
   const [timeLimit, setTimeLimit] = useState(0) // 초
   const [timeLeft, setTimeLeft] = useState(0)
   const timerRef = useRef(null)
@@ -117,17 +118,24 @@ export default function InterviewPage() {
       if (charIdx < fullText.length) {
         charIdx++
         setTypingText(fullText.slice(0, charIdx))
-        typingTimeoutRef.current = setTimeout(typeNext, 40)
+        typingTimeoutRef.current = setTimeout(typeNext, 55)
       } else {
-        // 타이핑 완료 → 1초 후 자동 녹화 시작
+        // 타이핑 완료 → 3-2-1 카운트다운 → 녹화 시작
         setIsTyping(false)
-        typingTimeoutRef.current = setTimeout(() => {
-          if (isMountedRef.current) {
-            const limit = getTimeLimit(currentQuestion)
-            setTimeLimit(limit)
-            setTimeLeft(limit)
-            // 자동 녹화 시작
-            if (stream) {
+        let count = 3
+        setCountdown(count)
+        const countdownTick = () => {
+          count--
+          if (count > 0) {
+            setCountdown(count)
+            typingTimeoutRef.current = setTimeout(countdownTick, 1000)
+          } else {
+            setCountdown(0)
+            // 녹화 시작
+            if (isMountedRef.current && stream) {
+              const limit = getTimeLimit(currentQuestion)
+              setTimeLimit(limit)
+              setTimeLeft(limit)
               clearFrames()
               startRecording()
               startCapture()
@@ -136,10 +144,11 @@ export default function InterviewPage() {
               setPhase('recording')
             }
           }
-        }, 1000)
+        }
+        typingTimeoutRef.current = setTimeout(countdownTick, 1000)
       }
     }
-    typingTimeoutRef.current = setTimeout(typeNext, 500) // 0.5초 대기 후 시작
+    typingTimeoutRef.current = setTimeout(typeNext, 500)
 
     return () => { if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current) }
   }, [isHardMode, showBriefing, currentQuestion?.id, phase, isFollowUp, isGenerating]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -599,6 +608,13 @@ export default function InterviewPage() {
                     ))}
                   </div>
                   <p className="text-white text-sm">면접관들이 답변을 검토하고 있습니다...</p>
+                </div>
+              )}
+
+              {/* 하드모드 카운트다운 오버레이 */}
+              {isHardMode && countdown > 0 && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none z-10">
+                  <span className="text-white font-bold animate-pulse" style={{ fontSize: '8rem', lineHeight: 1 }}>{countdown}</span>
                 </div>
               )}
 

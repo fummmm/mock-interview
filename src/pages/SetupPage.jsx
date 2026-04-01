@@ -148,7 +148,7 @@ export default function SetupPage() {
         <div className="shrink-0 flex flex-col gap-1 pr-6 w-48 pt-2 sticky top-6">
           {[
             { id: 'general', label: '일반 모의면접', sub: '트랙별 기본 질문' },
-            { id: 'hard', label: '하드모드', sub: '준비 시간 없이 즉시 답변' },
+            { id: 'hard', label: '하드모드', sub: '질문에 즉각적인 답변요구' },
             { id: 'job', label: '공고 맞춤 면접', sub: '채용 공고 기반 질문' },
           ].map((m) => (
             <button
