@@ -20,7 +20,7 @@ const EVALUATORS = {
       },
       {
         id: 'senior',
-        name: '실무 면접관',
+        name: '실무 사수',
         role: '2~3년차 실무자',
         style: '편안하지만 실무는 날카롭게',
         description: '팀에서 가장 오래된 실무자. 같이 일할 사람을 고르는 관점으로 평가합니다.',
@@ -40,7 +40,7 @@ const EVALUATORS = {
       },
       {
         id: 'senior',
-        name: '실무 면접관',
+        name: '실무 사수',
         role: '2~3년차 실무 개발자/기획자',
         style: '편안하지만 기술은 꼼꼼하게',
         description: '팀의 핵심 실무자. 기술적 협업이 가능한 사람인지를 평가합니다.',
