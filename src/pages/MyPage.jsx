@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
+import { extractTextFromPdf } from '../lib/pdfExtract'
 
 const TRACK_LABELS = { unity: 'Unity', unreal: 'Unreal Engine', pm: 'PM', design: '게임기획' }
 
@@ -102,18 +103,16 @@ export default function MyPage() {
         console.error('문서 레코드 생성 실패:', insertError)
         alert('파일은 업로드되었지만 기록 저장에 실패했습니다: ' + insertError.message)
       } else {
-        // 레코드 생성 성공 후 텍스트 추출 시도 (실패해도 무시)
+        // 레코드 생성 성공 후 PDF 텍스트 추출 (실패해도 무시)
         try {
-          const text = await file.text()
-          // ASCII 제어문자 및 null byte 제거
-          const cleaned = text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '').slice(0, 5000)
-          if (cleaned.length > 50) {
+          const text = await extractTextFromPdf(file)
+          if (text && text.length > 50) {
             await supabase.from('user_documents')
-              .update({ extracted_text: cleaned })
+              .update({ extracted_text: text })
               .eq('user_id', profile.id)
               .eq('doc_type', docType)
           }
-        } catch (e) { console.warn('텍스트 추출 스킵:', e.message) }
+        } catch (e) { console.warn('PDF 텍스트 추출 스킵:', e.message) }
       }
 
       await loadData()
