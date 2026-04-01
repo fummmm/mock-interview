@@ -402,13 +402,11 @@ export default function InterviewPage() {
           >
             {isFollowUp && followUpEvaluator ? (
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-lg">{followUpEvaluator.icon}</span>
                 <span className="text-sm font-medium text-accent">{followUpEvaluator.name}</span>
                 <span className="text-xs bg-accent/15 text-accent px-2 py-0.5 rounded-full">꼬리질문</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-lg">{evaluators[currentIndex % evaluators.length]?.icon}</span>
+              <div className="mb-3">
                 <span className="text-sm font-medium text-text-secondary">
                   {evaluators[currentIndex % evaluators.length]?.name}
                 </span>
