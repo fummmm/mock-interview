@@ -47,7 +47,8 @@ export default function SetupPage() {
     reset()
     let questions = getQuestions(questionCount, track, companySize)
 
-    // 이력서/포폴 기반 질문 생성 시도
+    // 이력서/포폴 기반 질문 생성 시도 (4문항→1개 고정, 5문항→2개 고정)
+    const docCount = questionCount <= 4 ? 1 : 2
     try {
       const { data: docs } = await supabase
         .from('user_documents')
@@ -60,16 +61,18 @@ export default function SetupPage() {
         .join('\n\n')
 
       if (docTexts) {
-        const docQuestions = await generateDocumentQuestions(docTexts, track, Math.min(2, questionCount - 2))
+        const docQuestions = await generateDocumentQuestions(docTexts, track, docCount)
         if (docQuestions.length > 0) {
-          // 자기소개 다음, 마무리 전에 삽입
+          // 자기소개 다음에 삽입, 총 질문 수는 questionCount 유지
           const introIdx = questions.findIndex((q) => q.id === 'beh-intro')
           const insertAt = introIdx >= 0 ? introIdx + 1 : 1
+          // 문서 질문 수만큼 기본 질문을 제거하여 총 수 유지
+          const base = [...questions.slice(0, insertAt), ...questions.slice(insertAt + docQuestions.length)]
           questions = [
-            ...questions.slice(0, insertAt),
+            ...base.slice(0, insertAt),
             ...docQuestions,
-            ...questions.slice(insertAt),
-          ].slice(0, questionCount + docQuestions.length) // 전체 수 조정
+            ...base.slice(insertAt),
+          ].slice(0, questionCount)
         }
       }
     } catch (e) {
