@@ -18,7 +18,7 @@ const COUNTS = [4, 5]
 
 export default function SetupPage() {
   const navigate = useNavigate()
-  const { companySize, track, questionCount, setCompanySize, setTrack, setQuestionCount } = useSettingsStore()
+  const { companySize, track, questionCount, setCompanySize, setTrack, setQuestionCount, setMode: setStoreMode } = useSettingsStore()
   const { loadQuestions, reset } = useInterviewStore()
   const { profile, quota, isMainAdmin } = useAuthStore()
   const mainAdmin = isMainAdmin()
@@ -28,14 +28,15 @@ export default function SetupPage() {
 
   const [starting, setStarting] = useState(false)
   const [docs, setDocs] = useState([])
-  const [mode, setMode] = useState('general') // 'general' | 'job'
+  const [mode, _setMode] = useState('general')
+  const setMode = (m) => { _setMode(m); setStoreMode(m) }
 
   // 공고 정보
   const [jobCompany, setJobCompany] = useState('')
   const [jobPosition, setJobPosition] = useState('')
   const [jobScreenshots, setJobScreenshots] = useState([])
 
-  // 공고 맞춤 모드: 트랙 자동 설정(behavioral), 질문 5개 고정
+  // 모드별 설정: 공고→behavioral/5개 고정, 하드→일반과 동일 선택
   const effectiveTrack = mode === 'job' ? 'behavioral' : track
   const effectiveCount = mode === 'job' ? 5 : questionCount
   const canStart = (mode === 'job' || !!track) && (mainAdmin || remaining > 0)
@@ -57,7 +58,8 @@ export default function SetupPage() {
     setStarting(true)
 
     reset()
-    // 공고 맞춤 모드일 때 settingsStore에 effective 값 반영 (InterviewPage에서 참조)
+    // settingsStore에 모드별 값 반영 (InterviewPage에서 참조)
+    setStoreMode(mode)
     if (mode === 'job') {
       setTrack('behavioral')
       setQuestionCount(5)
@@ -146,6 +148,7 @@ export default function SetupPage() {
         <div className="shrink-0 flex flex-col gap-1 pr-6 w-48 pt-2 sticky top-6">
           {[
             { id: 'general', label: '일반 모의면접', sub: '트랙별 기본 질문' },
+            { id: 'hard', label: '하드모드', sub: '준비 시간 없이 즉시 답변' },
             { id: 'job', label: '공고 맞춤 면접', sub: '채용 공고 기반 질문' },
           ].map((m) => (
             <button
@@ -223,7 +226,7 @@ export default function SetupPage() {
           </section>
 
           {/* 모드별 콘텐츠 */}
-          {mode === 'general' ? (
+          {mode !== 'job' ? (
             <>
               {/* 면접 유형 */}
               <section className="space-y-3">
@@ -426,7 +429,7 @@ export default function SetupPage() {
             }`}
           >
             {starting ? '준비 중...' : mainAdmin || remaining > 0
-              ? mode === 'job' ? '공고 맞춤 면접 시작' : '면접 시작'
+              ? mode === 'job' ? '공고 맞춤 면접 시작' : mode === 'hard' ? '하드모드 면접 시작' : '면접 시작'
               : '면접 횟수가 없습니다 (관리자에게 문의)'}
           </button>
         </div>

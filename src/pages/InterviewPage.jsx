@@ -18,7 +18,8 @@ import { useEffect, useCallback, useRef, useState } from 'react'
  */
 export default function InterviewPage() {
   const navigate = useNavigate()
-  const { track, companySize } = useSettingsStore()
+  const { track, companySize, mode } = useSettingsStore()
+  const isHardMode = mode === 'hard'
   const {
     phase, questions, currentIndex,
     setPhase, updateAnswer, nextQuestion, setMediaStream,
@@ -42,11 +43,25 @@ export default function InterviewPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [retryMessage, setRetryMessage] = useState(null)
 
+  // 하드모드 전용 state
+  const [typingText, setTypingText] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
+  const [timeLimit, setTimeLimit] = useState(0) // 초
+  const [timeLeft, setTimeLeft] = useState(0)
+  const timerRef = useRef(null)
+
   const evaluators = getEvaluators(track, companySize)
   const isMountedRef = useRef(true)
   useEffect(() => () => { isMountedRef.current = false }, [])
 
   const currentQuestion = questions[currentIndex]
+
+  // 하드모드: 질문 유형별 제한시간 (초)
+  const getTimeLimit = (question) => {
+    if (!question) return 180
+    const isTech = question.category === 'technical' || question.category === 'document' || question.category === 'job_posting'
+    return isTech ? 300 : 180 // 기술 5분, 인성 3분
+  }
 
   // 질문 카테고리에 맞는 면접관 배정
   function getQuestionAsker(question, index) {
@@ -85,6 +100,79 @@ export default function InterviewPage() {
       preloadModel().catch((e) => console.warn('모델 사전 로딩 실패:', e.message))
     }
   }, [mediaStatus])
+
+  // 하드모드: 질문 변경 시 타이핑 애니메이션 → 자동 녹화 시작
+  const typingTimeoutRef = useRef(null)
+  useEffect(() => {
+    if (!isHardMode || showBriefing || !currentQuestion) return
+    if (phase !== 'ready' || isFollowUp || isGenerating) return
+
+    // 타이핑 시작
+    setIsTyping(true)
+    setTypingText('')
+    const fullText = currentQuestion.text
+    let charIdx = 0
+
+    const typeNext = () => {
+      if (charIdx < fullText.length) {
+        charIdx++
+        setTypingText(fullText.slice(0, charIdx))
+        typingTimeoutRef.current = setTimeout(typeNext, 40)
+      } else {
+        // 타이핑 완료 → 1초 후 자동 녹화 시작
+        setIsTyping(false)
+        typingTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) {
+            const limit = getTimeLimit(currentQuestion)
+            setTimeLimit(limit)
+            setTimeLeft(limit)
+            // 자동 녹화 시작
+            if (stream) {
+              clearFrames()
+              startRecording()
+              startCapture()
+              startSpeech()
+              setRetryMessage(null)
+              setPhase('recording')
+            }
+          }
+        }, 1000)
+      }
+    }
+    typingTimeoutRef.current = setTimeout(typeNext, 500) // 0.5초 대기 후 시작
+
+    return () => { if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current) }
+  }, [isHardMode, showBriefing, currentQuestion?.id, phase, isFollowUp, isGenerating]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 하드모드: 카운트다운 타이머
+  useEffect(() => {
+    if (!isHardMode || !isRecording || timeLimit === 0) return
+
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+  }, [isHardMode, isRecording, timeLimit])
+
+  // 하드모드: 시간 초과 → 자동 답변 종료
+  useEffect(() => {
+    if (!isHardMode || timeLeft !== 0 || !isRecording) return
+    if (timeLimit === 0) return // 초기 상태 무시
+
+    // 자동 종료
+    if (isFollowUp) {
+      handleStopFollowUp()
+    } else {
+      handleStopAnswer()
+    }
+  }, [timeLeft]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 브리핑 닫힌 후 비디오 스트림 재연결
   useEffect(() => {
@@ -296,7 +384,7 @@ export default function InterviewPage() {
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         <div className="max-w-2xl w-full space-y-8">
           <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold">면접을 시작합니다</h1>
+            <h1 className="text-2xl font-bold">{isHardMode ? '하드모드 면접을 시작합니다' : '면접을 시작합니다'}</h1>
             <p className="text-text-secondary">진행 방식을 확인하고 준비되면 시작해주세요</p>
           </div>
 
@@ -304,10 +392,21 @@ export default function InterviewPage() {
           <div className="bg-bg-card border border-border rounded-2xl p-5 space-y-3">
             <h2 className="font-semibold text-sm text-text-secondary">진행 방식</h2>
             <ul className="space-y-2 text-sm">
-              <li className="flex gap-2"><span className="text-accent shrink-0">1.</span>질문이 화면에 표시되면 충분히 읽고 생각을 정리하세요</li>
-              <li className="flex gap-2"><span className="text-accent shrink-0">2.</span>준비되면 "답변 시작" 버튼을 눌러 녹화를 시작하세요</li>
-              <li className="flex gap-2"><span className="text-accent shrink-0">3.</span>답변 후 면접관이 꼬리질문을 할 수 있습니다</li>
-              <li className="flex gap-2"><span className="text-accent shrink-0">4.</span>모든 질문이 끝나면 AI가 답변을 분석하여 리포트를 제공합니다</li>
+              {isHardMode ? (
+                <>
+                  <li className="flex gap-2"><span className="text-accent shrink-0">1.</span>질문이 타이핑되며 나타나고, 완료 즉시 녹화가 자동 시작됩니다</li>
+                  <li className="flex gap-2"><span className="text-accent shrink-0">2.</span>준비할 시간 없이 바로 답변해야 합니다</li>
+                  <li className="flex gap-2"><span className="text-accent shrink-0">3.</span>인성 질문 3분, 기술 질문 5분의 제한시간이 있습니다</li>
+                  <li className="flex gap-2"><span className="text-accent shrink-0">4.</span>시간 초과 시 자동으로 다음 질문으로 넘어갑니다</li>
+                </>
+              ) : (
+                <>
+                  <li className="flex gap-2"><span className="text-accent shrink-0">1.</span>질문이 화면에 표시되면 충분히 읽고 생각을 정리하세요</li>
+                  <li className="flex gap-2"><span className="text-accent shrink-0">2.</span>준비되면 "답변 시작" 버튼을 눌러 녹화를 시작하세요</li>
+                  <li className="flex gap-2"><span className="text-accent shrink-0">3.</span>답변 후 면접관이 꼬리질문을 할 수 있습니다</li>
+                  <li className="flex gap-2"><span className="text-accent shrink-0">4.</span>모든 질문이 끝나면 AI가 답변을 분석하여 리포트를 제공합니다</li>
+                </>
+              )}
             </ul>
             <div className="flex gap-4 text-xs text-text-secondary pt-2 border-t border-border/50">
               <span>질문 {questions.length}개</span>
@@ -427,7 +526,19 @@ export default function InterviewPage() {
                 </span>
               </div>
             )}
-            <p className="text-lg sm:text-xl font-semibold leading-relaxed">{displayQuestion}</p>
+            <p className="text-lg sm:text-xl font-semibold leading-relaxed">
+              {isHardMode && isTyping ? (
+                <>{typingText}<span className="inline-block w-0.5 h-5 bg-accent animate-pulse ml-0.5" /></>
+              ) : displayQuestion}
+            </p>
+            {/* 하드모드 타이머 */}
+            {isHardMode && isRecording && timeLimit > 0 && (
+              <div className={`mt-3 flex items-center gap-2 text-sm font-medium ${timeLeft <= 30 ? 'text-danger' : timeLeft <= 60 ? 'text-warning' : 'text-text-secondary'}`}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>남은 시간 {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}</span>
+                {timeLeft <= 30 && <span className="text-xs">(곧 종료됩니다)</span>}
+              </div>
+            )}
           </div>
         </div>
 
@@ -450,7 +561,9 @@ export default function InterviewPage() {
                   <div className="w-16 h-16 rounded-full border-2 border-white/60 flex items-center justify-center">
                     <div className="w-3 h-3 rounded-full bg-white/80" />
                   </div>
-                  <p className="text-white text-sm font-medium">위 질문을 읽고 준비되면 답변을 시작하세요</p>
+                  <p className="text-white text-sm font-medium">
+                    {isHardMode && isTyping ? '질문을 읽고 있습니다...' : isHardMode ? '답변이 곧 시작됩니다' : '위 질문을 읽고 준비되면 답변을 시작하세요'}
+                  </p>
                   <div className="flex flex-col items-center gap-1.5">
                     <p className="text-white/60 text-xs">마이크 테스트 - 말해보세요</p>
                     <div className="flex items-center gap-1 h-5">
@@ -531,13 +644,19 @@ export default function InterviewPage() {
               검토 중...
             </button>
           ) : phase === 'ready' && !isRecording ? (
-            <button
-              onClick={isFollowUp ? handleStartFollowUp : handleStartAnswer}
-              disabled={mediaStatus !== 'granted'}
-              className="px-8 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white font-semibold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              답변 시작
-            </button>
+            isHardMode ? (
+              <button disabled className="px-8 py-2.5 rounded-xl bg-bg-elevated text-text-secondary cursor-not-allowed">
+                {isTyping ? '질문 표시 중...' : '답변 곧 시작'}
+              </button>
+            ) : (
+              <button
+                onClick={isFollowUp ? handleStartFollowUp : handleStartAnswer}
+                disabled={mediaStatus !== 'granted'}
+                className="px-8 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white font-semibold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                답변 시작
+              </button>
+            )
           ) : phase === 'recording' ? (
             <button
               onClick={isFollowUp ? handleStopFollowUp : handleStopAnswer}
