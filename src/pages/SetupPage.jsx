@@ -25,10 +25,6 @@ export default function SetupPage() {
 
   const userTrack = profile?.track
   const remaining = quota ? Math.max(0, quota.total_quota - quota.used_count) : 0
-  // 공고 맞춤 모드: 트랙 자동 설정(behavioral), 질문 4개 고정
-  const effectiveTrack = mode === 'job' ? 'behavioral' : track
-  const effectiveCount = mode === 'job' ? 4 : questionCount
-  const canStart = (mode === 'job' || !!track) && (mainAdmin || remaining > 0)
 
   const [starting, setStarting] = useState(false)
   const [docs, setDocs] = useState([])
@@ -38,6 +34,11 @@ export default function SetupPage() {
   const [jobCompany, setJobCompany] = useState('')
   const [jobPosition, setJobPosition] = useState('')
   const [jobScreenshots, setJobScreenshots] = useState([])
+
+  // 공고 맞춤 모드: 트랙 자동 설정(behavioral), 질문 4개 고정
+  const effectiveTrack = mode === 'job' ? 'behavioral' : track
+  const effectiveCount = mode === 'job' ? 4 : questionCount
+  const canStart = (mode === 'job' || !!track) && (mainAdmin || remaining > 0)
 
   const hasResume = docs.some((d) => d.doc_type === 'resume')
   const hasPortfolio = docs.some((d) => d.doc_type === 'portfolio')
