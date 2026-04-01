@@ -45,7 +45,7 @@ export default function SetupPage() {
     setStarting(true)
 
     reset()
-    let questions = getQuestions(questionCount, track)
+    let questions = getQuestions(questionCount, track, companySize)
 
     // 이력서/포폴 기반 질문 생성 시도
     try {
