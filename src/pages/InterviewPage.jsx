@@ -286,8 +286,8 @@ export default function InterviewPage() {
           <div className="bg-bg-card border border-border rounded-2xl p-5 space-y-3">
             <h2 className="font-semibold text-sm text-text-secondary">진행 방식</h2>
             <ul className="space-y-2 text-sm">
-              <li className="flex gap-2"><span className="text-accent shrink-0">1.</span>질문이 화면에 표시되면 카메라를 보며 답변해주세요</li>
-              <li className="flex gap-2"><span className="text-accent shrink-0">2.</span>"답변 시작" 버튼을 누르면 녹화가 시작됩니다</li>
+              <li className="flex gap-2"><span className="text-accent shrink-0">1.</span>질문이 화면에 표시되면 충분히 읽고 생각을 정리하세요</li>
+              <li className="flex gap-2"><span className="text-accent shrink-0">2.</span>준비되면 "답변 시작" 버튼을 눌러 녹화를 시작하세요</li>
               <li className="flex gap-2"><span className="text-accent shrink-0">3.</span>답변 후 면접관이 꼬리질문을 할 수 있습니다</li>
               <li className="flex gap-2"><span className="text-accent shrink-0">4.</span>모든 질문이 끝나면 AI가 답변을 분석하여 리포트를 제공합니다</li>
             </ul>
@@ -394,17 +394,27 @@ export default function InterviewPage() {
           </div>
 
           {/* 질문 텍스트 */}
-          <div className={`border rounded-xl p-5 transition-all ${
-            isFollowUp ? 'bg-accent/5 border-accent/30' : 'bg-bg-card border-border'
-          }`}>
-            {isFollowUp && followUpEvaluator && (
+          <div
+            className={`border rounded-xl p-5 transition-all ${
+              isFollowUp ? 'bg-accent/5 border-accent/30' : 'bg-bg-card border-border'
+            }`}
+            style={{ borderLeft: '4px solid var(--color-accent, #d14558)' }}
+          >
+            {isFollowUp && followUpEvaluator ? (
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-lg">{followUpEvaluator.icon}</span>
                 <span className="text-sm font-medium text-accent">{followUpEvaluator.name}</span>
-                <span className="text-xs text-text-secondary">꼬리질문</span>
+                <span className="text-xs bg-accent/15 text-accent px-2 py-0.5 rounded-full">꼬리질문</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">{evaluators[currentIndex % evaluators.length]?.icon}</span>
+                <span className="text-sm font-medium text-text-secondary">
+                  {evaluators[currentIndex % evaluators.length]?.name}
+                </span>
               </div>
             )}
-            <p className="text-base sm:text-lg leading-relaxed">{displayQuestion}</p>
+            <p className="text-lg sm:text-xl font-semibold leading-relaxed">{displayQuestion}</p>
           </div>
         </div>
 
@@ -427,7 +437,7 @@ export default function InterviewPage() {
                   <div className="w-16 h-16 rounded-full border-2 border-white/60 flex items-center justify-center">
                     <div className="w-3 h-3 rounded-full bg-white/80" />
                   </div>
-                  <p className="text-white text-sm font-medium">정면에서 카메라를 응시하고 답변해주세요</p>
+                  <p className="text-white text-sm font-medium">위 질문을 읽고 준비되면 답변을 시작하세요</p>
                   <div className="flex flex-col items-center gap-1.5">
                     <p className="text-white/60 text-xs">마이크 테스트 - 말해보세요</p>
                     <div className="flex items-center gap-1 h-5">
