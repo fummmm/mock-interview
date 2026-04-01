@@ -92,7 +92,7 @@ export default function SetupPage() {
     <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
       {/* 면접 준비 로딩 오버레이 */}
       {starting && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-bg-primary/80 backdrop-blur-sm">
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-bg-primary/50 backdrop-blur-sm">
           <div className="flex gap-2">
             {[0, 1, 2].map((i) => (
               <div key={i} className="w-3 h-3 rounded-full bg-accent" style={{

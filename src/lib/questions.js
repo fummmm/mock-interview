@@ -26,9 +26,12 @@ export function getQuestions(count = 4, track = 'behavioral', companySize = 'med
 
   let result = intro ? [intro, ...rest.slice(0, count - 1)] : rest.slice(0, count)
 
-  // 대기업: largeText가 있으면 교체
+  // 대기업: largeText 보유 질문 중 일부만 적용 (최소 2개 보장)
   if (companySize === 'large') {
-    result = result.map((q) => ({ ...q, text: q.largeText || q.text }))
+    const largeEligible = result.map((q, i) => q.largeText ? i : -1).filter((i) => i >= 0)
+    const largeCount = Math.max(2, Math.ceil(largeEligible.length * 0.5))
+    const selected = new Set(shuffle(largeEligible).slice(0, largeCount))
+    result = result.map((q, i) => selected.has(i) ? { ...q, text: q.largeText } : q)
   }
 
   return result
