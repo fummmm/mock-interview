@@ -35,9 +35,9 @@ export default function SetupPage() {
   const [jobPosition, setJobPosition] = useState('')
   const [jobScreenshots, setJobScreenshots] = useState([])
 
-  // 공고 맞춤 모드: 트랙 자동 설정(behavioral), 질문 4개 고정
+  // 공고 맞춤 모드: 트랙 자동 설정(behavioral), 질문 5개 고정
   const effectiveTrack = mode === 'job' ? 'behavioral' : track
-  const effectiveCount = mode === 'job' ? 4 : questionCount
+  const effectiveCount = mode === 'job' ? 5 : questionCount
   const canStart = (mode === 'job' || !!track) && (mainAdmin || remaining > 0)
 
   const hasResume = docs.some((d) => d.doc_type === 'resume')
@@ -60,11 +60,11 @@ export default function SetupPage() {
     // 공고 맞춤 모드일 때 settingsStore에 effective 값 반영 (InterviewPage에서 참조)
     if (mode === 'job') {
       setTrack('behavioral')
-      setQuestionCount(4)
+      setQuestionCount(5)
     }
     let questions = getQuestions(effectiveCount, effectiveTrack, companySize)
 
-    const customCount = mode === 'job' ? 2 : (effectiveCount <= 4 ? 1 : 2)
+    const customCount = mode === 'job' ? 3 : (effectiveCount <= 4 ? 1 : 2)
     try {
       let customQuestions = []
 
@@ -406,9 +406,9 @@ export default function SetupPage() {
 
               {/* 질문 수 고정 안내 */}
               <div className="bg-bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-                <span className="text-2xl font-bold text-accent">4</span>
+                <span className="text-2xl font-bold text-accent">5</span>
                 <div>
-                  <p className="text-sm font-medium">질문 4개 고정</p>
+                  <p className="text-sm font-medium">질문 5개 고정</p>
                   <p className="text-xs text-text-secondary">채용 공고 기반 맞춤 질문을 포함하여 준비됩니다</p>
                 </div>
               </div>
