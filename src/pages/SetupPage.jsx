@@ -64,7 +64,7 @@ export default function SetupPage() {
     }
     let questions = getQuestions(effectiveCount, effectiveTrack, companySize)
 
-    const customCount = mode === 'job' ? 2 : (effectiveCount <= 4 ? 1 : 2)
+    const customCount = mode === 'job' ? 3 : (effectiveCount <= 4 ? 1 : 2)
     try {
       let customQuestions = []
 
