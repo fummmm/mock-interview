@@ -261,38 +261,39 @@ export async function generateDocumentQuestions(extractedText, track, count = 2)
 }
 
 /**
- * 채용 공고 URL에서 텍스트 추출
- */
-export async function fetchJobPosting(url) {
-  // CORS 프록시 경유
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`
-  const res = await fetch(proxyUrl)
-  if (!res.ok) throw new Error(`공고 페이지 로딩 실패 (${res.status})`)
-  const data = await res.json()
-  const html = data.contents || ''
-
-  // HTML → 텍스트 추출 (불필요 태그 제거)
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(html, 'text/html')
-  for (const tag of doc.querySelectorAll('script, style, nav, header, footer, iframe, noscript, svg')) {
-    tag.remove()
-  }
-  const text = doc.body?.textContent?.replace(/\s+/g, ' ')?.trim() || ''
-  if (text.length < 100) throw new Error('공고 내용을 추출할 수 없습니다. URL을 확인해주세요.')
-  return text.slice(0, 5000)
-}
-
-/**
  * 채용 공고 기반 맞춤형 면접 질문 생성
+ * companyName, position: 텍스트 입력
+ * screenshots: base64 이미지 배열 (자격요건/우대사항 캡처)
  */
-export async function generateJobPostingQuestions(postingText, track, count = 2) {
-  if (!postingText || postingText.trim().length < 100) return []
+export async function generateJobPostingQuestions({ companyName, position, screenshots = [] }, track, count = 2) {
+  if (!companyName && !position && screenshots.length === 0) return []
 
   const trackLabel = getTrackLabel(track)
 
+  // 비전 모델에 스크린샷 + 텍스트 정보를 함께 전달
+  const userContent = []
+
+  // 텍스트 정보
+  let textInfo = ''
+  if (companyName) textInfo += `[회사명] ${companyName}\n`
+  if (position) textInfo += `[지원 직무] ${position}\n`
+  if (textInfo) userContent.push({ type: 'text', text: textInfo })
+
+  // 스크린샷 이미지
+  for (const base64 of screenshots) {
+    userContent.push({
+      type: 'image_url',
+      image_url: { url: base64 },
+    })
+  }
+
+  if (screenshots.length > 0) {
+    userContent.push({ type: 'text', text: '위 이미지는 채용 공고의 자격요건/우대사항 캡처입니다. 이 내용을 분석하여 면접 질문을 생성해주세요.' })
+  }
+
   try {
     const content = await callOpenRouter({
-      model: 'anthropic/claude-sonnet-4',
+      model: screenshots.length > 0 ? 'openai/gpt-4o-mini' : 'anthropic/claude-sonnet-4',
       maxTokens: 4096,
       messages: [
         {
@@ -306,11 +307,7 @@ export async function generateJobPostingQuestions(postingText, track, count = 2)
 - "${trackLabel}" 직군 맥락에 맞게 질문
 - 지원자가 구체적 경험으로 답변해야 하는 질문 (예/아니오 불가)
 - ${count}개 질문 생성
-
-좋은 질문 예시:
-- "공고에서 Unity 기반 실시간 멀티플레이 경험을 요구하고 있는데, 관련 프로젝트에서 네트워크 동기화를 어떻게 처리하셨나요?"
-- "이 포지션에서 라이브 서비스 운영을 담당하게 되는데, 기존에 서비스 중인 게임의 밸런스 패치를 진행한 경험이 있으신가요?"
-- "우대사항에 데이터 기반 의사결정 경험이 있는데, 게임 지표를 분석해서 기획에 반영한 구체적 사례를 말씀해주세요."
+- 이미지가 있으면 이미지의 텍스트를 정확히 읽고 인용할 것
 
 반드시 JSON 배열로만 응답:
 [
@@ -324,10 +321,7 @@ export async function generateJobPostingQuestions(postingText, track, count = 2)
   }
 ]`
         },
-        {
-          role: 'user',
-          content: `[채용 공고 내용]\n${postingText.slice(0, 4000)}`
-        },
+        { role: 'user', content: userContent },
       ],
       jsonMode: true,
     })

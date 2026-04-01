@@ -3,7 +3,7 @@ import { useSettingsStore } from '../stores/settingsStore'
 import { useInterviewStore } from '../stores/interviewStore'
 import { useAuthStore } from '../stores/authStore'
 import { getQuestions } from '../lib/questions'
-import { generateDocumentQuestions, generateJobPostingQuestions, fetchJobPosting } from '../lib/api'
+import { generateDocumentQuestions, generateJobPostingQuestions } from '../lib/api'
 import { supabase } from '../lib/supabase'
 import { useState, useEffect } from 'react'
 
@@ -30,11 +30,10 @@ export default function SetupPage() {
   const [starting, setStarting] = useState(false)
   const [docs, setDocs] = useState([])
 
-  // 공고 URL
-  const [jobUrl, setJobUrl] = useState('')
-  const [jobText, setJobText] = useState('')
-  const [jobLoading, setJobLoading] = useState(false)
-  const [jobError, setJobError] = useState('')
+  // 공고 정보
+  const [jobCompany, setJobCompany] = useState('')
+  const [jobPosition, setJobPosition] = useState('')
+  const [jobScreenshots, setJobScreenshots] = useState([]) // base64 배열
 
   const hasResume = docs.some((d) => d.doc_type === 'resume')
   const hasPortfolio = docs.some((d) => d.doc_type === 'portfolio')
@@ -46,19 +45,7 @@ export default function SetupPage() {
     }
   }, [profile?.id])
 
-  const handleAnalyzeJob = async () => {
-    if (!jobUrl.trim() || jobLoading) return
-    setJobLoading(true)
-    setJobError('')
-    setJobText('')
-    try {
-      const text = await fetchJobPosting(jobUrl.trim())
-      setJobText(text)
-    } catch (e) {
-      setJobError(e.message)
-    }
-    setJobLoading(false)
-  }
+  const hasJobInfo = jobCompany.trim() || jobPosition.trim() || jobScreenshots.length > 0
 
   const handleStart = async () => {
     if (!canStart || starting) return
@@ -73,8 +60,11 @@ export default function SetupPage() {
       let customQuestions = []
 
       // 1) 공고 기반 질문 (우선)
-      if (jobText && jobText.trim().length >= 100) {
-        customQuestions = await generateJobPostingQuestions(jobText, track, customCount)
+      if (hasJobInfo) {
+        customQuestions = await generateJobPostingQuestions(
+          { companyName: jobCompany, position: jobPosition, screenshots: jobScreenshots },
+          track, customCount,
+        )
       }
 
       // 2) 부족분은 이력서/포폴 질문으로 보충
@@ -137,7 +127,7 @@ export default function SetupPage() {
             ))}
           </div>
           <p className="text-lg font-semibold text-text-primary">
-            {jobText ? '면접관이 채용 공고를 분석하고 있습니다' : (hasResume || hasPortfolio) ? '면접관이 이력서와 포트폴리오를 열람하고 있습니다' : '면접을 준비하고 있습니다'}
+            {hasJobInfo ? '면접관이 채용 공고를 분석하고 있습니다' : (hasResume || hasPortfolio) ? '면접관이 이력서와 포트폴리오를 열람하고 있습니다' : '면접을 준비하고 있습니다'}
           </p>
           <p className="text-sm text-text-secondary">잠시만 기다려주세요</p>
         </div>
@@ -270,48 +260,93 @@ export default function SetupPage() {
         <section className="space-y-3">
           <h2 className="text-lg font-semibold text-text-secondary">채용 공고 (선택)</h2>
 
-          {/* URL 입력 */}
-          <div className="flex gap-2">
+          {/* 회사명 + 직무 입력 */}
+          <div className="grid grid-cols-2 gap-3">
             <input
-              type="url"
-              value={jobUrl}
-              onChange={(e) => { setJobUrl(e.target.value); if (!jobText || jobText === jobUrl) { setJobText(''); } setJobError('') }}
-              placeholder="채용 공고 URL 붙여넣기"
-              className="flex-1 px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary placeholder:text-text-secondary/40 focus:border-accent focus:outline-none text-sm"
+              value={jobCompany}
+              onChange={(e) => setJobCompany(e.target.value)}
+              placeholder="회사명"
+              className="px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary placeholder:text-text-secondary/40 focus:border-accent focus:outline-none text-sm"
             />
-            <button
-              onClick={handleAnalyzeJob}
-              disabled={!jobUrl.trim() || jobLoading}
-              className="px-5 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed bg-bg-card border border-border hover:border-accent/50 text-text-primary"
-            >
-              {jobLoading ? '분석 중...' : '불러오기'}
-            </button>
+            <input
+              value={jobPosition}
+              onChange={(e) => setJobPosition(e.target.value)}
+              placeholder="지원 직무 (예: Unity 클라이언트 개발)"
+              className="px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary placeholder:text-text-secondary/40 focus:border-accent focus:outline-none text-sm"
+            />
           </div>
 
-          {/* 에러 시 안내 */}
-          {jobError && (
-            <p className="text-sm text-danger">{jobError} - 아래에 공고 내용을 직접 붙여넣어 주세요.</p>
-          )}
+          {/* 스크린샷 붙여넣기 영역 */}
+          <div
+            className={`relative border-2 border-dashed rounded-xl p-4 transition-all cursor-pointer ${
+              jobScreenshots.length > 0 ? 'border-success bg-success/5' : 'border-border hover:border-accent/50'
+            }`}
+            onPaste={(e) => {
+              const items = e.clipboardData?.items
+              if (!items) return
+              for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                  e.preventDefault()
+                  const blob = item.getAsFile()
+                  const reader = new FileReader()
+                  reader.onload = () => {
+                    setJobScreenshots((prev) => [...prev, reader.result])
+                  }
+                  reader.readAsDataURL(blob)
+                }
+              }
+            }}
+            tabIndex={0}
+          >
+            {jobScreenshots.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-text-secondary">
+                  자격요건/우대사항을 <span className="text-accent font-medium">Win+Shift+S</span>로 캡처한 후
+                </p>
+                <p className="text-sm text-text-secondary">
+                  이 영역을 클릭하고 <span className="text-accent font-medium">Ctrl+V</span>로 붙여넣기
+                </p>
+                <p className="text-xs text-text-secondary/60 mt-2">여러 장 붙여넣기 가능</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-success font-medium">캡처 {jobScreenshots.length}장 등록됨</p>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setJobScreenshots([]) }}
+                    className="text-xs text-text-secondary hover:text-danger transition-colors cursor-pointer"
+                  >
+                    전체 삭제
+                  </button>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {jobScreenshots.map((src, i) => (
+                    <div key={i} className="relative group">
+                      <img src={src} alt={`캡처 ${i + 1}`} className="h-20 rounded-lg border border-border object-cover" />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setJobScreenshots((prev) => prev.filter((_, j) => j !== i))
+                        }}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-danger text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      >
+                        x
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-text-secondary">추가 캡처를 더 붙여넣을 수 있습니다</p>
+              </div>
+            )}
+          </div>
 
-          {/* 텍스트 직접 입력 (항상 표시, URL 실패 시 필수) */}
-          <textarea
-            value={jobText}
-            onChange={(e) => setJobText(e.target.value)}
-            placeholder="또는 채용 공고 내용을 직접 붙여넣으세요 (자격요건, 우대사항, 직무내용 등)"
-            rows={4}
-            className="w-full px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary placeholder:text-text-secondary/40 focus:border-accent focus:outline-none text-sm resize-none"
-          />
-
-          {jobText.trim().length >= 100 && (
+          {hasJobInfo && (
             <div className="flex items-center gap-2 text-sm text-success">
               <span className="w-2 h-2 rounded-full bg-success" />
-              공고 내용 확인됨 - 면접 시 맞춤형 질문이 포함됩니다
+              공고 정보 등록됨 - 면접 시 맞춤형 질문이 포함됩니다
             </div>
           )}
-          {jobText.trim().length > 0 && jobText.trim().length < 100 && (
-            <p className="text-xs text-warning">공고 내용이 너무 짧습니다. 자격요건, 우대사항 등을 더 붙여넣어 주세요.</p>
-          )}
-          <p className="text-xs text-text-secondary">공고 내용을 분석하여 해당 직무의 요구사항에 맞는 맞춤형 질문을 생성합니다.</p>
+          <p className="text-xs text-text-secondary">채용 공고의 자격요건/우대사항을 캡처해서 붙여넣으면 해당 직무에 맞는 맞춤형 질문을 생성합니다.</p>
         </section>
 
         {/* 시작 버튼 */}
