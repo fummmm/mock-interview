@@ -261,6 +261,86 @@ export async function generateDocumentQuestions(extractedText, track, count = 2)
 }
 
 /**
+ * 채용 공고 URL에서 텍스트 추출
+ */
+export async function fetchJobPosting(url) {
+  // CORS 프록시 경유
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`
+  const res = await fetch(proxyUrl)
+  if (!res.ok) throw new Error(`공고 페이지 로딩 실패 (${res.status})`)
+  const data = await res.json()
+  const html = data.contents || ''
+
+  // HTML → 텍스트 추출 (불필요 태그 제거)
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(html, 'text/html')
+  for (const tag of doc.querySelectorAll('script, style, nav, header, footer, iframe, noscript, svg')) {
+    tag.remove()
+  }
+  const text = doc.body?.textContent?.replace(/\s+/g, ' ')?.trim() || ''
+  if (text.length < 100) throw new Error('공고 내용을 추출할 수 없습니다. URL을 확인해주세요.')
+  return text.slice(0, 5000)
+}
+
+/**
+ * 채용 공고 기반 맞춤형 면접 질문 생성
+ */
+export async function generateJobPostingQuestions(postingText, track, count = 2) {
+  if (!postingText || postingText.trim().length < 100) return []
+
+  const trackLabel = getTrackLabel(track)
+
+  try {
+    const content = await callOpenRouter({
+      model: 'anthropic/claude-sonnet-4',
+      maxTokens: 4096,
+      messages: [
+        {
+          role: 'system',
+          content: `당신은 채용 면접관입니다. 채용 공고의 요구사항을 분석하고, 지원자가 해당 직무에 적합한지 검증하는 면접 질문을 생성합니다.
+
+핵심 규칙:
+- 공고에 명시된 **자격요건, 우대사항, 직무내용, 기술스택을 직접 인용하며** 질문할 것
+- "공고에서 OO 경험을 요구하고 있는데, ..." 또는 "이 포지션에서 XX를 담당하게 되는데, ..." 형태
+- 공고의 구체적 기술/역량/도구를 언급하며 지원자의 관련 경험을 물어볼 것
+- "${trackLabel}" 직군 맥락에 맞게 질문
+- 지원자가 구체적 경험으로 답변해야 하는 질문 (예/아니오 불가)
+- ${count}개 질문 생성
+
+좋은 질문 예시:
+- "공고에서 Unity 기반 실시간 멀티플레이 경험을 요구하고 있는데, 관련 프로젝트에서 네트워크 동기화를 어떻게 처리하셨나요?"
+- "이 포지션에서 라이브 서비스 운영을 담당하게 되는데, 기존에 서비스 중인 게임의 밸런스 패치를 진행한 경험이 있으신가요?"
+- "우대사항에 데이터 기반 의사결정 경험이 있는데, 게임 지표를 분석해서 기획에 반영한 구체적 사례를 말씀해주세요."
+
+반드시 JSON 배열로만 응답:
+[
+  {
+    "id": "job-001",
+    "text": "질문 내용 (공고 내용을 직접 인용)",
+    "category": "job_posting",
+    "difficulty": "intermediate",
+    "keywords": ["키워드1", "키워드2"],
+    "evaluationHints": "평가 포인트"
+  }
+]`
+        },
+        {
+          role: 'user',
+          content: `[채용 공고 내용]\n${postingText.slice(0, 4000)}`
+        },
+      ],
+      jsonMode: true,
+    })
+
+    const questions = safeParseJSON(content, 'generateJobPostingQuestions')
+    return Array.isArray(questions) ? questions.slice(0, count) : []
+  } catch (e) {
+    console.warn('공고 질문 생성 실패:', e.message)
+    return []
+  }
+}
+
+/**
  * 텍스트 분석 - 3명 평가자
  */
 export async function analyzeText({ questions, answers, track, companySize = 'medium' }) {

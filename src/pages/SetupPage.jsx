@@ -3,7 +3,7 @@ import { useSettingsStore } from '../stores/settingsStore'
 import { useInterviewStore } from '../stores/interviewStore'
 import { useAuthStore } from '../stores/authStore'
 import { getQuestions } from '../lib/questions'
-import { generateDocumentQuestions } from '../lib/api'
+import { generateDocumentQuestions, generateJobPostingQuestions, fetchJobPosting } from '../lib/api'
 import { supabase } from '../lib/supabase'
 import { useState, useEffect } from 'react'
 
@@ -30,6 +30,12 @@ export default function SetupPage() {
   const [starting, setStarting] = useState(false)
   const [docs, setDocs] = useState([])
 
+  // 공고 URL
+  const [jobUrl, setJobUrl] = useState('')
+  const [jobText, setJobText] = useState('')
+  const [jobLoading, setJobLoading] = useState(false)
+  const [jobError, setJobError] = useState('')
+
   const hasResume = docs.some((d) => d.doc_type === 'resume')
   const hasPortfolio = docs.some((d) => d.doc_type === 'portfolio')
 
@@ -40,6 +46,20 @@ export default function SetupPage() {
     }
   }, [profile?.id])
 
+  const handleAnalyzeJob = async () => {
+    if (!jobUrl.trim() || jobLoading) return
+    setJobLoading(true)
+    setJobError('')
+    setJobText('')
+    try {
+      const text = await fetchJobPosting(jobUrl.trim())
+      setJobText(text)
+    } catch (e) {
+      setJobError(e.message)
+    }
+    setJobLoading(false)
+  }
+
   const handleStart = async () => {
     if (!canStart || starting) return
     setStarting(true)
@@ -47,36 +67,48 @@ export default function SetupPage() {
     reset()
     let questions = getQuestions(questionCount, track, companySize)
 
-    // 이력서/포폴 기반 질문 생성 시도 (4문항→1개 고정, 5문항→2개 고정)
-    const docCount = questionCount <= 4 ? 1 : 2
+    // 맞춤형 질문 생성 (4문항→1개, 5문항→2개 / 공고 우선, 문서 보충)
+    const customCount = questionCount <= 4 ? 1 : 2
     try {
-      const { data: docs } = await supabase
-        .from('user_documents')
-        .select('extracted_text, doc_type')
-        .eq('user_id', profile.id)
+      let customQuestions = []
 
-      const docTexts = (docs || [])
-        .filter((d) => d.extracted_text && d.extracted_text.length > 50)
-        .map((d) => `[${d.doc_type}]\n${d.extracted_text}`)
-        .join('\n\n')
+      // 1) 공고 기반 질문 (우선)
+      if (jobText) {
+        customQuestions = await generateJobPostingQuestions(jobText, track, customCount)
+      }
 
-      if (docTexts) {
-        const docQuestions = await generateDocumentQuestions(docTexts, track, docCount)
-        if (docQuestions.length > 0) {
-          // 자기소개 다음에 삽입, 총 질문 수는 questionCount 유지
-          const introIdx = questions.findIndex((q) => q.id === 'beh-intro')
-          const insertAt = introIdx >= 0 ? introIdx + 1 : 1
-          // 문서 질문 수만큼 기본 질문을 제거하여 총 수 유지
-          const base = [...questions.slice(0, insertAt), ...questions.slice(insertAt + docQuestions.length)]
-          questions = [
-            ...base.slice(0, insertAt),
-            ...docQuestions,
-            ...base.slice(insertAt),
-          ].slice(0, questionCount)
+      // 2) 부족분은 이력서/포폴 질문으로 보충
+      const remaining = customCount - customQuestions.length
+      if (remaining > 0) {
+        const { data: docs } = await supabase
+          .from('user_documents')
+          .select('extracted_text, doc_type')
+          .eq('user_id', profile.id)
+
+        const docTexts = (docs || [])
+          .filter((d) => d.extracted_text && d.extracted_text.length > 50)
+          .map((d) => `[${d.doc_type}]\n${d.extracted_text}`)
+          .join('\n\n')
+
+        if (docTexts) {
+          const docQuestions = await generateDocumentQuestions(docTexts, track, remaining)
+          customQuestions = [...customQuestions, ...docQuestions]
         }
       }
+
+      // 3) 자기소개 다음에 삽입, 총 질문 수 유지
+      if (customQuestions.length > 0) {
+        const introIdx = questions.findIndex((q) => q.id === 'beh-intro')
+        const insertAt = introIdx >= 0 ? introIdx + 1 : 1
+        const base = [...questions.slice(0, insertAt), ...questions.slice(insertAt + customQuestions.length)]
+        questions = [
+          ...base.slice(0, insertAt),
+          ...customQuestions,
+          ...base.slice(insertAt),
+        ].slice(0, questionCount)
+      }
     } catch (e) {
-      console.warn('이력서 질문 생성 스킵:', e.message)
+      console.warn('맞춤형 질문 생성 스킵:', e.message)
     }
 
     loadQuestions(questions)
@@ -105,7 +137,7 @@ export default function SetupPage() {
             ))}
           </div>
           <p className="text-lg font-semibold text-text-primary">
-            {(hasResume || hasPortfolio) ? '면접관이 이력서와 포트폴리오를 열람하고 있습니다' : '면접을 준비하고 있습니다'}
+            {jobText ? '면접관이 채용 공고를 분석하고 있습니다' : (hasResume || hasPortfolio) ? '면접관이 이력서와 포트폴리오를 열람하고 있습니다' : '면접을 준비하고 있습니다'}
           </p>
           <p className="text-sm text-text-secondary">잠시만 기다려주세요</p>
         </div>
@@ -232,6 +264,37 @@ export default function SetupPage() {
             ))}
           </div>
           <p className="text-xs text-text-secondary">꼬리질문으로 인한 추가 질문이 발생할 수 있습니다.</p>
+        </section>
+
+        {/* 채용 공고 링크 */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold text-text-secondary">채용 공고 (선택)</h2>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={jobUrl}
+              onChange={(e) => { setJobUrl(e.target.value); setJobText(''); setJobError('') }}
+              placeholder="채용 공고 URL을 붙여넣으세요"
+              className="flex-1 px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary placeholder:text-text-secondary/40 focus:border-accent focus:outline-none text-sm"
+            />
+            <button
+              onClick={handleAnalyzeJob}
+              disabled={!jobUrl.trim() || jobLoading}
+              className="px-5 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed bg-bg-card border border-border hover:border-accent/50 text-text-primary"
+            >
+              {jobLoading ? '분석 중...' : jobText ? '분석 완료' : '분석'}
+            </button>
+          </div>
+          {jobText && (
+            <div className="flex items-center gap-2 text-sm text-success">
+              <span className="w-2 h-2 rounded-full bg-success" />
+              공고 분석 완료 - 면접 시 맞춤형 질문이 포함됩니다
+            </div>
+          )}
+          {jobError && (
+            <p className="text-sm text-danger">{jobError}</p>
+          )}
+          <p className="text-xs text-text-secondary">공고 링크를 넣으면 해당 직무의 요구사항에 맞는 맞춤형 질문을 생성합니다.</p>
         </section>
 
         {/* 시작 버튼 */}
