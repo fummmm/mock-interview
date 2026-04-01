@@ -155,15 +155,17 @@ export default function ReportPage() {
           </div>
         </div>
 
-        {/* 3명 평가자 카드 */}
+        {/* 면접관별 평가 — 점수 + 총평만 간결하게 */}
         <div className="space-y-3">
           <h2 className="font-semibold text-lg">면접관별 평가</h2>
           {report.evaluators?.length > 0 ? (
-            report.evaluators.map((ev) => (
-              <EvaluatorCard key={ev.id} evaluator={ev} questionData={report.questionData} />
-            ))
+            <div className="grid grid-cols-1 gap-3">
+              {report.evaluators.map((ev) => (
+                <EvaluatorSummaryCard key={ev.id} evaluator={ev} />
+              ))}
+            </div>
           ) : (
-            <p className="text-text-secondary text-sm bg-bg-card border border-border rounded-xl p-4">면접관별 상세 평가 데이터가 없습니다. (분석 시점의 LLM 응답 오류 가능성)</p>
+            <p className="text-text-secondary text-sm bg-bg-card border border-border rounded-xl p-4">면접관별 상세 평가 데이터가 없습니다.</p>
           )}
         </div>
 
@@ -194,10 +196,18 @@ export default function ReportPage() {
           </div>
         )}
 
+        {/* 질문별 평가 — 메인 상세 섹션 */}
+        <div className="space-y-4">
+          <h2 className="font-semibold text-lg">질문별 평가</h2>
+          {report.questionData.map((qd) => (
+            <QuestionDetailCard key={qd.questionIndex} data={qd} evaluators={report.evaluators || []} />
+          ))}
+        </div>
+
         {/* 비언어 팁 */}
-        {report.visionTips.length > 0 && (
+        {report.visionTips?.length > 0 && (
           <div className="bg-bg-card border border-border rounded-2xl p-5">
-            <h2 className="font-semibold text-info text-sm mb-3">비언어적 커뮤니케이션 팁</h2>
+            <h2 className="font-semibold text-info text-sm mb-3">비언어적 커뮤니케이션 종합 팁</h2>
             <ul className="space-y-2">
               {report.visionTips.map((t, i) => (
                 <li key={i} className="text-sm flex gap-2"><span className="text-info shrink-0">*</span><span>{t}</span></li>
@@ -205,14 +215,6 @@ export default function ReportPage() {
             </ul>
           </div>
         )}
-
-        {/* 질문별 상세 (영상 재생 + 모범 답안) */}
-        <div className="space-y-4">
-          <h2 className="font-semibold text-lg">질문별 상세</h2>
-          {report.questionData.map((qd) => (
-            <QuestionDetailCard key={qd.questionIndex} data={qd} />
-          ))}
-        </div>
 
         <div className="flex gap-3">
           {isOwnReport ? (
@@ -233,115 +235,63 @@ export default function ReportPage() {
   )
 }
 
-/* 평가자 카드 */
-function EvaluatorCard({ evaluator, questionData }) {
-  const [open, setOpen] = useState(false)
+/* 면접관 요약 카드 — 점수 + 총평 + 강점/개선점 */
+function EvaluatorSummaryCard({ evaluator }) {
   const ev = evaluator
-
-  const iconMap = { expert: '🎮', expert_a: '🎮', team_lead: '💼', coach: '📋', executive: '🏢', hr: '👔' }
-  const roleIcon = iconMap[ev.id] || '👤'
-
   return (
-    <div className="bg-bg-card border border-border rounded-2xl overflow-hidden">
-      <button onClick={() => setOpen(!open)} className="w-full p-5 text-left flex items-center gap-4 cursor-pointer hover:bg-bg-elevated/30 transition-colors">
-        <span className="text-2xl">{roleIcon}</span>
+    <div className="bg-bg-card border border-border rounded-2xl p-5">
+      <div className="flex items-start gap-4">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-1">
             <span className="font-semibold">{ev.name}</span>
             <span className="text-xs text-text-secondary">{ev.role}</span>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ml-auto ${ev.pass ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger'}`}>
+              {ev.pass ? '합격' : '불합격'}
+            </span>
           </div>
-          <p className="text-sm text-text-secondary mt-0.5 truncate">{ev.overallComment?.slice(0, 60)}...</p>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <span className={`text-2xl font-bold ${GRADE_COLOR[ev.grade]}`}>{ev.avgScore}</span>
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ev.pass ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger'}`}>
-            {ev.pass ? '합격' : '불합격'}
-          </span>
-          <span className="text-text-secondary">{open ? '−' : '+'}</span>
-        </div>
-      </button>
-
-      {open && (
-        <div className="border-t border-border p-5 space-y-4">
-          {/* 총평 */}
-          <div className="bg-bg-secondary rounded-xl p-4">
-            <p className="text-sm leading-relaxed">{ev.overallComment}</p>
-          </div>
-
-          {/* 강점 / 개선점 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <p className="text-xs text-success font-medium mb-1.5">강점</p>
-              <ul className="space-y-1">
-                {ev.strengths.map((s, i) => (
-                  <li key={i} className="text-sm flex gap-1.5"><span className="text-success shrink-0">+</span><span>{s}</span></li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <p className="text-xs text-warning font-medium mb-1.5">개선 포인트</p>
-              <ul className="space-y-1">
-                {ev.improvements.map((s, i) => (
-                  <li key={i} className="text-sm flex gap-1.5"><span className="text-warning shrink-0">-</span><span>{s}</span></li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* 질문별 코멘트 + 점수 */}
-          <div className="space-y-3">
-            <p className="text-xs text-text-secondary font-medium">질문별 평가</p>
-            {ev.questionFeedbacks.map((fb) => {
-              const qd = questionData[fb.questionIndex]
-              const avg = Math.round((fb.scores.relevance + fb.scores.structure + fb.scores.keywords + fb.scores.specificity) / 4)
-              return (
-                <div key={fb.questionIndex} className="bg-bg-secondary rounded-xl p-3 space-y-2">
-                  <div className="flex justify-between items-start gap-2">
-                    <p className="text-xs text-text-secondary flex-1">Q{fb.questionIndex + 1}. {qd?.questionText?.slice(0, 50)}...</p>
-                    <span className={`text-lg font-bold shrink-0 ${scoreColor(avg)}`}>{avg}</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[
-                      { label: '적합', score: fb.scores.relevance },
-                      { label: '구조', score: fb.scores.structure },
-                      { label: '키워드', score: fb.scores.keywords },
-                      { label: '구체성', score: fb.scores.specificity },
-                    ].map((item) => (
-                      <div key={item.label} className="text-center">
-                        <p className="text-[10px] text-text-secondary">{item.label}</p>
-                        <p className={`text-xs font-medium ${scoreColor(item.score)}`}>{item.score}</p>
-                      </div>
-                    ))}
-                  </div>
-                  {fb.comment && <p className="text-sm text-text-secondary">{fb.comment}</p>}
-                </div>
-              )
-            })}
+          <p className="text-sm text-text-secondary leading-relaxed">{ev.overallComment}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            {ev.strengths?.length > 0 && (
+              <div>
+                <p className="text-xs text-success font-medium mb-1">강점</p>
+                <ul className="space-y-0.5">
+                  {ev.strengths.map((s, i) => (
+                    <li key={i} className="text-xs flex gap-1.5"><span className="text-success shrink-0">+</span><span>{s}</span></li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {ev.improvements?.length > 0 && (
+              <div>
+                <p className="text-xs text-warning font-medium mb-1">개선 포인트</p>
+                <ul className="space-y-0.5">
+                  {ev.improvements.map((s, i) => (
+                    <li key={i} className="text-xs flex gap-1.5"><span className="text-warning shrink-0">-</span><span>{s}</span></li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
-      )}
+        <span className={`text-3xl font-bold shrink-0 ${GRADE_COLOR[ev.grade]}`}>{ev.avgScore}</span>
+      </div>
     </div>
   )
 }
 
-/* 질문 상세 카드 (하이라이트 답변 + 영상 재생 + 비언어) */
-function QuestionDetailCard({ data }) {
+/* 질문별 평가 카드 — 질문 중심으로 모든 정보 통합 */
+function QuestionDetailCard({ data, evaluators }) {
   const [open, setOpen] = useState(false)
   const videoRef = useRef(null)
-  const [playingClip, setPlayingClip] = useState(null) // { start, end, label }
+  const [playingClip, setPlayingClip] = useState(null)
 
-  // 프레임 인덱스 → 대략적 타임스탬프 (5초 간격 캡처 기준)
   const frameToTime = (frameIndex) => frameIndex * 5
-
-  // 특정 구간만 재생 (시작~끝)
   const playClip = (startSec, durationSec = 7, label = '') => {
     const video = videoRef.current
     if (!video) return
     video.currentTime = Math.max(0, startSec)
     video.play()
     setPlayingClip({ start: startSec, end: startSec + durationSec, label })
-
-    // 구간 끝나면 자동 일시정지
     const checkEnd = () => {
       if (video.currentTime >= startSec + durationSec) {
         video.pause()
@@ -352,23 +302,40 @@ function QuestionDetailCard({ data }) {
     video.addEventListener('timeupdate', checkEnd)
   }
 
+  // 이 질문에 대한 각 면접관의 피드백 수집
+  const evFeedbacks = evaluators.map((ev) => {
+    const fb = ev.questionFeedbacks?.find((f) => f.questionIndex === data.questionIndex)
+    if (!fb) return null
+    const avg = Math.round((fb.scores.relevance + fb.scores.structure + fb.scores.keywords + fb.scores.specificity) / 4)
+    return { name: ev.name, role: ev.role, scores: fb.scores, avg, comment: fb.comment }
+  }).filter(Boolean)
+
+  // 면접관 평균 점수
+  const avgScore = evFeedbacks.length > 0
+    ? Math.round(evFeedbacks.reduce((sum, f) => sum + f.avg, 0) / evFeedbacks.length)
+    : null
+
   return (
     <div className="bg-bg-card border border-border rounded-2xl overflow-hidden">
-      <button onClick={() => setOpen(!open)} className="w-full p-4 text-left flex items-center justify-between cursor-pointer hover:bg-bg-elevated/30 transition-colors">
-        <div className="flex-1 min-w-0">
-          <p className="text-xs text-text-secondary mb-0.5">질문 {data.questionIndex + 1}</p>
-          <p className="text-sm truncate">{data.questionText}</p>
+      {/* 접힌 상태: 질문 풀텍스트 + 면접관 평균 점수 */}
+      <button onClick={() => setOpen(!open)} className="w-full p-5 text-left flex items-start gap-3 cursor-pointer hover:bg-bg-elevated/30 transition-colors">
+        <span className="text-xs text-text-secondary font-medium shrink-0 mt-0.5">Q{data.questionIndex + 1}</span>
+        <p className="flex-1 text-sm leading-relaxed">{data.questionText}</p>
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          {avgScore !== null && (
+            <span className={`text-xl font-bold ${scoreColor(avgScore)}`}>{avgScore}</span>
+          )}
+          <span className="text-text-secondary text-lg">{open ? '−' : '+'}</span>
         </div>
-        <span className="text-text-secondary ml-3">{open ? '−' : '+'}</span>
       </button>
 
       {open && (
-        <div className="border-t border-border p-4 space-y-4">
-          {/* 녹화 영상 - CSS로 영상만 미러링, 컨트롤은 정상 */}
+        <div className="border-t border-border p-5 space-y-5">
+          {/* 녹화 영상 */}
           {data.videoBlobUrl && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-text-secondary font-medium">녹화 영상 ({data.recordingDuration}초)</p>
+                <p className="text-xs text-text-secondary font-medium">내 답변 영상 ({data.recordingDuration}초)</p>
                 {playingClip && (
                   <span className="text-xs text-accent animate-recording-pulse">{playingClip.label} 재생 중...</span>
                 )}
@@ -383,15 +350,12 @@ function QuestionDetailCard({ data }) {
             </div>
           )}
 
-          {/* 내 답변 - 문제 구절 하이라이트 */}
+          {/* 내 답변 텍스트 */}
           {data.transcript && (
-            <div className="bg-bg-secondary rounded-xl p-3">
+            <div className="bg-bg-secondary rounded-xl p-4">
               <p className="text-xs text-text-secondary font-medium mb-2">내 답변</p>
               <p className="text-sm leading-relaxed">
-                <HighlightedTranscript
-                  text={data.transcript}
-                  problemPhrases={data.problemPhrases || []}
-                />
+                <HighlightedTranscript text={data.transcript} problemPhrases={data.problemPhrases || []} />
               </p>
               {data.problemPhrases?.length > 0 && (
                 <div className="mt-3 space-y-1.5 border-t border-border/50 pt-2">
@@ -412,76 +376,106 @@ function QuestionDetailCard({ data }) {
             </div>
           )}
 
-          {/* 문제 프레임만 표시 */}
-          {data.frames?.length > 0 && data.vision?.problemFrames?.length > 0 && (
-            <div>
-              <p className="text-xs text-text-secondary font-medium mb-2">문제 감지 구간 (클릭하면 해당 시점 재생)</p>
-              <div className="flex gap-2 flex-wrap">
-                {data.vision.problemFrames.map((pf) => {
-                  const frame = data.frames[pf.frameIndex]
-                  if (!frame) return null
-                  const time = frameToTime(pf.frameIndex)
-                  return (
-                    <button
-                      key={pf.frameIndex}
-                      className="relative group cursor-pointer"
-                      onClick={() => playClip(time, 5, `${pf.issue}`)}
-                    >
-                      <img
-                        src={frame} alt={pf.issue}
-                        className="w-32 h-22 rounded-lg object-cover border-2 border-warning transition-all hover:border-danger"
-                      />
-                      <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[9px] px-1 rounded">
-                        {Math.floor(time / 60)}:{(time % 60).toString().padStart(2, '0')}
-                      </span>
-                      <span className="absolute top-0 left-0 right-0 bg-warning/90 text-black text-[9px] px-1.5 py-0.5 rounded-t-lg text-center font-medium">
-                        {pf.issue}
-                      </span>
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z"/>
-                        </svg>
+          {/* 면접관별 점수 + 코멘트 */}
+          {evFeedbacks.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-xs text-text-secondary font-medium">면접관별 평가</p>
+              {evFeedbacks.map((fb, i) => (
+                <div key={i} className="bg-bg-secondary rounded-xl p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold">{fb.name}</span>
+                      <span className="text-xs text-text-secondary">{fb.role}</span>
+                    </div>
+                    <span className={`text-lg font-bold ${scoreColor(fb.avg)}`}>{fb.avg}</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { label: '적합', score: fb.scores.relevance },
+                      { label: '구조', score: fb.scores.structure },
+                      { label: '키워드', score: fb.scores.keywords },
+                      { label: '구체성', score: fb.scores.specificity },
+                    ].map((item) => (
+                      <div key={item.label} className="text-center">
+                        <p className="text-[10px] text-text-secondary">{item.label}</p>
+                        <div className="w-full bg-bg-primary rounded-full h-1 mt-0.5 mb-0.5">
+                          <div className={`h-1 rounded-full ${barColor(item.score)}`} style={{ width: `${item.score}%` }} />
+                        </div>
+                        <p className={`text-xs font-medium ${scoreColor(item.score)}`}>{item.score}</p>
                       </div>
-                    </button>
-                  )
-                })}
-              </div>
+                    ))}
+                  </div>
+                  {fb.comment && <p className="text-sm text-text-secondary leading-relaxed">{fb.comment}</p>}
+                </div>
+              ))}
             </div>
           )}
 
           {/* 비언어 분석 */}
           {data.vision && (
-            <div className="bg-bg-secondary rounded-xl p-3">
-              <p className="text-xs text-text-secondary font-medium mb-2">비언어적 분석</p>
-              <div className="grid grid-cols-3 gap-3 text-sm">
-                <div>
-                  <p className="text-[10px] text-text-secondary">시선</p>
-                  <p className={`font-medium ${scoreColor(data.vision.eyeContact?.score || 0)}`}>{data.vision.eyeContact?.score || 0}</p>
-                  <p className="text-xs text-text-secondary mt-0.5">{data.vision.eyeContact?.comment}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-text-secondary">표정</p>
-                  <p className={`font-medium ${scoreColor(data.vision.expression?.score || 0)}`}>{data.vision.expression?.score || 0}</p>
-                  <p className="text-xs text-text-secondary mt-0.5">{data.vision.expression?.comment}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-text-secondary">자세</p>
-                  <p className={`font-medium ${scoreColor(data.vision.posture?.score || 0)}`}>{data.vision.posture?.score || 0}</p>
-                  <p className="text-xs text-text-secondary mt-0.5">{data.vision.posture?.comment}</p>
+            <div className="space-y-3">
+              <p className="text-xs text-text-secondary font-medium">비언어적 분석</p>
+              <div className="bg-bg-secondary rounded-xl p-4">
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="text-[10px] text-text-secondary">시선</p>
+                    <p className={`font-medium ${scoreColor(data.vision.eyeContact?.score || 0)}`}>{data.vision.eyeContact?.score || 0}</p>
+                    <p className="text-xs text-text-secondary mt-0.5">{data.vision.eyeContact?.comment}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-text-secondary">표정</p>
+                    <p className={`font-medium ${scoreColor(data.vision.expression?.score || 0)}`}>{data.vision.expression?.score || 0}</p>
+                    <p className="text-xs text-text-secondary mt-0.5">{data.vision.expression?.comment}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-text-secondary">자세</p>
+                    <p className={`font-medium ${scoreColor(data.vision.posture?.score || 0)}`}>{data.vision.posture?.score || 0}</p>
+                    <p className="text-xs text-text-secondary mt-0.5">{data.vision.posture?.comment}</p>
+                  </div>
                 </div>
               </div>
+
+              {/* 문제 프레임 */}
+              {data.frames?.length > 0 && data.vision.problemFrames?.length > 0 && (
+                <div>
+                  <p className="text-xs text-text-secondary mb-2">문제 감지 구간 (클릭 시 해당 시점 재생)</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {data.vision.problemFrames.map((pf) => {
+                      const frame = data.frames[pf.frameIndex]
+                      if (!frame) return null
+                      const time = frameToTime(pf.frameIndex)
+                      return (
+                        <button
+                          key={pf.frameIndex}
+                          className="relative group cursor-pointer"
+                          onClick={() => playClip(time, 5, pf.issue)}
+                        >
+                          <img src={frame} alt={pf.issue}
+                            className="w-32 h-22 rounded-lg object-cover border-2 border-warning transition-all hover:border-danger" />
+                          <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[9px] px-1 rounded">
+                            {Math.floor(time / 60)}:{(time % 60).toString().padStart(2, '0')}
+                          </span>
+                          <span className="absolute top-0 left-0 right-0 bg-warning/90 text-black text-[9px] px-1.5 py-0.5 rounded-t-lg text-center font-medium">
+                            {pf.issue}
+                          </span>
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* 꼬리질문 답변 */}
+          {/* 꼬리질문 */}
           {data.followUp?.question && (
-            <div className="bg-accent/5 border border-accent/20 rounded-xl p-3 space-y-2">
+            <div className="bg-accent/5 border border-accent/20 rounded-xl p-4 space-y-2">
               <p className="text-xs text-accent font-medium">꼬리질문: {data.followUp.question}</p>
               {data.followUp.transcript ? (
-                <div>
-                  <p className="text-xs text-text-secondary mb-1">꼬리질문 답변</p>
-                  <p className="text-sm leading-relaxed">{data.followUp.transcript}</p>
-                </div>
+                <p className="text-sm leading-relaxed">{data.followUp.transcript}</p>
               ) : (
                 <p className="text-xs text-text-secondary">꼬리질문 답변이 기록되지 않았습니다.</p>
               )}
@@ -490,7 +484,7 @@ function QuestionDetailCard({ data }) {
 
           {/* 모범 답안 */}
           {data.sampleAnswer && (
-            <div className="bg-info/5 border border-info/20 rounded-xl p-3">
+            <div className="bg-info/5 border border-info/20 rounded-xl p-4">
               <p className="text-xs text-info font-medium mb-1">모범 답안 예시</p>
               <p className="text-sm leading-relaxed">{data.sampleAnswer}</p>
             </div>
