@@ -31,7 +31,6 @@
     {"id": "design-026", "text": "라이브 서비스 게임의 시즌/이벤트를 기획해본 경험이 있나요?", "category": "technical", "difficulty": "intermediate", "keywords": ["라이브 서비스", "시즌", "이벤트", "운영"], "evaluationHints": "라이브 운영 기획 경험"},
     {"id": "design-027", "text": "새로운 기술이나 도구를 배울 때 어떤 방법으로 학습하나요?", "category": "behavioral", "difficulty": "basic", "keywords": ["학습", "자기 주도", "성장"], "evaluationHints": "학습 방법과 자기 주도성"},
     {"id": "design-028", "text": "마감이 촉박한 상황에서 기획 스코프를 어떻게 조정하나요?", "category": "behavioral", "difficulty": "intermediate", "keywords": ["스코프", "우선순위", "MVP"], "evaluationHints": "우선순위 판단 기준"},
-    {"id": "design-029", "text": "5년 후 어떤 게임 기획자로 성장하고 싶은지 말씀해주세요.", "category": "behavioral", "difficulty": "basic", "keywords": ["목표", "비전", "커리어"], "evaluationHints": "구체적 성장 계획"},
-    {"id": "design-lastq", "text": "마지막으로 하고 싶은 말이 있다면 자유롭게 말씀해주세요.", "category": "behavioral", "difficulty": "basic", "keywords": ["마무리", "어필"], "evaluationHints": "핵심 강점 재강조"}
+    {"id": "design-029", "text": "5년 후 어떤 게임 기획자로 성장하고 싶은지 말씀해주세요.", "category": "behavioral", "difficulty": "basic", "keywords": ["목표", "비전", "커리어"], "evaluationHints": "구체적 성장 계획"}
   ]
 }

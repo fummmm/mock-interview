@@ -31,7 +31,6 @@
     {"id": "pm-026", "text": "시스템 기획(전투, 성장, 경제 등) 중 가장 관심 있는 분야는?", "category": "technical", "difficulty": "basic", "keywords": ["시스템 기획", "전투", "성장", "경제"], "evaluationHints": "관심 분야의 깊이"},
     {"id": "pm-027", "text": "글로벌 서비스를 위한 현지화(로컬라이제이션)에 대해 어떻게 생각하나요?", "category": "technical", "difficulty": "intermediate", "keywords": ["현지화", "글로벌", "문화", "번역"], "evaluationHints": "현지화 이해와 고려 사항"},
     {"id": "pm-028", "text": "마감이 촉박한 상황에서 스코프를 줄여야 한다면 어떤 기준으로 결정하나요?", "category": "behavioral", "difficulty": "intermediate", "keywords": ["스코프", "우선순위", "MVP", "의사결정"], "evaluationHints": "판단 기준과 실제 경험"},
-    {"id": "pm-029", "text": "5년 후 어떤 PM으로 성장하고 싶은지 말씀해주세요.", "category": "behavioral", "difficulty": "basic", "keywords": ["목표", "커리어", "성장"], "evaluationHints": "구체적 비전"},
-    {"id": "pm-lastq", "text": "마지막으로 하고 싶은 말이 있다면 자유롭게 말씀해주세요.", "category": "behavioral", "difficulty": "basic", "keywords": ["마무리", "어필"], "evaluationHints": "핵심 강점 재강조"}
+    {"id": "pm-029", "text": "5년 후 어떤 PM으로 성장하고 싶은지 말씀해주세요.", "category": "behavioral", "difficulty": "basic", "keywords": ["목표", "커리어", "성장"], "evaluationHints": "구체적 비전"}
   ]
 }

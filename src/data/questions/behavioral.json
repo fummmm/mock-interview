@@ -233,14 +233,6 @@
       "difficulty": "intermediate",
       "keywords": ["긍정성", "분위기", "팀 영향력", "태도"],
       "evaluationHints": "상황 인식, 본인이 취한 행동, 팀에 미친 영향"
-    },
-    {
-      "id": "beh-lastq",
-      "text": "마지막으로 하고 싶은 말이 있다면 자유롭게 말씀해주세요.",
-      "category": "behavioral",
-      "difficulty": "basic",
-      "keywords": ["마무리", "어필", "열정", "진정성"],
-      "evaluationHints": "핵심 강점 재강조, 입사 의지, 인상적인 마무리"
     }
   ]
 }

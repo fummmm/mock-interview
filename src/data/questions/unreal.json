@@ -31,7 +31,6 @@
     {"id": "unreal-026", "text": "Unreal의 충돌(Collision) 채널과 프로필 설정을 설명해주세요.", "category": "technical", "difficulty": "basic", "keywords": ["Collision", "채널", "프로필", "물리"], "evaluationHints": "충돌 시스템 기본 이해"},
     {"id": "unreal-027", "text": "게임 개발 시 코드 구조를 어떻게 설계하나요? 본인만의 원칙이 있나요?", "category": "behavioral", "difficulty": "intermediate", "keywords": ["설계", "아키텍처", "코드 구조"], "evaluationHints": "설계 철학과 실제 적용"},
     {"id": "unreal-028", "text": "마감이 촉박한 상황에서 어떻게 대처하나요? 경험을 말씀해주세요.", "category": "behavioral", "difficulty": "basic", "keywords": ["마감", "우선순위", "압박"], "evaluationHints": "구체적 경험과 대처 방식"},
-    {"id": "unreal-029", "text": "게임 업계에서 어떤 개발자로 성장하고 싶은지 말씀해주세요.", "category": "behavioral", "difficulty": "basic", "keywords": ["목표", "성장", "비전"], "evaluationHints": "구체적이고 현실적인 목표"},
-    {"id": "unreal-lastq", "text": "마지막으로 하고 싶은 말이 있다면 자유롭게 말씀해주세요.", "category": "behavioral", "difficulty": "basic", "keywords": ["마무리", "어필"], "evaluationHints": "핵심 강점 재강조"}
+    {"id": "unreal-029", "text": "게임 업계에서 어떤 개발자로 성장하고 싶은지 말씀해주세요.", "category": "behavioral", "difficulty": "basic", "keywords": ["목표", "성장", "비전"], "evaluationHints": "구체적이고 현실적인 목표"}
   ]
 }

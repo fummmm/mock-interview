@@ -31,7 +31,6 @@
     {"id": "unity-026", "text": "유니티에서 멀티플레이어 기능을 구현해본 경험이 있나요?", "category": "technical", "difficulty": "intermediate", "keywords": ["멀티플레이", "네트워크", "Netcode", "Photon"], "evaluationHints": "네트워크 구조 이해와 동기화 경험"},
     {"id": "unity-027", "text": "플레이 테스트에서 발견된 버그를 수정한 경험을 말씀해주세요.", "category": "behavioral", "difficulty": "basic", "keywords": ["디버깅", "버그", "테스트", "수정"], "evaluationHints": "체계적 디버깅 과정"},
     {"id": "unity-028", "text": "게임의 저장/로드 시스템을 어떻게 구현하나요?", "category": "technical", "difficulty": "basic", "keywords": ["저장", "로드", "직렬화", "JSON", "PlayerPrefs"], "evaluationHints": "데이터 직렬화와 저장 방식 이해"},
-    {"id": "unity-029", "text": "마감 기한이 촉박한 상황에서 어떻게 우선순위를 정하고 작업하나요?", "category": "behavioral", "difficulty": "basic", "keywords": ["마감", "우선순위", "시간 관리"], "evaluationHints": "구체적 경험과 판단 기준"},
-    {"id": "unity-lastq", "text": "마지막으로 하고 싶은 말이 있다면 자유롭게 말씀해주세요.", "category": "behavioral", "difficulty": "basic", "keywords": ["마무리", "어필"], "evaluationHints": "핵심 강점 재강조, 인상적 마무리"}
+    {"id": "unity-029", "text": "마감 기한이 촉박한 상황에서 어떻게 우선순위를 정하고 작업하나요?", "category": "behavioral", "difficulty": "basic", "keywords": ["마감", "우선순위", "시간 관리"], "evaluationHints": "구체적 경험과 판단 기준"}
   ]
 }
