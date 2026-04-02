@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { useAuthStore } from './stores/authStore'
 import ProtectedRoute, { OnboardingGuard, AdminRoute } from './components/ProtectedRoute'
 import Layout from './components/Layout'
@@ -14,7 +15,35 @@ import AdminStudents from './pages/AdminStudents'
 import AdminQuotas from './pages/AdminQuotas'
 import AdminManage from './pages/AdminManage'
 
+const MIN_WIDTH = 1024
+
 function App() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < MIN_WIDTH)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < MIN_WIDTH)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-bg-primary text-center">
+        <div className="max-w-sm space-y-4">
+          <div className="text-4xl">
+            <svg className="w-16 h-16 mx-auto text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-text-primary">PC 환경에서 이용해주세요</h1>
+          <p className="text-sm text-text-secondary leading-relaxed">
+            AI 모의면접은 카메라, 마이크, 넓은 화면이 필요합니다. PC 또는 노트북 환경에서 접속해주세요.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <Routes>
       {/* 공개 */}
