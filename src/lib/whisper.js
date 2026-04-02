@@ -119,7 +119,10 @@ async function _transcribeAudio(blob) {
     const pipe = globalThis.__whisperPipeline
     if (!pipe) throw new Error('모델이 로딩되지 않았습니다.')
     const result = await pipe(audioData, { language: 'ko', task: 'transcribe', return_timestamps: true, chunk_length_s: 30 })
-    return { transcript: result.text || '', chunks: result.chunks || [], ...analyzeTranscript(result.text, result.chunks) }
+    // 메인 스레드에서도 환각 필터 적용
+    let text = result.text || ''
+    text = _removeMainThreadHallucinations(text, audioData?.length || 0)
+    return { transcript: text, chunks: result.chunks || [], ...analyzeTranscript(text, result.chunks) }
   }
 
   // Worker 방식 (requestId로 결과 매칭, 동시 요청 충돌 방지)
@@ -151,6 +154,22 @@ async function _transcribeAudio(blob) {
     worker.addEventListener('message', handler)
     worker.postMessage({ type: 'transcribe', audioData, requestId })
   })
+}
+
+// 메인 스레드용 환각 필터 (Worker 내장 필터와 동일 로직)
+function _removeMainThreadHallucinations(text, audioSamples) {
+  if (!text || !text.trim()) return ''
+  const trimmed = text.trim()
+  const hallucinationPatterns = [
+    /^MBC\s*뉴스/i, /^KBS\s*뉴스/i, /^SBS\s*뉴스/i, /^JTBC\s*뉴스/i, /^YTN\s*뉴스/i,
+    /뉴스.{0,5}입니다/, /^안녕하세요[,.]?\s*.{1,5}입니다\.?$/,
+    /^.{1,5}입니다\.?$/, /시청해\s*주셔서/, /구독.*좋아요/, /좋아요.*구독/,
+    /^자막.*제공/i, /^번역.*자막/i, /^Thank you/i, /^Bye/i,
+  ]
+  if (hallucinationPatterns.some((p) => p.test(trimmed))) return ''
+  // 반복 환각 제거
+  text = text.replace(/(.{8,}?)\1{2,}/g, '$1')
+  return text
 }
 
 async function blobToAudioData(blob) {

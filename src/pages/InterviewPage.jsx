@@ -779,13 +779,20 @@ export default function InterviewPage() {
               검토 중...
             </button>
           ) : phase === 'ready' && !isRecording ? (
-            isHardMode ? (
+            isHardMode && !isFollowUp ? (
               <button disabled className="px-8 py-2.5 rounded-xl bg-bg-elevated text-text-secondary cursor-not-allowed">
                 {isTyping ? '질문 표시 중...' : '답변 곧 시작'}
               </button>
             ) : (
               <button
-                onClick={isFollowUp ? handleStartFollowUp : handleStartAnswer}
+                onClick={() => {
+                  if (isHardMode && isFollowUp) {
+                    const limit = getTimeLimit(currentQuestion)
+                    setTimeLimit(limit)
+                    setTimeLeft(limit)
+                  }
+                  ;(isFollowUp ? handleStartFollowUp : handleStartAnswer)()
+                }}
                 disabled={mediaStatus !== 'granted'}
                 className="px-8 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white font-semibold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >

@@ -40,10 +40,10 @@ export default function SetupPage() {
   // 모드별 설정: 공고→behavioral/5개 고정, 하드→일반과 동일 선택
   const effectiveTrack = mode === 'job' ? 'behavioral' : track
   const effectiveCount = mode === 'job' ? 5 : questionCount
-  const canStart = (mode === 'job' || !!track) && (mainAdmin || remaining > 0)
-
   const hasResume = docs.some((d) => d.doc_type === 'resume')
   const hasPortfolio = docs.some((d) => d.doc_type === 'portfolio')
+  const hasJobInfo = mode === 'job' && (jobCompany.trim() || jobPosition.trim() || jobScreenshots.length > 0)
+  const canStart = (mode === 'job' ? hasJobInfo : !!track) && (mainAdmin || remaining > 0)
 
   useEffect(() => {
     if (profile?.id) {
@@ -51,8 +51,6 @@ export default function SetupPage() {
         .then(({ data }) => setDocs(data || []))
     }
   }, [profile?.id])
-
-  const hasJobInfo = mode === 'job' && (jobCompany.trim() || jobPosition.trim() || jobScreenshots.length > 0)
 
   const handleStart = async () => {
     if (!canStart || starting) return

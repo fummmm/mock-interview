@@ -31,7 +31,7 @@ export default function AdminDashboard() {
   }
 
   const students = users.filter((u) => !u.role || u.role === 'student')
-  const admins = users.filter((u) => u.role === 'admin' || u.role === 'main_admin')
+  const admins = users.filter((u) => u.role === 'sub_admin' || u.role === 'main_admin')
   const studentIds = new Set(students.map((u) => u.id))
   const completedSessions = sessions.filter((s) => s.status === 'completed' && studentIds.has(s.user_id))
   const studentResults = results.filter((r) => studentIds.has(r.user_id))
