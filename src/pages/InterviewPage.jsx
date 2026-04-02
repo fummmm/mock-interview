@@ -242,6 +242,15 @@ export default function InterviewPage() {
   // 백그라운드 STT + 교정 (세션 ID로 이전 세션 작업 무효화)
   const processInBackground = useCallback((idx, blob, questionText, isFollowUpAnswer = false) => {
     const mySession = useInterviewStore.getState().sessionId
+
+    // 녹화 3초 미만이면 STT 스킵 (Whisper 환각 방지)
+    const answer = useInterviewStore.getState().answers[idx]
+    const recDuration = isFollowUpAnswer ? answer?.followUp?.recordingDuration : answer?.recordingDuration
+    if (recDuration !== undefined && recDuration < 3) {
+      console.warn(`[STT] Q${idx + 1}${isFollowUpAnswer ? ' 꼬리' : ''}: 녹화 ${recDuration}초 - STT 스킵`)
+      return
+    }
+
     incPendingSTT()
     ;(async () => {
       try {
