@@ -15,7 +15,7 @@ const TRACK_LABELS = {
   spring: 'Spring',
 }
 
-const COUNTS = [4, 5]
+const COUNTS = [5, 6]
 
 export default function SetupPage() {
   const navigate = useNavigate()
@@ -67,7 +67,7 @@ export default function SetupPage() {
     }
     let questions = getQuestions(effectiveCount, effectiveTrack, companySize)
 
-    const customCount = mode === 'job' ? 3 : 1
+    const customCount = mode === 'job' ? 3 : (effectiveCount >= 6 ? 2 : 1)
     try {
       let customQuestions = []
 
