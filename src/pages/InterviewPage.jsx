@@ -548,30 +548,20 @@ export default function InterviewPage() {
 
           {/* 기기 선택 */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-text-secondary">카메라</label>
-              <select
-                value={stream?.getVideoTracks()[0]?.getSettings()?.deviceId || ''}
-                onChange={(e) => switchDevice(e.target.value, null)}
-                className="w-full px-3 py-2.5 rounded-xl bg-bg-card border border-border text-text-primary text-sm focus:border-accent focus:outline-none cursor-pointer"
-              >
-                {devices.video.length > 0 ? devices.video.map((d) => (
-                  <option key={d.deviceId} value={d.deviceId}>{d.label || `카메라 ${d.deviceId.slice(0, 8)}`}</option>
-                )) : <option>카메라 없음</option>}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-text-secondary">마이크</label>
-              <select
-                value={stream?.getAudioTracks()[0]?.getSettings()?.deviceId || ''}
-                onChange={(e) => switchDevice(null, e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl bg-bg-card border border-border text-text-primary text-sm focus:border-accent focus:outline-none cursor-pointer"
-              >
-                {devices.audio.length > 0 ? devices.audio.map((d) => (
-                  <option key={d.deviceId} value={d.deviceId}>{d.label || `마이크 ${d.deviceId.slice(0, 8)}`}</option>
-                )) : <option>마이크 없음</option>}
-              </select>
-            </div>
+            <DeviceDropdown
+              label="카메라"
+              items={devices.video}
+              currentId={stream?.getVideoTracks()[0]?.getSettings()?.deviceId || ''}
+              onSelect={(id) => switchDevice(id, null)}
+              emptyText="카메라 없음"
+            />
+            <DeviceDropdown
+              label="마이크"
+              items={devices.audio}
+              currentId={stream?.getAudioTracks()[0]?.getSettings()?.deviceId || ''}
+              onSelect={(id) => switchDevice(null, id)}
+              emptyText="마이크 없음"
+            />
           </div>
 
           <button
@@ -811,6 +801,58 @@ export default function InterviewPage() {
             </button>
           ) : null}
         </div>
+      </div>
+    </div>
+  )
+}
+
+/* 커스텀 드롭다운 */
+function DeviceDropdown({ label, items, currentId, onSelect, emptyText }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  // 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const current = items.find((d) => d.deviceId === currentId)
+  const displayLabel = current?.label || (items.length > 0 ? items[0].label : emptyText)
+
+  return (
+    <div className="space-y-2" ref={ref}>
+      <label className="text-xs font-medium text-text-secondary">{label}</label>
+      <div className="relative">
+        <button
+          onClick={() => items.length > 0 && setOpen(!open)}
+          className={`w-full px-4 py-2.5 rounded-xl bg-bg-card border text-left text-sm transition-all cursor-pointer flex items-center justify-between ${
+            open ? 'border-accent' : 'border-border hover:border-accent/50'
+          }`}
+        >
+          <span className="truncate">{displayLabel || emptyText}</span>
+          <svg className={`w-4 h-4 text-text-secondary shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {open && items.length > 0 && (
+          <div className="absolute z-20 w-full mt-1 bg-bg-card border border-border rounded-xl shadow-lg overflow-hidden">
+            {items.map((d) => (
+              <button
+                key={d.deviceId}
+                onClick={() => { onSelect(d.deviceId); setOpen(false) }}
+                className={`w-full px-4 py-2.5 text-left text-sm transition-colors cursor-pointer ${
+                  d.deviceId === currentId
+                    ? 'bg-accent/10 text-accent'
+                    : 'hover:bg-bg-elevated text-text-primary'
+                }`}
+              >
+                {d.label || `${label} ${d.deviceId.slice(0, 8)}`}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
