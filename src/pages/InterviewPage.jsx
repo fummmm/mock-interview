@@ -118,7 +118,7 @@ export default function InterviewPage() {
       if (charIdx < fullText.length) {
         charIdx++
         setTypingText(fullText.slice(0, charIdx))
-        typingTimeoutRef.current = setTimeout(typeNext, 55)
+        typingTimeoutRef.current = setTimeout(typeNext, 75)
       } else {
         // 타이핑 완료 → 3-2-1 카운트다운 → 녹화 시작
         setIsTyping(false)
