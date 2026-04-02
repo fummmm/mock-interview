@@ -400,11 +400,17 @@ export async function generateJobPostingQuestions({ companyName, position, scree
  * 텍스트 분석 - 3명 평가자
  */
 export async function analyzeText({ questions, answers, track, companySize = 'medium' }) {
+  // 답변당 최대 800자로 제한 (입력 토큰 폭증 → 평가 실패 방지)
+  const truncate = (text, max = 800) => {
+    if (!text || text.length <= max) return text
+    return text.slice(0, max) + '... (이하 생략)'
+  }
+
   const answersText = answers
     .map((a, i) => {
-      let text = `[질문 ${i + 1}] ${a.questionText}\n[답변] ${a.transcript || '(답변 없음)'}\n[녹화 시간] ${a.recordingDuration}초`
+      let text = `[질문 ${i + 1}] ${a.questionText}\n[답변] ${truncate(a.transcript) || '(답변 없음)'}\n[녹화 시간] ${a.recordingDuration}초`
       if (a.followUp && a.followUp.question) {
-        text += `\n[꼬리질문] ${a.followUp.question}\n[꼬리질문 답변] ${a.followUp.transcript || '(답변 없음)'}`
+        text += `\n[꼬리질문] ${a.followUp.question}\n[꼬리질문 답변] ${truncate(a.followUp.transcript) || '(답변 없음)'}`
       }
       return text
     })
