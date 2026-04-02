@@ -39,6 +39,7 @@ function App() {
           <p className="text-sm text-text-secondary leading-relaxed">
             AI 모의면접은 카메라, 마이크, 넓은 화면이 필요합니다. PC 또는 노트북 환경에서 접속해주세요.
           </p>
+          <p className="text-xs text-text-secondary/60">PC라면 브라우저 창 크기를 키워주세요.</p>
         </div>
       </div>
     )
