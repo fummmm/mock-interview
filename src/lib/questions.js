@@ -28,16 +28,18 @@ export function getQuestions(count = 4, track = 'behavioral', companySize = 'med
   const intro = pool.find((q) => INTRO_IDS.includes(q.id))
   const rest = pool.filter((q) => q !== intro)
 
-  // 기술 트랙: 기술 질문 우선 배치 후 인성으로 보충
-  const technical = shuffle(rest.filter((q) => q.category === 'technical'))
-  const behavioral = shuffle(rest.filter((q) => q.category !== 'technical'))
   const slotsAfterIntro = count - (intro ? 1 : 0)
-  // 기술 질문을 최소 절반 이상 보장
-  const minTech = Math.ceil(slotsAfterIntro * 0.6)
-  const techPick = technical.slice(0, Math.min(minTech, technical.length))
-  const remaining = slotsAfterIntro - techPick.length
-  const behPick = behavioral.slice(0, remaining)
-  const picked = shuffle([...techPick, ...behPick])
+  const isCommonTrack = track === 'behavioral' || track === 'cs'
+
+  let picked
+  if (isCommonTrack) {
+    // 인성/CS 면접: 전체 풀에서 랜덤
+    picked = shuffle(rest).slice(0, slotsAfterIntro)
+  } else {
+    // 기술 트랙: 기술 질문만 (별도 인성 면접이 있으므로 인성 제외)
+    const technical = shuffle(rest.filter((q) => q.category === 'technical'))
+    picked = technical.slice(0, slotsAfterIntro)
+  }
 
   let result = intro ? [intro, ...picked] : picked.slice(0, count)
 
