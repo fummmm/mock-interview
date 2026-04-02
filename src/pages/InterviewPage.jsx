@@ -407,30 +407,62 @@ export default function InterviewPage() {
           </div>
 
           {/* 진행 안내 */}
-          <div className="bg-bg-card border border-border rounded-2xl p-5 space-y-3">
-            <h2 className="font-semibold text-sm text-text-secondary">진행 방식</h2>
-            <ul className="space-y-2 text-sm">
-              {isHardMode ? (
-                <>
-                  <li className="flex gap-2"><span className="text-accent shrink-0">1.</span>질문이 타이핑되며 나타나고, 완료 즉시 녹화가 자동 시작됩니다</li>
-                  <li className="flex gap-2"><span className="text-accent shrink-0">2.</span>준비할 시간 없이 바로 답변해야 합니다</li>
-                  <li className="flex gap-2"><span className="text-accent shrink-0">3.</span>인성 질문 3분, 기술 질문 5분의 제한시간이 있습니다</li>
-                  <li className="flex gap-2"><span className="text-accent shrink-0">4.</span>시간 초과 시 자동으로 다음 질문으로 넘어갑니다</li>
-                </>
-              ) : (
-                <>
-                  <li className="flex gap-2"><span className="text-accent shrink-0">1.</span>질문이 화면에 표시되면 충분히 읽고 생각을 정리하세요</li>
-                  <li className="flex gap-2"><span className="text-accent shrink-0">2.</span>준비되면 "답변 시작" 버튼을 눌러 녹화를 시작하세요</li>
-                  <li className="flex gap-2"><span className="text-accent shrink-0">3.</span>답변 후 면접관이 꼬리질문을 할 수 있습니다</li>
-                  <li className="flex gap-2"><span className="text-accent shrink-0">4.</span>모든 질문이 끝나면 AI가 답변을 분석하여 리포트를 제공합니다</li>
-                </>
-              )}
-            </ul>
-            <div className="flex gap-4 text-xs text-text-secondary pt-2 border-t border-border/50">
-              <span>질문 {questions.length}개</span>
-              <span>예상 소요 10~15분</span>
+          {isHardMode ? (
+            <div className="bg-accent/5 border-2 border-accent/30 rounded-2xl p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="text-accent font-bold text-lg">HARD MODE</span>
+                <span className="text-xs bg-accent/15 text-accent px-2 py-0.5 rounded-full font-medium">실전 모드</span>
+              </div>
+              <div className="space-y-3">
+                <div className="flex gap-3 items-start">
+                  <span className="shrink-0 w-7 h-7 rounded-full bg-accent/15 text-accent flex items-center justify-center text-sm font-bold">1</span>
+                  <div>
+                    <p className="font-semibold text-sm">질문이 타이핑되며 나타납니다</p>
+                    <p className="text-xs text-text-secondary mt-0.5">질문 텍스트가 한 글자씩 표시됩니다</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <span className="shrink-0 w-7 h-7 rounded-full bg-accent/15 text-accent flex items-center justify-center text-sm font-bold">2</span>
+                  <div>
+                    <p className="font-semibold text-sm">3초 카운트다운 후 즉시 녹화 시작</p>
+                    <p className="text-xs text-text-secondary mt-0.5">준비할 시간이 없습니다. 타이핑이 끝나면 바로 답변하세요</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <span className="shrink-0 w-7 h-7 rounded-full bg-accent/15 text-accent flex items-center justify-center text-sm font-bold">3</span>
+                  <div>
+                    <p className="font-semibold text-sm">질문별 제한시간이 있습니다</p>
+                    <p className="text-xs text-text-secondary mt-0.5">인성 질문 <strong className="text-text-primary">3분</strong> / 기술 질문 <strong className="text-text-primary">5분</strong></p>
+                  </div>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <span className="shrink-0 w-7 h-7 rounded-full bg-accent/15 text-accent flex items-center justify-center text-sm font-bold">4</span>
+                  <div>
+                    <p className="font-semibold text-sm">시간 초과 시 자동으로 다음 질문</p>
+                    <p className="text-xs text-text-secondary mt-0.5">제한시간 내에 답변을 마무리하세요</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-4 text-xs text-text-secondary pt-3 border-t border-accent/20">
+                <span>질문 {questions.length}개</span>
+                <span>예상 소요 15~25분</span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-bg-card border border-border rounded-2xl p-5 space-y-3">
+              <h2 className="font-semibold text-sm text-text-secondary">진행 방식</h2>
+              <ul className="space-y-2 text-sm">
+                <li className="flex gap-2"><span className="text-accent shrink-0">1.</span>질문이 화면에 표시되면 충분히 읽고 생각을 정리하세요</li>
+                <li className="flex gap-2"><span className="text-accent shrink-0">2.</span>준비되면 "답변 시작" 버튼을 눌러 녹화를 시작하세요</li>
+                <li className="flex gap-2"><span className="text-accent shrink-0">3.</span>답변 후 면접관이 꼬리질문을 할 수 있습니다</li>
+                <li className="flex gap-2"><span className="text-accent shrink-0">4.</span>모든 질문이 끝나면 AI가 답변을 분석하여 리포트를 제공합니다</li>
+              </ul>
+              <div className="flex gap-4 text-xs text-text-secondary pt-2 border-t border-border/50">
+                <span>질문 {questions.length}개</span>
+                <span>예상 소요 10~15분</span>
+              </div>
+            </div>
+          )}
 
           {/* 면접관 소개 */}
           <div className="space-y-3">
