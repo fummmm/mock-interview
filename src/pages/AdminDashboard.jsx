@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
 
-const TRACK_LABELS = { behavioral: '인성면접', unity: 'Unity', unreal: 'Unreal', pm: 'PM', design: '게임기획' }
+const TRACK_LABELS = { behavioral: '인성면접', unity: 'Unity', unreal: 'Unreal', pm: 'PM', design: '게임기획', spring: 'Spring' }
 
 export default function AdminDashboard() {
   const { profile, adminAssignments, loadAdminAssignments } = useAuthStore()

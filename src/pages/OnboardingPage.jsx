@@ -7,6 +7,7 @@ const TRACKS = [
   { id: 'unreal', label: 'Unreal Engine' },
   { id: 'pm', label: 'PM' },
   { id: 'design', label: '게임기획' },
+  { id: 'spring', label: 'Spring' },
 ]
 
 export default function OnboardingPage() {

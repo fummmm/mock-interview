@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import { extractTextFromPdf } from '../lib/pdfExtract'
 
-const TRACK_LABELS = { unity: 'Unity', unreal: 'Unreal Engine', pm: 'PM', design: '게임기획' }
+const TRACK_LABELS = { unity: 'Unity', unreal: 'Unreal Engine', pm: 'PM', design: '게임기획', spring: 'Spring' }
 
 export default function MyPage() {
   const { profile, quota, completeOnboarding } = useAuthStore()

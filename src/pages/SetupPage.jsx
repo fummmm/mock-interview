@@ -12,6 +12,7 @@ const TRACK_LABELS = {
   unreal: 'Unreal Engine',
   pm: 'PM',
   design: '게임기획',
+  spring: 'Spring',
 }
 
 const COUNTS = [4, 5]
