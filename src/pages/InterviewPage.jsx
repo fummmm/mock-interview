@@ -106,13 +106,15 @@ export default function InterviewPage() {
   // 하드모드: 질문 변경 시 타이핑 애니메이션 → 자동 녹화 시작
   const typingTimeoutRef = useRef(null)
   useEffect(() => {
-    if (!isHardMode || showBriefing || showSetup || !currentQuestion) return
-    if (phase !== 'ready' || isFollowUp || isGenerating) return
+    if (!isHardMode || showBriefing || showSetup) return
+    if (phase !== 'ready' || isGenerating) return
+    // 메인 질문 또는 꼬리질문 텍스트
+    const fullText = isFollowUp ? followUpQuestion : currentQuestion?.text
+    if (!fullText) return
 
     // 타이핑 시작
     setIsTyping(true)
     setTypingText('')
-    const fullText = currentQuestion.text
     let charIdx = 0
 
     const typeNext = () => {
@@ -132,9 +134,9 @@ export default function InterviewPage() {
             typingTimeoutRef.current = setTimeout(countdownTick, 1000)
           } else {
             setCountdown(0)
-            // 녹화 시작
+            // 녹화 시작 (꼬리질문은 3분 고정)
             if (isMountedRef.current && stream) {
-              const limit = getTimeLimit(currentQuestion)
+              const limit = isFollowUp ? 180 : getTimeLimit(currentQuestion)
               setTimeLimit(limit)
               setTimeLeft(limit)
               clearFrames()
@@ -152,7 +154,7 @@ export default function InterviewPage() {
     typingTimeoutRef.current = setTimeout(typeNext, 500)
 
     return () => { if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current) }
-  }, [isHardMode, showBriefing, currentQuestion?.id, phase, isFollowUp, isGenerating]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isHardMode, showBriefing, currentQuestion?.id, phase, isFollowUp, isGenerating, followUpQuestion]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 하드모드: 카운트다운 타이머
   useEffect(() => {
@@ -779,20 +781,13 @@ export default function InterviewPage() {
               검토 중...
             </button>
           ) : phase === 'ready' && !isRecording ? (
-            isHardMode && !isFollowUp ? (
+            isHardMode ? (
               <button disabled className="px-8 py-2.5 rounded-xl bg-bg-elevated text-text-secondary cursor-not-allowed">
                 {isTyping ? '질문 표시 중...' : '답변 곧 시작'}
               </button>
             ) : (
               <button
-                onClick={() => {
-                  if (isHardMode && isFollowUp) {
-                    const limit = getTimeLimit(currentQuestion)
-                    setTimeLimit(limit)
-                    setTimeLeft(limit)
-                  }
-                  ;(isFollowUp ? handleStartFollowUp : handleStartAnswer)()
-                }}
+                onClick={isFollowUp ? handleStartFollowUp : handleStartAnswer}
                 disabled={mediaStatus !== 'granted'}
                 className="px-8 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white font-semibold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
