@@ -37,6 +37,7 @@ export default function InterviewPage() {
 
   // 브리핑 + 꼬리질문 상태
   const [showBriefing, setShowBriefing] = useState(true)
+  const [showSetup, setShowSetup] = useState(false)
   const [followUpQuestion, setFollowUpQuestion] = useState(null)
   const [followUpEvaluator, setFollowUpEvaluator] = useState(null)
   const [isFollowUp, setIsFollowUp] = useState(false)
@@ -105,7 +106,7 @@ export default function InterviewPage() {
   // 하드모드: 질문 변경 시 타이핑 애니메이션 → 자동 녹화 시작
   const typingTimeoutRef = useRef(null)
   useEffect(() => {
-    if (!isHardMode || showBriefing || !currentQuestion) return
+    if (!isHardMode || showBriefing || showSetup || !currentQuestion) return
     if (phase !== 'ready' || isFollowUp || isGenerating) return
 
     // 타이핑 시작
@@ -188,7 +189,7 @@ export default function InterviewPage() {
     if (!showBriefing && videoRef.current && stream) {
       videoRef.current.srcObject = stream
     }
-  }, [showBriefing, stream, videoRef])
+  }, [showBriefing, showSetup, stream, videoRef])
 
   // Web Speech API 초기화 (꼬리질문용 백그라운드)
   const initSpeech = useCallback(() => {
@@ -482,7 +483,7 @@ export default function InterviewPage() {
           </div>
 
           <button
-            onClick={() => { setShowBriefing(false); setPhase('ready') }}
+            onClick={() => { setShowBriefing(false); setShowSetup(true) }}
             disabled={mediaStatus !== 'granted'}
             className={`w-full py-4 rounded-xl text-lg font-semibold transition-all ${
               mediaStatus === 'granted'
@@ -491,6 +492,77 @@ export default function InterviewPage() {
             }`}
           >
             {mediaStatus === 'granted' ? '면접 시작' : '카메라/마이크 권한을 허용해주세요'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // === 캠/마이크 세팅 화면 ===
+  if (showSetup) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6">
+        <div className="max-w-2xl w-full space-y-6">
+          <div className="text-center space-y-2">
+            <h1 className="text-2xl font-bold">카메라 / 마이크 점검</h1>
+            <p className="text-text-secondary">아래에서 카메라와 마이크가 정상 작동하는지 확인하세요</p>
+          </div>
+
+          {/* 캠 프리뷰 */}
+          <div className="relative rounded-2xl overflow-hidden bg-bg-secondary border border-border" style={{ height: '360px' }}>
+            {mediaStatus === 'granted' ? (
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+                style={{ transform: 'scaleX(-1)' }}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-text-secondary">카메라를 불러오는 중...</p>
+              </div>
+            )}
+          </div>
+
+          {/* 마이크 테스트 */}
+          <div className="bg-bg-card border border-border rounded-2xl p-5 space-y-3">
+            <h2 className="font-semibold text-sm text-text-secondary">마이크 테스트</h2>
+            <p className="text-sm text-text-secondary">아래 막대가 말할 때 움직이면 정상입니다</p>
+            <div className="flex items-center gap-2 h-10 px-4 bg-bg-elevated rounded-xl">
+              {Array.from({ length: 30 }).map((_, i) => (
+                <div key={i} className="w-1 rounded-full transition-all duration-75" style={{
+                  height: `${Math.max(4, (audioLevel > (i / 30) ? 32 : 4))}px`,
+                  backgroundColor: audioLevel > (i / 30) ? i < 21 ? '#22c55e' : i < 25 ? '#f59e0b' : '#ef4444' : '#ffffff20',
+                }} />
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${audioLevel > 0.05 ? 'bg-success' : 'bg-text-secondary/30'}`} />
+              <span className={`text-sm ${audioLevel > 0.05 ? 'text-success' : 'text-text-secondary'}`}>
+                {audioLevel > 0.05 ? '마이크 정상 작동 중' : '소리가 감지되지 않습니다 - 마이크를 확인하세요'}
+              </span>
+            </div>
+          </div>
+
+          {/* 체크리스트 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className={`flex items-center gap-2 p-3 rounded-xl border ${mediaStatus === 'granted' ? 'border-success/30 bg-success/5' : 'border-border'}`}>
+              <span className={`w-2 h-2 rounded-full ${mediaStatus === 'granted' ? 'bg-success' : 'bg-text-secondary/30'}`} />
+              <span className={`text-sm ${mediaStatus === 'granted' ? 'text-success' : 'text-text-secondary'}`}>카메라 연결됨</span>
+            </div>
+            <div className={`flex items-center gap-2 p-3 rounded-xl border ${audioLevel > 0.05 ? 'border-success/30 bg-success/5' : 'border-border'}`}>
+              <span className={`w-2 h-2 rounded-full ${audioLevel > 0.05 ? 'bg-success' : 'bg-text-secondary/30'}`} />
+              <span className={`text-sm ${audioLevel > 0.05 ? 'text-success' : 'text-text-secondary'}`}>마이크 감지됨</span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => { setShowSetup(false); setPhase('ready') }}
+            className="w-full py-4 rounded-xl bg-accent hover:bg-accent-hover text-white text-lg font-semibold transition-all cursor-pointer"
+          >
+            준비 완료 - 면접 시작
           </button>
         </div>
       </div>
