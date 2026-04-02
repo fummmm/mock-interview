@@ -226,12 +226,20 @@ export default function SetupPage() {
                 <button
                   key={size.id}
                   onClick={() => setCompanySize(size.id)}
-                  className={`p-4 rounded-xl border text-center transition-all cursor-pointer ${
+                  className={`relative p-4 rounded-xl border text-center transition-all cursor-pointer ${
                     companySize === size.id
                       ? 'border-accent bg-accent/10 ring-1 ring-accent'
                       : 'border-border bg-bg-card hover:border-accent/50'
                   }`}
                 >
+                  {size.id === 'large' && (
+                    <div className="absolute top-2 right-2 group">
+                      <span className="w-5 h-5 rounded-full bg-text-secondary/20 text-text-secondary text-xs flex items-center justify-center cursor-help">?</span>
+                      <div className="invisible group-hover:visible absolute right-0 top-7 z-30 w-64 p-3 bg-bg-primary border border-border rounded-xl shadow-lg text-left">
+                        <p className="text-xs text-text-primary leading-relaxed">같은 개념에 대한 질문이라도 높은 이해도를 요구하는 질문이 주어지며, 답변에 대한 판단과 점수 책정 기준이 높게 설정되어 있습니다.</p>
+                      </div>
+                    </div>
+                  )}
                   <div className="font-semibold">{size.label}</div>
                   <div className="text-xs text-text-secondary mt-0.5">{size.sub}</div>
                   <div className="text-xs text-text-secondary/60 mt-1">{size.desc}</div>
