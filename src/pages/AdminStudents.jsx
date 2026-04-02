@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
@@ -23,36 +23,25 @@ export default function AdminStudents() {
 
   async function loadStudents() {
     setLoading(true)
-
-    // 수강생 목록
     const { data: users } = await supabase
-      .from('users')
-      .select('id, name, email, track, cohort, role')
-      .eq('role', 'student')
-      .order('cohort', { ascending: false })
+      .from('users').select('id, name, email, track, cohort, role')
+      .eq('role', 'student').order('cohort', { ascending: false })
 
-    // 각 수강생의 최신 결과
     const { data: results } = await supabase
-      .from('interview_results')
-      .select('id, user_id, overall_score, grade, overall_pass, created_at')
+      .from('interview_results').select('id, user_id, overall_score, grade, overall_pass, created_at')
       .order('created_at', { ascending: false })
 
-    // 쿼타
     const { data: quotas } = await supabase
-      .from('interview_quotas')
-      .select('user_id, total_quota, used_count')
+      .from('interview_quotas').select('user_id, total_quota, used_count')
 
-    // 합치기
     const merged = (users || []).map((u) => {
       const userResults = (results || []).filter((r) => r.user_id === u.id)
       const latestResult = userResults[0] || null
       const q = (quotas || []).find((q) => q.user_id === u.id)
       const hasPass = userResults.some((r) => r.overall_pass)
-
       return {
         ...u,
         results: userResults.map((r) => ({ id: r.id, score: r.overall_score, grade: r.grade, pass: r.overall_pass, date: r.created_at })),
-        latestResultId: latestResult?.id,
         latestScore: latestResult?.overall_score,
         latestGrade: latestResult?.grade,
         hasPass,
@@ -60,7 +49,6 @@ export default function AdminStudents() {
         quota: q ? `${q.used_count}/${q.total_quota}` : '0/0',
       }
     })
-
     setStudents(merged)
     setLoading(false)
   }
@@ -73,19 +61,17 @@ export default function AdminStudents() {
     await loadStudents()
   }
 
-  // 필터링
   const filtered = students.filter((s) => {
     if (filterTrack && s.track !== filterTrack) return false
     if (filterCohort && s.cohort !== parseInt(filterCohort)) return false
     return true
   })
 
-  // 고유 기수 목록
   const cohorts = [...new Set(students.map((s) => s.cohort).filter(Boolean))].sort((a, b) => b - a)
 
   return (
     <div className="flex-1 p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">수강생 관리</h1>
           <button onClick={() => navigate('/admin')} className="text-sm text-text-secondary hover:text-text-primary cursor-pointer">돌아가기</button>
@@ -115,21 +101,23 @@ export default function AdminStudents() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-text-secondary text-left">
-                  <th className="py-3 px-2">이름</th>
-                  <th className="py-3 px-2">트랙</th>
-                  <th className="py-3 px-2">기수</th>
-                  <th className="py-3 px-2 text-right">면접 횟수</th>
-                  <th className="py-3 px-2 text-right">쿼타</th>
-                  <th className="py-3 px-2 text-right">최근 점수</th>
-                  <th className="py-3 px-2 text-center">합격 여부</th>
-                  <th className="py-3 px-2 text-center">수정</th>
-                  {isMain && <th className="py-3 px-2 text-center">리포트</th>}
+                  <th className="py-3 px-2 font-semibold">이름</th>
+                  <th className="py-3 px-2 font-semibold">이메일</th>
+                  <th className="py-3 px-2 font-semibold">트랙</th>
+                  <th className="py-3 px-2 font-semibold">기수</th>
+                  <th className="py-3 px-2 text-right font-semibold">면접</th>
+                  <th className="py-3 px-2 text-right font-semibold">쿼타</th>
+                  <th className="py-3 px-2 text-right font-semibold">최근 점수</th>
+                  <th className="py-3 px-2 text-center font-semibold">합격</th>
+                  <th className="py-3 px-2 text-center font-semibold">수정</th>
+                  {isMain && <th className="py-3 px-2 text-center font-semibold">리포트</th>}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((s) => (
                   <tr key={s.id} className="border-b border-border/50 hover:bg-bg-card/50">
-                    <td className="py-3 px-2">{s.name || s.email}</td>
+                    <td className="py-3 px-2 font-medium">{s.name || '-'}</td>
+                    <td className="py-3 px-2 text-text-secondary text-xs">{s.email}</td>
                     {editingId === s.id ? (
                       <>
                         <td className="py-2 px-2">
@@ -180,21 +168,10 @@ export default function AdminStudents() {
                         {s.results.length > 0 && (
                           s.results.length === 1 ? (
                             <button onClick={() => navigate(`/report/${s.results[0].id}`)} className="text-xs text-accent hover:underline cursor-pointer">
-                              리포트
+                              보기
                             </button>
                           ) : (
-                            <select
-                              onChange={(e) => { if (e.target.value) navigate(`/report/${e.target.value}`) }}
-                              defaultValue=""
-                              className="text-xs bg-bg-secondary border border-border rounded px-1 py-0.5 text-text-primary cursor-pointer"
-                            >
-                              <option value="">리포트 ({s.results.length})</option>
-                              {s.results.map((r, ri) => (
-                                <option key={r.id} value={r.id}>
-                                  {ri + 1}회 - {r.score}점 {r.pass ? '합격' : ''} ({new Date(r.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })})
-                                </option>
-                              ))}
-                            </select>
+                            <ReportDropdown results={s.results} onSelect={(id) => navigate(`/report/${id}`)} />
                           )
                         )}
                       </td>
@@ -206,6 +183,53 @@ export default function AdminStudents() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+/* 커스텀 리포트 드롭다운 */
+function ReportDropdown({ results, onSelect }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const handleClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  return (
+    <div className="relative inline-block" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className={`text-xs px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
+          open ? 'border-accent text-accent' : 'border-border text-text-secondary hover:border-accent/50'
+        }`}
+      >
+        {results.length}회 면접
+        <svg className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute right-0 z-20 mt-1 bg-bg-card border border-border rounded-xl shadow-lg overflow-hidden min-w-[180px]">
+          {results.map((r, i) => (
+            <button
+              key={r.id}
+              onClick={() => { onSelect(r.id); setOpen(false) }}
+              className="w-full px-3 py-2 text-left text-xs hover:bg-bg-elevated transition-colors cursor-pointer flex items-center justify-between gap-2"
+            >
+              <span>
+                {i + 1}회 - {r.score}점
+                {r.pass && <span className="text-success ml-1">합격</span>}
+              </span>
+              <span className="text-text-secondary/60">
+                {new Date(r.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
