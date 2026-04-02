@@ -26,9 +26,20 @@ export function getQuestions(count = 4, track = 'behavioral', companySize = 'med
   const pool = TRACK_POOLS[track] || TRACK_POOLS.behavioral
 
   const intro = pool.find((q) => INTRO_IDS.includes(q.id))
-  const rest = shuffle(pool.filter((q) => q !== intro))
+  const rest = pool.filter((q) => q !== intro)
 
-  let result = intro ? [intro, ...rest.slice(0, count - 1)] : rest.slice(0, count)
+  // 기술 트랙: 기술 질문 우선 배치 후 인성으로 보충
+  const technical = shuffle(rest.filter((q) => q.category === 'technical'))
+  const behavioral = shuffle(rest.filter((q) => q.category !== 'technical'))
+  const slotsAfterIntro = count - (intro ? 1 : 0)
+  // 기술 질문을 최소 절반 이상 보장
+  const minTech = Math.ceil(slotsAfterIntro * 0.6)
+  const techPick = technical.slice(0, Math.min(minTech, technical.length))
+  const remaining = slotsAfterIntro - techPick.length
+  const behPick = behavioral.slice(0, remaining)
+  const picked = shuffle([...techPick, ...behPick])
+
+  let result = intro ? [intro, ...picked] : picked.slice(0, count)
 
   // 대기업: largeText 보유 질문 중 일부만 적용 (최소 2개 보장)
   if (companySize === 'large') {
