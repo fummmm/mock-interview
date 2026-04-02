@@ -9,14 +9,14 @@ const isDev = import.meta.env.DEV
 const DIRECT_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const PROXY_URL = '/api/openrouter'
 
-async function callOpenRouter({ model, messages, jsonMode = false, maxTokens = null, temperature = null }) {
+async function callOpenRouter({ model, messages, jsonMode = false, maxTokens = null, temperature = null, timeoutMs = 120000 }) {
   const body = { model, messages }
   if (jsonMode) body.response_format = { type: 'json_object' }
   if (maxTokens) body.max_tokens = maxTokens
   if (temperature !== null) body.temperature = temperature
 
   const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY
-  const timeout = AbortSignal.timeout ? AbortSignal.timeout(120000) : undefined // 2분 타임아웃
+  const timeout = AbortSignal.timeout ? AbortSignal.timeout(timeoutMs) : undefined
 
   // VITE_ 키가 있으면 직접 호출 (개발/배포 모두)
   // Vercel Serverless는 10초 타임아웃이라 LLM 호출에 부적합
@@ -342,6 +342,7 @@ export async function generateJobPostingQuestions({ companyName, position, scree
     const content = await callOpenRouter({
       model: useVision ? 'openai/gpt-4o-mini' : 'anthropic/claude-sonnet-4',
       maxTokens: 4096,
+      timeoutMs: 45000, // 공고 질문은 45초 타임아웃 (빠른 실패 → 기본 질문 폴백)
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: useVision ? userContent : (userContent.map(c => c.text).join('\n')) },

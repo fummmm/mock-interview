@@ -331,11 +331,20 @@ export default function SetupPage() {
                       if (item.type.startsWith('image/')) {
                         e.preventDefault()
                         const blob = item.getAsFile()
-                        const reader = new FileReader()
-                        reader.onload = () => {
-                          setJobScreenshots((prev) => [...prev, reader.result])
+                        // 이미지 리사이즈 (최대 1200px, JPEG 80%) - API 요청 크기 절감
+                        const img = new Image()
+                        img.onload = () => {
+                          const maxW = 1200
+                          let w = img.width, h = img.height
+                          if (w > maxW) { h = Math.round(h * (maxW / w)); w = maxW }
+                          const canvas = document.createElement('canvas')
+                          canvas.width = w; canvas.height = h
+                          canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+                          const resized = canvas.toDataURL('image/jpeg', 0.8)
+                          setJobScreenshots((prev) => [...prev, resized])
+                          URL.revokeObjectURL(img.src)
                         }
-                        reader.readAsDataURL(blob)
+                        img.src = URL.createObjectURL(blob)
                       }
                     }
                   }}
