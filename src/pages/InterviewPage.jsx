@@ -26,7 +26,7 @@ export default function InterviewPage() {
     incPendingSTT, decPendingSTT,
   } = useInterviewStore()
 
-  const { stream, videoRef, error: mediaError, status: mediaStatus, requestPermission, stopStream } = useMediaStream()
+  const { stream, videoRef, error: mediaError, status: mediaStatus, devices, requestPermission, switchDevice, stopStream, loadDevices } = useMediaStream()
   const { isRecording, duration, startRecording, stopRecording } = useMediaRecorder(stream)
   const { frames, startCapture, stopCapture, clearFrames } = useFrameCapture(videoRef)
   const audioLevel = useAudioLevel(stream)
@@ -546,15 +546,31 @@ export default function InterviewPage() {
             </div>
           </div>
 
-          {/* 체크리스트 */}
+          {/* 기기 선택 */}
           <div className="grid grid-cols-2 gap-3">
-            <div className={`flex items-center gap-2 p-3 rounded-xl border ${mediaStatus === 'granted' ? 'border-success/30 bg-success/5' : 'border-border'}`}>
-              <span className={`w-2 h-2 rounded-full ${mediaStatus === 'granted' ? 'bg-success' : 'bg-text-secondary/30'}`} />
-              <span className={`text-sm ${mediaStatus === 'granted' ? 'text-success' : 'text-text-secondary'}`}>카메라 연결됨</span>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-text-secondary">카메라</label>
+              <select
+                value={stream?.getVideoTracks()[0]?.getSettings()?.deviceId || ''}
+                onChange={(e) => switchDevice(e.target.value, null)}
+                className="w-full px-3 py-2.5 rounded-xl bg-bg-card border border-border text-text-primary text-sm focus:border-accent focus:outline-none cursor-pointer"
+              >
+                {devices.video.length > 0 ? devices.video.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>{d.label || `카메라 ${d.deviceId.slice(0, 8)}`}</option>
+                )) : <option>카메라 없음</option>}
+              </select>
             </div>
-            <div className={`flex items-center gap-2 p-3 rounded-xl border ${audioLevel > 0.05 ? 'border-success/30 bg-success/5' : 'border-border'}`}>
-              <span className={`w-2 h-2 rounded-full ${audioLevel > 0.05 ? 'bg-success' : 'bg-text-secondary/30'}`} />
-              <span className={`text-sm ${audioLevel > 0.05 ? 'text-success' : 'text-text-secondary'}`}>마이크 감지됨</span>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-text-secondary">마이크</label>
+              <select
+                value={stream?.getAudioTracks()[0]?.getSettings()?.deviceId || ''}
+                onChange={(e) => switchDevice(null, e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-bg-card border border-border text-text-primary text-sm focus:border-accent focus:outline-none cursor-pointer"
+              >
+                {devices.audio.length > 0 ? devices.audio.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>{d.label || `마이크 ${d.deviceId.slice(0, 8)}`}</option>
+                )) : <option>마이크 없음</option>}
+              </select>
             </div>
           </div>
 
