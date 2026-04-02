@@ -214,7 +214,7 @@ function ReportDropdown({ results, onSelect }) {
         </svg>
       </button>
       {open && (
-        <div className="absolute right-0 z-20 mt-1 bg-bg-card border border-border rounded-xl shadow-lg overflow-hidden min-w-[180px]">
+        <div className="absolute right-0 bottom-full z-20 mb-1 bg-bg-card border border-border rounded-xl shadow-lg overflow-hidden min-w-[180px]">
           {results.map((r, i) => (
             <button
               key={r.id}
