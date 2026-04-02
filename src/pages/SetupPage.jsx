@@ -84,8 +84,8 @@ export default function SetupPage() {
         }
       }
 
-      // 일반/하드 모드: 이력서/포폴 질문 보충
-      if (mode !== 'job') {
+      // 일반/하드 모드: 이력서/포폴 질문 보충 (CS면접은 제외)
+      if (mode !== 'job' && effectiveTrack !== 'cs') {
         const docRemaining = customCount - customQuestions.length
         if (docRemaining > 0) {
           const { data: docs } = await supabase
