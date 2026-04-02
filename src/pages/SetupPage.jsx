@@ -218,9 +218,9 @@ export default function SetupPage() {
             <h2 className="text-lg font-semibold text-text-secondary">기업 규모</h2>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { id: 'small', label: '스타트업', sub: '~50명', desc: '대표 + 실무 사수' },
-                { id: 'medium', label: '중소/중견', sub: '50~300명', desc: '팀장 + HR + 임원' },
-                { id: 'large', label: '대기업', sub: '300명+', desc: '기술면접관 2명 + HR + 본부장' },
+                { id: 'small', label: '스타트업', sub: '소규모 팀, 실무 중심', desc: '대표 + 실무 사수' },
+                { id: 'medium', label: '중소/중견', sub: '팀 단위 종합 면접', desc: '팀장 + HR + 임원' },
+                { id: 'large', label: '대기업', sub: '체계적이고 높은 수준을 요하는 면접', desc: '기술면접관 2명 + HR + 본부장' },
               ].map((size) => (
                 <button
                   key={size.id}
