@@ -69,21 +69,44 @@ self.addEventListener('message', async (event) => {
 })
 
 /**
- * 짧은 오디오에서 Whisper 환각 제거
- * 침묵인데 "감사합니다", "네", "수고하셨습니다" 등을 만들어내는 문제 대응
+ * Whisper 환각 제거
+ * 침묵/무음 오디오에서 뉴스 앵커, 인사말 등을 만들어내는 문제 대응
  */
 function removeShortHallucinations(text, audioSamples) {
   if (!text || !text.trim()) return ''
-  // 16kHz 기준 3초 = 48000 샘플
   const durationSec = audioSamples / 16000
   const trimmed = text.trim()
-  // 5초 미만 오디오에서 10자 이하 텍스트는 환각일 가능성 높음
-  if (durationSec < 5 && trimmed.length < 15) {
-    const hallucinations = ['감사합니다', '네', '수고하셨습니다', '고맙습니다', '알겠습니다', '예']
-    for (const h of hallucinations) {
-      if (trimmed.replace(/[.,!?]/g, '').trim() === h) return ''
-    }
+  const cleaned = trimmed.replace(/[.,!?~\s]/g, '')
+
+  // 1) 짧은 오디오(10초 미만) + 짧은 텍스트(30자 미만): 환각 패턴 매칭
+  if (durationSec < 10 && cleaned.length < 30) {
+    const exactMatch = [
+      '감사합니다', '네', '수고하셨습니다', '고맙습니다', '알겠습니다', '예',
+      '시청해주셔서감사합니다', '구독과좋아요', '좋아요와구독',
+    ]
+    if (exactMatch.some((h) => cleaned === h)) return ''
   }
+
+  // 2) 모든 길이: 전형적인 Whisper 한국어 환각 패턴 정규식
+  const hallucinationPatterns = [
+    /^MBC\s*뉴스/i,
+    /^KBS\s*뉴스/i,
+    /^SBS\s*뉴스/i,
+    /^JTBC\s*뉴스/i,
+    /^YTN\s*뉴스/i,
+    /뉴스.{0,5}입니다/,
+    /^안녕하세요[,.]?\s*.{1,5}입니다\.?$/,
+    /^.{1,5}입니다\.?$/,
+    /시청해\s*주셔서/,
+    /구독.*좋아요/,
+    /좋아요.*구독/,
+    /^자막.*제공/i,
+    /^번역.*자막/i,
+    /^Thank you/i,
+    /^Bye/i,
+  ]
+  if (hallucinationPatterns.some((p) => p.test(trimmed))) return ''
+
   return text
 }
 
