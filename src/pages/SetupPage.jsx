@@ -280,7 +280,7 @@ export default function SetupPage() {
 
                   {mainAdmin
                     ? Object.entries(TRACK_LABELS).map(([key, label]) => {
-                        const sub = (key === 'pm' || key === 'design') ? '직무 + 인성 종합 질문' : '기술 + 인성 종합 질문'
+                        const sub = (key === 'pm' || key === 'design') ? '직무 전문 질문' : '기술 전문 질문'
                         return (
                           <button
                             key={key}
@@ -306,7 +306,7 @@ export default function SetupPage() {
                           }`}
                         >
                           <div className="font-semibold">{TRACK_LABELS[userTrack]} 면접</div>
-                          <div className="text-sm text-text-secondary mt-1">{(userTrack === 'pm' || userTrack === 'design') ? '직무 + 인성 종합 질문' : '기술 + 인성 종합 질문'}</div>
+                          <div className="text-sm text-text-secondary mt-1">{(userTrack === 'pm' || userTrack === 'design') ? '직무 전문 질문' : '기술 전문 질문'}</div>
                         </button>
                       )
                   }
