@@ -441,17 +441,45 @@ ${evaluatorConfig.jsonExample}
 }`
 
 
-  const content = await callOpenRouter({
-    model: 'anthropic/claude-sonnet-4',
-    maxTokens: 16384,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: answersText },
-    ],
-    jsonMode: true,
-  })
+  // 1차 시도
+  let lastError = null
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const content = await callOpenRouter({
+        model: 'anthropic/claude-sonnet-4',
+        maxTokens: 32768,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: answersText },
+        ],
+        jsonMode: true,
+      })
 
-  return safeParseJSON(content, 'analyzeText')
+      const parsed = safeParseJSON(content, 'analyzeText')
+
+      // 평가자 데이터 무결성 검증
+      if (!parsed.evaluators || parsed.evaluators.length === 0) {
+        throw new Error('evaluators 데이터가 비어있습니다 (응답 잘림 가능성)')
+      }
+      // questionFeedbacks 검증
+      const hasValidFeedbacks = parsed.evaluators.every(
+        (ev) => ev.questionFeedbacks && ev.questionFeedbacks.length > 0
+      )
+      if (!hasValidFeedbacks) {
+        throw new Error('일부 평가자의 questionFeedbacks가 비어있습니다')
+      }
+
+      return parsed
+    } catch (e) {
+      lastError = e
+      console.warn(`[analyzeText] ${attempt + 1}차 시도 실패:`, e.message)
+      if (attempt === 0) {
+        // 재시도 전 짧은 대기
+        await new Promise((r) => setTimeout(r, 1000))
+      }
+    }
+  }
+  throw lastError
 }
 
 /**
@@ -553,11 +581,23 @@ function safeParseJSON(content, label) {
         try {
           return JSON.parse(match[0])
         } catch (e3) {
-          // 모든 시도 실패
+          // 4차: 잘린 JSON 복구 시도 (닫는 괄호 추가)
+          let truncated = match[0]
+          const opens = (truncated.match(/\{/g) || []).length
+          const closes = (truncated.match(/\}/g) || []).length
+          const brOpens = (truncated.match(/\[/g) || []).length
+          const brCloses = (truncated.match(/\]/g) || []).length
+          // 마지막 유효한 값 뒤에서 자르고 괄호 닫기
+          truncated = truncated.replace(/,\s*$/, '')
+          for (let i = 0; i < brOpens - brCloses; i++) truncated += ']'
+          for (let i = 0; i < opens - closes; i++) truncated += '}'
+          try {
+            return JSON.parse(truncated)
+          } catch (e4) { /* 최종 실패 */ }
         }
       }
-      console.error(`[${label}] JSON 파싱 실패. 원본:`, content)
-      throw new Error(`${label}: JSON 파싱 실패`)
+      console.error(`[${label}] JSON 파싱 실패. 원본 길이: ${content.length}자, 앞 200자:`, content.slice(0, 200))
+      throw new Error(`${label}: JSON 파싱 실패 (응답 ${content.length}자)`)
     }
   }
 }
