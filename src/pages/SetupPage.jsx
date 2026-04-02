@@ -279,20 +279,23 @@ export default function SetupPage() {
                   </button>
 
                   {mainAdmin
-                    ? Object.entries(TRACK_LABELS).map(([key, label]) => (
-                        <button
-                          key={key}
-                          onClick={() => setTrack(key)}
-                          className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
-                            track === key
-                              ? 'border-accent bg-accent/10 ring-1 ring-accent'
-                              : 'border-border bg-bg-card hover:border-accent/50'
-                          }`}
-                        >
-                          <div className="font-semibold">{label} 면접</div>
-                          <div className="text-sm text-text-secondary mt-1">기술 + 인성 종합 질문</div>
-                        </button>
-                      ))
+                    ? Object.entries(TRACK_LABELS).map(([key, label]) => {
+                        const sub = (key === 'pm' || key === 'design') ? '직무 + 인성 종합 질문' : '기술 + 인성 종합 질문'
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => setTrack(key)}
+                            className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
+                              track === key
+                                ? 'border-accent bg-accent/10 ring-1 ring-accent'
+                                : 'border-border bg-bg-card hover:border-accent/50'
+                            }`}
+                          >
+                            <div className="font-semibold">{label} 면접</div>
+                            <div className="text-sm text-text-secondary mt-1">{sub}</div>
+                          </button>
+                        )
+                      })
                     : userTrack && TRACK_LABELS[userTrack] && (
                         <button
                           onClick={() => setTrack(userTrack)}
@@ -303,7 +306,7 @@ export default function SetupPage() {
                           }`}
                         >
                           <div className="font-semibold">{TRACK_LABELS[userTrack]} 면접</div>
-                          <div className="text-sm text-text-secondary mt-1">기술 + 인성 종합 질문</div>
+                          <div className="text-sm text-text-secondary mt-1">{(userTrack === 'pm' || userTrack === 'design') ? '직무 + 인성 종합 질문' : '기술 + 인성 종합 질문'}</div>
                         </button>
                       )
                   }
