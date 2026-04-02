@@ -235,7 +235,7 @@ export default function SetupPage() {
                   {size.id === 'large' && (
                     <div className="absolute top-2 right-2 group">
                       <span className="w-5 h-5 rounded-full bg-text-secondary/20 text-text-secondary text-xs flex items-center justify-center cursor-help">?</span>
-                      <div className="invisible group-hover:visible absolute right-0 top-7 z-30 w-64 p-3 bg-bg-primary border border-border rounded-xl shadow-lg text-left">
+                      <div className="invisible group-hover:visible absolute left-full top-0 ml-2 z-30 w-64 p-3 bg-bg-primary border border-border rounded-xl shadow-lg text-left">
                         <p className="text-xs text-text-primary leading-relaxed">같은 개념에 대한 질문이라도 높은 이해도를 요구하는 질문이 주어지며, 답변에 대한 판단과 점수 책정 기준이 높게 설정되어 있습니다.</p>
                       </div>
                     </div>
