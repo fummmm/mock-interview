@@ -70,28 +70,37 @@ export default function SetupPage() {
     try {
       let customQuestions = []
 
+      // 공고 맞춤 모드: 공고 질문 생성 필수 (실패 시 면접 시작 안 함)
       if (hasJobInfo) {
         customQuestions = await generateJobPostingQuestions(
           { companyName: jobCompany, position: jobPosition, screenshots: jobScreenshots },
           effectiveTrack, customCount,
         )
+        if (mode === 'job' && customQuestions.length === 0) {
+          alert('공고 분석에 실패했습니다. 캡처 이미지를 확인하고 다시 시도해주세요.')
+          setStarting(false)
+          return
+        }
       }
 
-      const docRemaining = customCount - customQuestions.length
-      if (docRemaining > 0) {
-        const { data: docs } = await supabase
-          .from('user_documents')
-          .select('extracted_text, doc_type')
-          .eq('user_id', profile.id)
+      // 일반/하드 모드: 이력서/포폴 질문 보충
+      if (mode !== 'job') {
+        const docRemaining = customCount - customQuestions.length
+        if (docRemaining > 0) {
+          const { data: docs } = await supabase
+            .from('user_documents')
+            .select('extracted_text, doc_type')
+            .eq('user_id', profile.id)
 
-        const docTexts = (docs || [])
-          .filter((d) => d.extracted_text && d.extracted_text.length > 50)
-          .map((d) => `[${d.doc_type}]\n${d.extracted_text}`)
-          .join('\n\n')
+          const docTexts = (docs || [])
+            .filter((d) => d.extracted_text && d.extracted_text.length > 50)
+            .map((d) => `[${d.doc_type}]\n${d.extracted_text}`)
+            .join('\n\n')
 
-        if (docTexts) {
-          const docQuestions = await generateDocumentQuestions(docTexts, effectiveTrack, docRemaining)
-          customQuestions = [...customQuestions, ...docQuestions]
+          if (docTexts) {
+            const docQuestions = await generateDocumentQuestions(docTexts, effectiveTrack, docRemaining)
+            customQuestions = [...customQuestions, ...docQuestions]
+          }
         }
       }
 
@@ -103,9 +112,14 @@ export default function SetupPage() {
           ...base.slice(0, insertAt),
           ...customQuestions,
           ...base.slice(insertAt),
-        ].slice(0, questionCount)
+        ].slice(0, effectiveCount)
       }
     } catch (e) {
+      if (mode === 'job') {
+        alert('공고 분석 중 오류가 발생했습니다: ' + e.message)
+        setStarting(false)
+        return
+      }
       console.warn('맞춤형 질문 생성 스킵:', e.message)
     }
 

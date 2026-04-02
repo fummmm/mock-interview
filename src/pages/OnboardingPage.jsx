@@ -46,14 +46,15 @@ export default function OnboardingPage() {
         <div className="space-y-5">
           {/* 이름 */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-text-secondary">이름</label>
+            <label className="text-sm font-medium text-text-secondary">본명</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="홍길동"
+              placeholder="본명을 입력해주세요"
               className="w-full px-4 py-3 rounded-xl bg-bg-card border border-border text-text-primary placeholder:text-text-secondary/50 focus:border-accent focus:outline-none"
             />
+            <p className="text-xs text-text-secondary">관리자가 확인할 수 있도록 실명을 입력해주세요</p>
           </div>
 
           {/* 트랙 */}
