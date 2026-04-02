@@ -132,9 +132,9 @@ export const useAuthStore = create((set, get) => ({
   canManageStudent: (studentTrack, studentCohort) => {
     const { profile, adminAssignments } = get()
     if (profile?.role === 'main_admin') {
-      // 메인 어드민: 배정된 트랙의 전 기수 (배정 없으면 전체)
+      // 메인 어드민: 배정된 트랙의 전 기수 (cohort=0), 배정 없으면 전체
       if (adminAssignments.length === 0) return true
-      return adminAssignments.some((a) => a.track === studentTrack)
+      return adminAssignments.some((a) => a.track === studentTrack && (a.cohort === 0 || a.cohort === studentCohort))
     }
     if (profile?.role === 'sub_admin') {
       // 서브 어드민: 배정된 트랙+기수만

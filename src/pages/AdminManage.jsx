@@ -60,12 +60,20 @@ export default function AdminManage() {
     // 서브 어드민은 기수 필수
     if (adminRole === 'sub_admin' && !assignCohort) return
 
-    await supabase.from('admin_assignments').insert({
+    const { error } = await supabase.from('admin_assignments').insert({
       admin_id: adminId,
       track: assignTrack,
-      cohort: adminRole === 'main_admin' ? null : parseInt(assignCohort),
+      cohort: adminRole === 'main_admin' ? 0 : parseInt(assignCohort),
       assigned_by: profile.id,
     })
+    if (error) {
+      if (error.message.includes('duplicate') || error.message.includes('unique')) {
+        alert('이미 동일한 트랙/기수가 할당되어 있습니다.')
+      } else {
+        alert('할당 실패: ' + error.message)
+      }
+      return
+    }
     setAssignTrack('')
     setAssignCohort('')
     await loadData()
@@ -164,7 +172,7 @@ export default function AdminManage() {
                     <div className="flex gap-2 flex-wrap">
                       {adminAssigns.map((a) => (
                         <span key={a.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-bg-elevated rounded-lg text-xs">
-                          {TRACK_LABELS[a.track]}{a.cohort ? ` ${a.cohort}기` : ' (전 기수)'}
+                          {TRACK_LABELS[a.track]}{a.cohort > 0 ? ` ${a.cohort}기` : ' (전 기수)'}
                           <button onClick={() => handleUnassign(a.id)} className="text-text-secondary hover:text-danger cursor-pointer ml-0.5">x</button>
                         </span>
                       ))}

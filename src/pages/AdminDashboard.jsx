@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase'
 const TRACK_LABELS = { behavioral: '인성면접', unity: 'Unity', unreal: 'Unreal', pm: 'PM', design: '게임기획' }
 
 export default function AdminDashboard() {
-  const { profile } = useAuthStore()
+  const { profile, adminAssignments, loadAdminAssignments } = useAuthStore()
   const isMain = profile?.role === 'main_admin'
 
   const [users, setUsers] = useState([])
@@ -16,7 +16,7 @@ export default function AdminDashboard() {
   const [viewTab, setViewTab] = useState('track')
   const [expanded, setExpanded] = useState(null) // 펼쳐진 행
 
-  useEffect(() => { loadData() }, [])
+  useEffect(() => { loadAdminAssignments(); loadData() }, [])
 
   async function loadData() {
     const [u, s, r] = await Promise.all([
@@ -92,6 +92,21 @@ export default function AdminDashboard() {
             {isMain ? '메인 어드민' : '서브 어드민'}
           </span>
         </div>
+
+        {/* 내 담당 범위 */}
+        {adminAssignments.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-text-secondary">담당:</span>
+            {adminAssignments.map((a, i) => (
+              <span key={i} className="text-xs px-2.5 py-1 bg-bg-card border border-border rounded-lg">
+                {TRACK_LABELS[a.track] || a.track}{a.cohort > 0 ? ` ${a.cohort}기` : ' (전 기수)'}
+              </span>
+            ))}
+          </div>
+        )}
+        {adminAssignments.length === 0 && !loading && (
+          <p className="text-xs text-warning">담당 범위가 배정되지 않았습니다. 메인 어드민에게 문의하세요.</p>
+        )}
 
         {loading ? <p className="text-text-secondary">로딩 중...</p> : (
           <>
