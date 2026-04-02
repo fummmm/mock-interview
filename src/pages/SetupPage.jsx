@@ -258,6 +258,17 @@ export default function SetupPage() {
                     <div className="font-semibold">인성면접 (공통)</div>
                     <div className="text-sm text-text-secondary mt-1">직군 무관, 인성/역량 중심 질문</div>
                   </button>
+                  <button
+                    onClick={() => setTrack('cs')}
+                    className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
+                      track === 'cs'
+                        ? 'border-accent bg-accent/10 ring-1 ring-accent'
+                        : 'border-border bg-bg-card hover:border-accent/50'
+                    }`}
+                  >
+                    <div className="font-semibold">CS 지식 면접 (공통)</div>
+                    <div className="text-sm text-text-secondary mt-1">OS, 네트워크, 자료구조, DB 기초</div>
+                  </button>
 
                   {mainAdmin
                     ? Object.entries(TRACK_LABELS).map(([key, label]) => (

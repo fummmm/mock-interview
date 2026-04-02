@@ -4,6 +4,7 @@ import unrealQuestions from '../data/questions/unreal.json'
 import pmQuestions from '../data/questions/pm.json'
 import designQuestions from '../data/questions/design.json'
 import springQuestions from '../data/questions/spring.json'
+import csQuestions from '../data/questions/cs.json'
 
 const TRACK_POOLS = {
   behavioral: behavioralQuestions.questions,
@@ -12,9 +13,10 @@ const TRACK_POOLS = {
   pm: pmQuestions.questions,
   design: designQuestions.questions,
   spring: springQuestions.questions,
+  cs: csQuestions.questions,
 }
 
-const INTRO_IDS = ['beh-intro', 'unity-intro', 'unreal-intro', 'pm-intro', 'design-intro', 'spring-intro']
+const INTRO_IDS = ['beh-intro', 'unity-intro', 'unreal-intro', 'pm-intro', 'design-intro', 'spring-intro', 'cs-intro']
 
 /**
  * 트랙별 질문 풀에서 지정 수만큼 반환

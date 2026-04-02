@@ -619,7 +619,7 @@ function safeParseJSON(content, label) {
 }
 
 function getTrackLabel(track) {
-  const labels = { behavioral: '인성면접', unity: 'Unity 개발', unreal: 'Unreal Engine 개발', design: '게임기획', spring: 'Spring 백엔드 개발' }
+  const labels = { behavioral: '인성면접', unity: 'Unity 개발', unreal: 'Unreal Engine 개발', design: '게임기획', spring: 'Spring 백엔드 개발', cs: 'CS 기초 지식' }
   return labels[track] || '종합'
 }
 
