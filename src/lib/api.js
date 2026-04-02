@@ -9,10 +9,11 @@ const isDev = import.meta.env.DEV
 const DIRECT_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const PROXY_URL = '/api/openrouter'
 
-async function callOpenRouter({ model, messages, jsonMode = false, maxTokens = null }) {
+async function callOpenRouter({ model, messages, jsonMode = false, maxTokens = null, temperature = null }) {
   const body = { model, messages }
   if (jsonMode) body.response_format = { type: 'json_object' }
   if (maxTokens) body.max_tokens = maxTokens
+  if (temperature !== null) body.temperature = temperature
 
   const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY
   const timeout = AbortSignal.timeout ? AbortSignal.timeout(120000) : undefined // 2분 타임아웃
@@ -206,31 +207,37 @@ export async function generateDocumentQuestions(extractedText, track, count = 2)
 
   const trackLabel = getTrackLabel(track)
 
+  // 매번 다른 관점으로 질문하도록 랜덤 시드
+  const angles = [
+    '기술적 깊이를 파고드는 질문 (구현 방식, 아키텍처 선택 이유, 트레이드오프)',
+    '협업과 커뮤니케이션 관점의 질문 (팀 내 역할, 갈등 해결, 의사결정 과정)',
+    '문제 해결 과정에 초점을 맞춘 질문 (어려웠던 점, 실패 경험, 극복 방법)',
+    '성과와 임팩트를 검증하는 질문 (수치 근거, 개선 효과 측정, 비즈니스 기여)',
+    '성장과 학습 관점의 질문 (무엇을 배웠는지, 다시 한다면 어떻게 할지, 개선점)',
+    '프로젝트 기획/설계 관점의 질문 (왜 이 기술을 선택했는지, 대안은 없었는지)',
+  ]
+  const selectedAngle = angles[Math.floor(Math.random() * angles.length)]
+
   try {
     const content = await callOpenRouter({
       model: 'anthropic/claude-sonnet-4',
+      temperature: 1.1,
       messages: [
         {
           role: 'system',
           content: `당신은 면접관입니다. 지원자의 이력서/포트폴리오를 꼼꼼히 읽고, 문서에 적힌 **구체적인 내용을 직접 인용하며** 질문을 생성합니다.
 
+## 이번 질문의 관점
+**${selectedAngle}** 위주로 질문하세요. 같은 문서라도 매번 다른 각도에서 질문해야 합니다.
+
 핵심 규칙:
 - 반드시 문서에 실제로 적힌 프로젝트명, 수치, 기술 스택, 성과를 **직접 언급하며** 질문할 것
 - "이력서에 OO 프로젝트에서 XX를 담당하셨다고 적혀 있는데, ..." 형태로 시작
-- "포트폴리오에 '업무 효율을 20% 향상시켰다'고 기재하셨는데, 그 수치의 근거는 무엇인가요?" 처럼 문서 내용을 직접 인용
 - 문서에 없는 내용을 추측하여 질문하지 말 것
 - "${trackLabel}" 직군 맥락에 맞는 질문
-- 답변자가 실제 경험을 구체적으로 설명해야 하는 질문 (예/아니오 불가)
+- 답변자가 구체적 경험을 설명해야 하는 질문 (예/아니오 불가)
 - ${count}개 질문 생성
-
-좋은 질문 예시:
-- "포트폴리오에 React와 Node.js로 실시간 채팅을 구현했다고 적혀 있는데, WebSocket 연결 관리를 어떻게 설계하셨나요?"
-- "이력서에 '팀 리드로서 4명의 팀원을 관리했다'고 하셨는데, 팀 내 의견 충돌이 있었을 때 어떻게 조율하셨나요?"
-- "포트폴리오에 기재된 OO 프로젝트의 MAU가 5000이라고 하셨는데, 이 지표를 개선하기 위해 어떤 시도를 하셨나요?"
-
-나쁜 질문 (절대 금지):
-- "이력서에서 언급하신 특정 프로젝트에서 가장 도전적이었던 상황은?" (구체적 인용 없이 뭉뚱그린 질문)
-- "포트폴리오에 있는 기술 경험 중 가장 자신 있는 것은?" (문서 내용 미인용)
+- 문서에 여러 프로젝트/경험이 있으면 매번 다른 프로젝트를 선택하여 질문
 
 반드시 JSON 배열로만 응답:
 [
