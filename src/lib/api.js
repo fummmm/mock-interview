@@ -447,7 +447,7 @@ ${evaluatorConfig.jsonExample}
     try {
       const content = await callOpenRouter({
         model: 'anthropic/claude-sonnet-4',
-        maxTokens: 32768,
+        maxTokens: 65536,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: answersText },
