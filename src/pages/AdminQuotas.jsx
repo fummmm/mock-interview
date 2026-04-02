@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
 
 const TRACK_LABELS = { unity: 'Unity', unreal: 'Unreal', pm: 'PM', design: '게임기획' }
 
 export default function AdminQuotas() {
   const navigate = useNavigate()
+  const { canManageStudent, loadAdminAssignments } = useAuthStore()
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -20,7 +22,7 @@ export default function AdminQuotas() {
   const [batchAmount, setBatchAmount] = useState('5')
   const [batchResult, setBatchResult] = useState('')
 
-  useEffect(() => { loadStudents() }, [])
+  useEffect(() => { loadAdminAssignments().then(() => loadStudents()) }, [])
 
   async function loadStudents() {
     setLoading(true)
@@ -65,8 +67,8 @@ export default function AdminQuotas() {
     const amount = parseInt(batchAmount)
     if (isNaN(amount) || amount <= 0) return
 
-    const targets = students.filter((s) => s.track === batchTrack && s.cohort === parseInt(batchCohort))
-    if (targets.length === 0) { setBatchResult('해당 조건의 수강생이 없습니다.'); return }
+    const targets = students.filter((s) => s.track === batchTrack && s.cohort === parseInt(batchCohort) && canManageStudent(s.track, s.cohort))
+    if (targets.length === 0) { setBatchResult('해당 조건의 수강생이 없거나 권한이 없습니다.'); return }
 
     let success = 0
     for (const t of targets) {
@@ -82,7 +84,7 @@ export default function AdminQuotas() {
   }
 
   const searchResults = searchTerm.length >= 1
-    ? students.filter((s) => (s.name || s.email).toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 5)
+    ? students.filter((s) => canManageStudent(s.track, s.cohort) && (s.name || s.email).toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 5)
     : []
 
   const cohorts = [...new Set(students.map((s) => s.cohort).filter(Boolean))].sort((a, b) => b - a)

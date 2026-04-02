@@ -7,7 +7,7 @@ const TRACK_LABELS = { unity: 'Unity', unreal: 'Unreal', pm: 'PM', design: '게�
 const TRACK_OPTIONS = { unity: 'Unity', unreal: 'Unreal', pm: 'PM', design: '게임기획' }
 
 export default function AdminStudents() {
-  const { profile } = useAuthStore()
+  const { profile, canManageStudent, loadAdminAssignments } = useAuthStore()
   const navigate = useNavigate()
   const isMain = profile?.role === 'main_admin'
 
@@ -19,7 +19,7 @@ export default function AdminStudents() {
   const [editTrack, setEditTrack] = useState('')
   const [editCohort, setEditCohort] = useState('')
 
-  useEffect(() => { loadStudents() }, [])
+  useEffect(() => { loadAdminAssignments().then(() => loadStudents()) }, [])
 
   async function loadStudents() {
     setLoading(true)
@@ -62,6 +62,8 @@ export default function AdminStudents() {
   }
 
   const filtered = students.filter((s) => {
+    // 서브 어드민은 본인 배정 범위만
+    if (!canManageStudent(s.track, s.cohort)) return false
     if (filterTrack && s.track !== filterTrack) return false
     if (filterCohort && s.cohort !== parseInt(filterCohort)) return false
     return true

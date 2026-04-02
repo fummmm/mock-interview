@@ -116,6 +116,33 @@ export const useAuthStore = create((set, get) => ({
     set({ quota: data })
   },
 
+  // 어드민 배정 범위 로드
+  adminAssignments: [],
+  loadAdminAssignments: async () => {
+    const { profile } = get()
+    if (!profile || !['main_admin', 'sub_admin'].includes(profile.role)) return
+    const { data } = await supabase
+      .from('admin_assignments')
+      .select('track, cohort')
+      .eq('admin_id', profile.id)
+    set({ adminAssignments: data || [] })
+  },
+
+  // 특정 수강생이 내 관리 범위에 있는지 확인
+  canManageStudent: (studentTrack, studentCohort) => {
+    const { profile, adminAssignments } = get()
+    if (profile?.role === 'main_admin') {
+      // 메인 어드민: 배정된 트랙의 전 기수 (배정 없으면 전체)
+      if (adminAssignments.length === 0) return true
+      return adminAssignments.some((a) => a.track === studentTrack)
+    }
+    if (profile?.role === 'sub_admin') {
+      // 서브 어드민: 배정된 트랙+기수만
+      return adminAssignments.some((a) => a.track === studentTrack && a.cohort === studentCohort)
+    }
+    return false
+  },
+
   // 편의 getter
   isAuthenticated: () => !!get().user,
   isOnboarded: () => !!get().profile?.onboarding_completed,
