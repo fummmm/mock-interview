@@ -119,7 +119,7 @@ export default function AnalyzingPage() {
         try {
           const result = await transcribeAudio(a.videoBlob)
           updateAnswer(i, { rawTranscript: result.transcript, transcript: result.transcript, fillerWordCount: result.fillerWordCount, silenceSegments: result.silencePositions || [] })
-          const corrected = await correctTranscript(result.transcript, a.questionText)
+          const corrected = await correctTranscript(result.transcript, a.questionText, track)
           updateAnswer(i, { transcript: corrected })
         } catch (e) {
           console.warn(`Q${i + 1} 보완 처리 실패:`, e.message)

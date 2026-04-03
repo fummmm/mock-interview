@@ -262,7 +262,7 @@ export default function InterviewPage() {
         const result = await transcribeAudio(blob)
         if (useInterviewStore.getState().sessionId !== mySession) return
 
-        const corrected = await correctTranscript(result.transcript, questionText)
+        const corrected = await correctTranscript(result.transcript, questionText, track)
         if (useInterviewStore.getState().sessionId !== mySession) return
 
         if (isFollowUpAnswer) {
