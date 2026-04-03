@@ -101,10 +101,13 @@ export default function SetupPage() {
             .select('extracted_text, doc_type')
             .eq('user_id', profile.id)
 
-          const docTexts = (docs || [])
-            .filter((d) => d.extracted_text && d.extracted_text.length > 50)
-            .map((d) => `[${d.doc_type}]\n${d.extracted_text}`)
-            .join('\n\n')
+          const resume = docs.find((d) => d.doc_type === 'resume' && d.extracted_text?.length > 50)
+          const portfolio = docs.find((d) => d.doc_type === 'portfolio' && d.extracted_text?.length > 50)
+          // 이력서와 포폴을 명확히 구분하여 각각 충분한 분량 전달
+          const parts = []
+          if (resume) parts.push(`[이력서]\n${resume.extracted_text.slice(0, 2500)}`)
+          if (portfolio) parts.push(`[포트폴리오]\n${portfolio.extracted_text.slice(0, 2500)}`)
+          const docTexts = parts.join('\n\n---\n\n')
 
           if (docTexts) {
             const docQuestions = await generateDocumentQuestions(docTexts, effectiveTrack, docRemaining)

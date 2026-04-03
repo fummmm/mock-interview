@@ -342,7 +342,12 @@ export async function generateDocumentQuestions(extractedText, track, count = 2)
 - 문서에 없는 내용을 추측하여 질문하지 말 것
 - "${trackLabel}" 직군 맥락에 맞게
 - ${count}개 질문, 각각 다른 유형으로
-- 문서에 여러 프로젝트가 있으면 다른 프로젝트를 선택
+
+## 프로젝트/문서 분산 규칙 (매우 중요)
+- [이력서]와 [포트폴리오]가 모두 있으면 **반드시 양쪽에서 골고루** 질문할 것
+- 같은 프로젝트에서 2개 이상 질문하지 말 것 (1프로젝트 = 1질문)
+- 문서 앞부분(첫 번째 프로젝트)에만 편중하지 말 것 - 중간이나 하단의 프로젝트도 동등하게 선택
+- 포트폴리오에 구체적인 프로젝트 설명이 있으면 반드시 1개 이상 포트폴리오 기반 질문 포함
 
 반드시 JSON 배열로만 응답:
 [
@@ -358,7 +363,7 @@ export async function generateDocumentQuestions(extractedText, track, count = 2)
         },
         {
           role: 'user',
-          content: `[이력서/포트폴리오 내용]\n${extractedText.slice(0, 3000)}`
+          content: extractedText
         },
       ],
       jsonMode: true,
