@@ -303,68 +303,96 @@ export async function generateDocumentQuestions(extractedText, track, count = 2)
 
   const trackLabel = getTrackLabel(track)
 
-  // 매번 다른 관점으로 질문하도록 랜덤 시드
-  const angles = [
-    '기술적 깊이 (구현 방식, 아키텍처 선택 이유, 트레이드오프)',
-    '의사결정 과정 (왜 이 기술/방법을 선택했는지, 대안은 없었는지)',
-    '문제 해결 (어려웠던 점, 실패 경험, 극복 방법)',
-    '성장과 회고 (배운 점, 다시 한다면 다르게 할 점)',
-    '가정/시나리오 (만약 ~한 상황이라면 어떻게 할지)',
-    '확장적 사고 (이 경험을 다른 상황에 어떻게 적용할 수 있을지)',
-  ]
-  const selectedAngle = angles[Math.floor(Math.random() * angles.length)]
-
   try {
+    // === 1단계: 프로젝트/경험 목록 추출 ===
+    const extractContent = await callOpenRouter({
+      model: 'anthropic/claude-sonnet-4',
+      maxTokens: 2048,
+      messages: [
+        {
+          role: 'system',
+          content: `이력서와 포트폴리오에서 면접 질문을 만들 수 있는 항목들을 추출하세요.
+각 항목에 출처(이력서/포트폴리오), 항목명, 핵심 내용을 정리합니다.
+
+반드시 JSON 배열로만 응답:
+[
+  { "source": "이력서 또는 포트폴리오", "name": "프로젝트/경험/경력명", "detail": "핵심 내용 요약 (기술스택, 성과, 수치 등 포함, 200자 이내)" }
+]
+
+추출 대상:
+- 프로젝트 (개인/팀/최종 프로젝트 등)
+- 경력/인턴 경험
+- 대외활동/동아리
+- 수상/자격증 관련 경험
+- 기타 면접에서 물어볼 만한 구체적 경험
+
+최소 3개 이상 추출하세요.`
+        },
+        { role: 'user', content: extractedText },
+      ],
+      jsonMode: true,
+    })
+
+    let items = safeParseJSON(extractContent, 'extractItems')
+    if (!Array.isArray(items) || items.length === 0) items = [{ source: '문서', name: '전체', detail: extractedText.slice(0, 500) }]
+
+    // === 2단계: 추출된 항목에서 랜덤 선택 ===
+    const shuffled = [...items].sort(() => Math.random() - 0.5)
+    const selected = shuffled.slice(0, Math.min(count + 1, shuffled.length)) // 여유분 1개 포함
+
+    // === 3단계: 선택된 항목 기반 질문 생성 ===
+    const angles = [
+      '의사결정 과정 (왜 이 기술/방법을 선택했는지)',
+      '문제 해결 (어려웠던 점, 극복 방법)',
+      '성장과 회고 (배운 점, 다시 한다면)',
+      '가정/시나리오 (만약 ~하다면)',
+      '확장적 사고 (다른 상황에 적용)',
+      '깊이 있는 이해 (내부 동작, 구조)',
+    ]
+    const selectedAngle = angles[Math.floor(Math.random() * angles.length)]
+
+    const itemsText = selected.map((item, i) =>
+      `[항목 ${i + 1}] (${item.source}) ${item.name}\n${item.detail}`
+    ).join('\n\n')
+
     const content = await callOpenRouter({
       model: 'anthropic/claude-sonnet-4',
       temperature: 1.1,
       messages: [
         {
           role: 'system',
-          content: `당신은 면접관입니다. 지원자의 이력서/포트폴리오를 읽고, 문서 내용을 기반으로 질문을 생성합니다.
+          content: `당신은 면접관입니다. 아래 항목들을 기반으로 면접 질문을 생성합니다.
 
-## 이번 질문의 관점
-**${selectedAngle}** 위주로 질문하세요.
+## 질문 관점: **${selectedAngle}**
 
-## 질문 다양화 규칙 (매우 중요)
-단순히 "~한 경험이 있나요?", "~에 대해 말씀해주세요" 패턴만 쓰지 마세요.
-아래 다양한 질문 유형 중에서 섞어서 사용하세요:
+## 질문 유형 (섞어 사용)
+- 의사결정형: "왜 A 대신 B를 선택했나요?"
+- 가정형: "10배 규모로 확장해야 한다면?"
+- 회고형: "다시 진행한다면 뭘 바꾸겠어요?"
+- 깊이형: "내부적으로 어떤 구조로 동작하나요?"
+- 비교형: "두 프로젝트의 가장 큰 차이는?"
+- 시나리오형: "비슷한 문제가 생기면 어떻게 접근?"
 
-- **의사결정형**: "OO 프로젝트에서 왜 A 기술 대신 B를 선택하셨나요?"
-- **가정형**: "포트폴리오의 OO 시스템을 10배 규모로 확장해야 한다면 어떻게 설계하시겠어요?"
-- **회고형**: "이력서에 적힌 OO 프로젝트를 다시 진행한다면 어떤 점을 바꾸고 싶으신가요?"
-- **깊이형**: "OO에서 XX를 구현하셨다고 적혀 있는데, 내부적으로 어떤 구조로 동작하나요?"
-- **비교형**: "포트폴리오에 A와 B 두 프로젝트가 있는데, 기술적으로 가장 큰 차이점은 무엇이었나요?"
-- **시나리오형**: "이력서의 OO 경험을 바탕으로, 저희 팀에서 비슷한 문제가 생기면 어떻게 접근하시겠어요?"
-
-## 핵심 규칙
-- 문서에 적힌 프로젝트명, 수치, 기술 스택을 직접 인용하며 질문
-- 문서에 없는 내용을 추측하여 질문하지 말 것
+## 규칙
+- 각 항목에서 1개씩 질문 (항목당 1질문)
+- 항목의 구체적 내용(프로젝트명, 수치, 기술)을 직접 인용
 - "${trackLabel}" 직군 맥락에 맞게
 - ${count}개 질문, 각각 다른 유형으로
-
-## 프로젝트/문서 분산 규칙 (매우 중요)
-- [이력서]와 [포트폴리오]가 모두 있으면 **반드시 양쪽에서 골고루** 질문할 것
-- 같은 프로젝트에서 2개 이상 질문하지 말 것 (1프로젝트 = 1질문)
-- 문서 앞부분(첫 번째 프로젝트)에만 편중하지 말 것 - 중간이나 하단의 프로젝트도 동등하게 선택
-- 포트폴리오에 구체적인 프로젝트 설명이 있으면 반드시 1개 이상 포트폴리오 기반 질문 포함
+- "~한 경험이 있나요?" 단순 패턴 금지
 
 반드시 JSON 배열로만 응답:
 [
   {
     "id": "doc-001",
-    "text": "질문 내용 (반드시 문서 내용을 직접 인용하여 시작)",
+    "text": "질문 내용",
     "category": "document",
     "difficulty": "intermediate",
-    "keywords": ["키워드1", "키워드2"],
+    "keywords": ["키워드1"],
     "evaluationHints": "평가 포인트"
   }
 ]`
         },
-        {
-          role: 'user',
-          content: extractedText
-        },
+        { role: 'user', content: itemsText },
       ],
       jsonMode: true,
     })
@@ -372,7 +400,6 @@ export async function generateDocumentQuestions(extractedText, track, count = 2)
     const questions = safeParseJSON(content, 'generateDocumentQuestions')
     return Array.isArray(questions) ? questions.slice(0, count) : []
   } catch (e) {
-    console.warn('이력서 질문 생성 실패:', e.message)
     return []
   }
 }
