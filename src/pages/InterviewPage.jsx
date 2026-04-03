@@ -8,7 +8,11 @@ import { useAudioLevel } from '../hooks/useAudioLevel'
 import { transcribeAudio, preloadModel, isModelLoaded } from '../lib/whisper'
 import { correctTranscript, generateFollowUp } from '../lib/api'
 import { getEvaluators } from '../data/evaluators'
+import { formatTime } from '../lib/utils'
 import { useEffect, useCallback, useRef, useState } from 'react'
+import DeviceDropdown from '../components/DeviceDropdown'
+import BriefingPhase from '../components/interview/BriefingPhase'
+import ReadyPhase from '../components/interview/ReadyPhase'
 
 /**
  * 상태 머신:
@@ -188,7 +192,7 @@ export default function InterviewPage() {
     isFollowUp,
     isGenerating,
     followUpQuestion,
-  ]) // eslint-disable-line react-hooks/exhaustive-deps
+  ])
 
   // 하드모드: 카운트다운 타이머
   useEffect(() => {
@@ -503,253 +507,35 @@ export default function InterviewPage() {
   // === 브리핑 화면 ===
   if (showBriefing) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center p-6">
-        <div className="w-full max-w-2xl space-y-8">
-          <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-bold">
-              {isHardMode ? '하드모드 면접을 시작합니다' : '면접을 시작합니다'}
-            </h1>
-            <p className="text-text-secondary">진행 방식을 확인하고 준비되면 시작해주세요</p>
-          </div>
-
-          {/* 진행 안내 */}
-          {isHardMode ? (
-            <div className="bg-accent/5 border-accent/30 space-y-4 rounded-2xl border-2 p-6">
-              <div className="flex items-center gap-2">
-                <span className="text-accent text-lg font-bold">HARD MODE</span>
-                <span className="bg-accent/15 text-accent rounded-full px-2 py-0.5 text-xs font-medium">
-                  실전 모드
-                </span>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <span className="bg-accent/15 text-accent flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold">
-                    1
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold">질문이 타이핑되며 나타납니다</p>
-                    <p className="text-text-secondary mt-0.5 text-xs">
-                      질문 텍스트가 한 글자씩 표시됩니다
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="bg-accent/15 text-accent flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold">
-                    2
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold">3초 카운트다운 후 즉시 녹화 시작</p>
-                    <p className="text-text-secondary mt-0.5 text-xs">
-                      준비할 시간이 없습니다. 타이핑이 끝나면 바로 답변하세요
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="bg-accent/15 text-accent flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold">
-                    3
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold">질문별 제한시간이 있습니다</p>
-                    <p className="text-text-secondary mt-0.5 text-xs">
-                      인성 질문 <strong className="text-text-primary">3분</strong> / 기술 질문{' '}
-                      <strong className="text-text-primary">5분</strong>
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="bg-accent/15 text-accent flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold">
-                    4
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold">시간 초과 시 자동으로 다음 질문</p>
-                    <p className="text-text-secondary mt-0.5 text-xs">
-                      제한시간 내에 답변을 마무리하세요
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="text-text-secondary border-accent/20 flex gap-4 border-t pt-3 text-xs">
-                <span>질문 {questions.length}개</span>
-                <span>예상 소요 15~25분</span>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-bg-card border-border space-y-3 rounded-2xl border p-5">
-              <h2 className="text-text-secondary text-sm font-semibold">진행 방식</h2>
-              <ul className="space-y-2 text-sm">
-                <li className="flex gap-2">
-                  <span className="text-accent shrink-0">1.</span>질문이 화면에 표시되면 충분히 읽고
-                  생각을 정리하세요
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-accent shrink-0">2.</span>준비되면 "답변 시작" 버튼을 눌러
-                  녹화를 시작하세요
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-accent shrink-0">3.</span>답변 후 면접관이 꼬리질문을 할 수
-                  있습니다
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-accent shrink-0">4.</span>모든 질문이 끝나면 AI가 답변을
-                  분석하여 리포트를 제공합니다
-                </li>
-              </ul>
-              <div className="text-text-secondary border-border/50 flex gap-4 border-t pt-2 text-xs">
-                <span>질문 {questions.length}개</span>
-                <span>예상 소요 10~15분</span>
-              </div>
-            </div>
-          )}
-
-          {/* 면접관 소개 */}
-          <div className="space-y-3">
-            <h2 className="text-text-secondary text-sm font-semibold">오늘의 면접관</h2>
-            <div
-              className={`grid grid-cols-1 gap-3 ${evaluators.length === 2 ? 'sm:grid-cols-2' : evaluators.length === 4 ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'}`}
-            >
-              {evaluators.map((ev) => (
-                <div
-                  key={ev.id}
-                  className="bg-bg-card border-border space-y-2 rounded-xl border p-4"
-                >
-                  <div>
-                    <p className="text-sm font-semibold">{ev.name}</p>
-                    <p className="text-text-secondary text-xs">{ev.role}</p>
-                  </div>
-                  <p className="text-text-secondary text-xs">{ev.description}</p>
-                  <p className="text-accent text-xs">평가 중점: {ev.focus}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <button
-            onClick={() => {
-              setShowBriefing(false)
-              setShowSetup(true)
-            }}
-            disabled={mediaStatus !== 'granted'}
-            className={`w-full rounded-xl py-4 text-lg font-semibold transition-all ${
-              mediaStatus === 'granted'
-                ? 'bg-accent hover:bg-accent-hover cursor-pointer text-white'
-                : 'bg-bg-elevated text-text-secondary cursor-not-allowed'
-            }`}
-          >
-            {mediaStatus === 'granted' ? '면접 시작' : '카메라/마이크 권한을 허용해주세요'}
-          </button>
-        </div>
-      </div>
+      <BriefingPhase
+        isHardMode={isHardMode}
+        questions={questions}
+        evaluators={evaluators}
+        mediaStatus={mediaStatus}
+        onStart={() => {
+          setShowBriefing(false)
+          setShowSetup(true)
+        }}
+      />
     )
   }
 
   // === 캠/마이크 세팅 화면 ===
   if (showSetup) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center p-6">
-        <div className="w-full max-w-2xl space-y-6">
-          <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-bold">카메라 / 마이크 점검</h1>
-            <p className="text-text-secondary">
-              아래에서 카메라와 마이크가 정상 작동하는지 확인하세요
-            </p>
-          </div>
-
-          {/* 캠 프리뷰 */}
-          <div
-            className="bg-bg-secondary border-border relative overflow-hidden rounded-2xl border"
-            style={{ height: '360px' }}
-          >
-            {mediaStatus === 'granted' ? (
-              <video
-                ref={videoRef}
-                autoPlay
-                muted
-                playsInline
-                className="h-full w-full object-cover"
-                style={{ transform: 'scaleX(-1)' }}
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                <p className="text-text-secondary">카메라를 불러오는 중...</p>
-              </div>
-            )}
-          </div>
-
-          {/* 마이크 테스트 */}
-          <div className="bg-bg-card border-border space-y-3 rounded-2xl border p-5">
-            <h2 className="text-text-secondary text-sm font-semibold">마이크 테스트</h2>
-            <p className="text-text-secondary text-sm">아래 막대가 말할 때 움직이면 정상입니다</p>
-            <div className="bg-bg-elevated flex h-10 items-center gap-2 rounded-xl px-4">
-              {Array.from({ length: 30 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="w-1 rounded-full transition-all duration-75"
-                  style={{
-                    height: `${Math.max(4, audioLevel > i / 30 ? 32 : 4)}px`,
-                    backgroundColor:
-                      audioLevel > i / 30
-                        ? i < 21
-                          ? '#22c55e'
-                          : i < 25
-                            ? '#f59e0b'
-                            : '#ef4444'
-                        : '#ffffff20',
-                  }}
-                />
-              ))}
-            </div>
-            <div className="flex items-center gap-2">
-              <span
-                className={`h-2 w-2 rounded-full ${audioLevel > 0.05 ? 'bg-success' : 'bg-text-secondary/30'}`}
-              />
-              <span
-                className={`text-sm ${audioLevel > 0.05 ? 'text-success' : 'text-text-secondary'}`}
-              >
-                {audioLevel > 0.05
-                  ? '마이크 정상 작동 중'
-                  : '소리가 감지되지 않습니다 - 마이크를 확인하세요'}
-              </span>
-            </div>
-          </div>
-
-          {/* 기기 선택 */}
-          <div className="grid grid-cols-2 gap-3">
-            <DeviceDropdown
-              label="카메라"
-              items={devices.video}
-              currentId={stream?.getVideoTracks()[0]?.getSettings()?.deviceId || ''}
-              onSelect={(id) => switchDevice(id, null)}
-              emptyText="카메라 없음"
-            />
-            <DeviceDropdown
-              label="마이크"
-              items={devices.audio}
-              currentId={stream?.getAudioTracks()[0]?.getSettings()?.deviceId || ''}
-              onSelect={(id) => switchDevice(null, id)}
-              emptyText="마이크 없음"
-            />
-          </div>
-
-          <button
-            onClick={() => {
-              setShowSetup(false)
-              setPhase('ready')
-            }}
-            className="bg-accent hover:bg-accent-hover w-full cursor-pointer rounded-xl py-4 text-lg font-semibold text-white transition-all"
-          >
-            준비 완료 - 면접 시작
-          </button>
-        </div>
-      </div>
+      <ReadyPhase
+        videoRef={videoRef}
+        mediaStatus={mediaStatus}
+        audioLevel={audioLevel}
+        devices={devices}
+        stream={stream}
+        switchDevice={switchDevice}
+        onStart={() => {
+          setShowSetup(false)
+          setPhase('ready')
+        }}
+      />
     )
-  }
-
-  const formatTime = (sec) => {
-    const m = Math.floor(sec / 60)
-      .toString()
-      .padStart(2, '0')
-    const s = (sec % 60).toString().padStart(2, '0')
-    return `${m}:${s}`
   }
 
   // 현재 표시할 질문 텍스트
@@ -1048,68 +834,6 @@ export default function InterviewPage() {
             </button>
           ) : null}
         </div>
-      </div>
-    </div>
-  )
-}
-
-/* 커스텀 드롭다운 */
-function DeviceDropdown({ label, items, currentId, onSelect, emptyText }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-
-  // 외부 클릭 시 닫기
-  useEffect(() => {
-    const handleClick = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
-
-  const current = items.find((d) => d.deviceId === currentId)
-  const displayLabel = current?.label || (items.length > 0 ? items[0].label : emptyText)
-
-  return (
-    <div className="space-y-2" ref={ref}>
-      <label className="text-text-secondary text-xs font-medium">{label}</label>
-      <div className="relative">
-        <button
-          onClick={() => items.length > 0 && setOpen(!open)}
-          className={`bg-bg-card flex w-full cursor-pointer items-center justify-between rounded-xl border px-4 py-2.5 text-left text-sm transition-all ${
-            open ? 'border-accent' : 'border-border hover:border-accent/50'
-          }`}
-        >
-          <span className="truncate">{displayLabel || emptyText}</span>
-          <svg
-            className={`text-text-secondary h-4 w-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-        {open && items.length > 0 && (
-          <div className="bg-bg-card border-border absolute z-20 mt-1 w-full overflow-hidden rounded-xl border shadow-lg">
-            {items.map((d) => (
-              <button
-                key={d.deviceId}
-                onClick={() => {
-                  onSelect(d.deviceId)
-                  setOpen(false)
-                }}
-                className={`w-full cursor-pointer px-4 py-2.5 text-left text-sm transition-colors ${
-                  d.deviceId === currentId
-                    ? 'bg-accent/10 text-accent'
-                    : 'hover:bg-bg-elevated text-text-primary'
-                }`}
-              >
-                {d.label || `${label} ${d.deviceId.slice(0, 8)}`}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   )
