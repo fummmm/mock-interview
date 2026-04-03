@@ -304,7 +304,7 @@ export async function generateDocumentQuestions(extractedText, track, count = 2)
   const trackLabel = getTrackLabel(track)
 
   try {
-    // === 1단계: 프로젝트/경험 목록 추출 ===
+    // === 1단계: 프로젝트/경험 목록 추출 (중요도 포함) ===
     const extractContent = await callOpenRouter({
       model: 'anthropic/claude-sonnet-4',
       maxTokens: 2048,
@@ -312,11 +312,15 @@ export async function generateDocumentQuestions(extractedText, track, count = 2)
         {
           role: 'system',
           content: `이력서와 포트폴리오에서 면접 질문을 만들 수 있는 항목들을 추출하세요.
-각 항목에 출처(이력서/포트폴리오), 항목명, 핵심 내용을 정리합니다.
+각 항목에 출처, 항목명, 핵심 내용, 그리고 tier를 매겨주세요.
+
+tier 기준:
+- "major": 메인 프로젝트, 주요 경력, 인턴 경험, 상세하게 기술된 프로젝트 (구체적 기술스택/성과/수치가 있는 것)
+- "minor": 간략히 언급된 경험, 교내 활동, 자격증, 한두 줄짜리 항목, 대외활동
 
 반드시 JSON 배열로만 응답:
 [
-  { "source": "이력서 또는 포트폴리오", "name": "프로젝트/경험/경력명", "detail": "핵심 내용 요약 (기술스택, 성과, 수치 등 포함, 200자 이내)" }
+  { "source": "이력서 또는 포트폴리오", "name": "항목명", "detail": "핵심 내용 요약 (200자 이내)", "tier": "major 또는 minor" }
 ]
 
 추출 대상:
@@ -334,11 +338,24 @@ export async function generateDocumentQuestions(extractedText, track, count = 2)
     })
 
     let items = safeParseJSON(extractContent, 'extractItems')
-    if (!Array.isArray(items) || items.length === 0) items = [{ source: '문서', name: '전체', detail: extractedText.slice(0, 500) }]
+    if (!Array.isArray(items) || items.length === 0) items = [{ source: '문서', name: '전체', detail: extractedText.slice(0, 500), tier: 'major' }]
 
-    // === 2단계: 추출된 항목에서 랜덤 선택 ===
-    const shuffled = [...items].sort(() => Math.random() - 0.5)
-    const selected = shuffled.slice(0, Math.min(count + 1, shuffled.length)) // 여유분 1개 포함
+    // === 2단계: 가중 랜덤 선택 (major 60% / minor 40%) ===
+    const majors = items.filter((i) => i.tier === 'major').sort(() => Math.random() - 0.5)
+    const minors = items.filter((i) => i.tier !== 'major').sort(() => Math.random() - 0.5)
+    const pickCount = Math.min(count + 1, items.length)
+
+    let selected = []
+    if (majors.length === 0) {
+      selected = minors.slice(0, pickCount)
+    } else if (minors.length === 0) {
+      selected = majors.slice(0, pickCount)
+    } else {
+      const majorCount = Math.max(1, Math.round(pickCount * 0.6))
+      const minorCount = pickCount - majorCount
+      selected = [...majors.slice(0, majorCount), ...minors.slice(0, minorCount)]
+    }
+    selected = selected.sort(() => Math.random() - 0.5) // 순서 섞기
 
     // === 3단계: 선택된 항목 기반 질문 생성 ===
     const angles = [
