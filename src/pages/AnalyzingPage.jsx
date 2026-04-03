@@ -149,21 +149,23 @@ export default function AnalyzingPage() {
       setProgress(90)
       setStatusText('종합 리포트 생성 중...')
 
-      const textError = textResult.status === 'rejected' ? textResult.reason?.message || '알 수 없는 오류' : null
-      const visionError = visionResult.status === 'rejected' ? visionResult.reason?.message || '알 수 없는 오류' : null
-
-      if (textError) {
-        console.error('[분석] 텍스트 분석 실패:', textError)
-        setStatusText(`텍스트 분석 실패: ${textError.slice(0, 100)}`)
-      }
-      if (visionError) {
-        console.error('[분석] 비전 분석 실패:', visionError)
-      }
-
-      const textData = textResult.status === 'fulfilled' ? textResult.value : null
+      let textData = textResult.status === 'fulfilled' ? textResult.value : null
       const visionData = visionResult.status === 'fulfilled' ? visionResult.value : null
 
-      if (!textData && !visionData) throw new Error(`분석 실패. 텍스트: ${textError || '없음'}, 비전: ${visionError || '없음'}`)
+      // 텍스트 분석 실패 시 한번 더 단독 재시도
+      if (!textData) {
+        const textError = textResult.status === 'rejected' ? textResult.reason?.message || '알 수 없는 오류' : null
+        console.error('[분석] 텍스트 분석 실패, 단독 재시도:', textError)
+        setStatusText('면접관 평가 재시도 중...')
+        try {
+          textData = await analyzeText({ questions, answers: updatedAnswers, track, companySize })
+          setProgress(85)
+        } catch (retryErr) {
+          console.error('[분석] 텍스트 분석 재시도도 실패:', retryErr.message)
+        }
+      }
+
+      if (!textData && !visionData) throw new Error('텍스트 분석과 비전 분석 모두 실패했습니다. 다시 시도해주세요.')
 
       const { buildReport } = await import('../hooks/useAnalysis')
       const report = buildReport(textData, visionData, updatedAnswers, companySize)

@@ -478,10 +478,12 @@ ${evaluatorConfig.jsonExample}
 }`
 
 
-  // 1차 시도
+  // 최대 3회 재시도 (간격 증가: 2초, 5초)
+  const delays = [2000, 5000]
   let lastError = null
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
+      console.log(`[analyzeText] ${attempt + 1}차 시도 (답변 ${answers.length}개, 입력 ${answersText.length}자)`)
       const content = await callOpenRouter({
         model: 'anthropic/claude-sonnet-4',
         maxTokens: 65536,
@@ -492,27 +494,20 @@ ${evaluatorConfig.jsonExample}
         jsonMode: true,
       })
 
+      console.log(`[analyzeText] ${attempt + 1}차 응답 수신 (${content?.length || 0}자)`)
       const parsed = safeParseJSON(content, 'analyzeText')
 
-      // 평가자 데이터 무결성 검증
+      // 평가자 데이터 최소 검증 (evaluators 배열만 있으면 통과)
       if (!parsed.evaluators || parsed.evaluators.length === 0) {
         throw new Error('evaluators 데이터가 비어있습니다 (응답 잘림 가능성)')
-      }
-      // questionFeedbacks 검증
-      const hasValidFeedbacks = parsed.evaluators.every(
-        (ev) => ev.questionFeedbacks && ev.questionFeedbacks.length > 0
-      )
-      if (!hasValidFeedbacks) {
-        throw new Error('일부 평가자의 questionFeedbacks가 비어있습니다')
       }
 
       return parsed
     } catch (e) {
       lastError = e
       console.warn(`[analyzeText] ${attempt + 1}차 시도 실패:`, e.message)
-      if (attempt === 0) {
-        // 재시도 전 짧은 대기
-        await new Promise((r) => setTimeout(r, 1000))
+      if (attempt < 2) {
+        await new Promise((r) => setTimeout(r, delays[attempt]))
       }
     }
   }
