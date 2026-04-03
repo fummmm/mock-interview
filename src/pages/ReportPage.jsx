@@ -67,9 +67,10 @@ export default function ReportPage() {
             setIsOwnReport(data.user_id === profile?.id)
             let dbReport = data.report_json
 
-            // 현재 세션 메모리에 영상/프레임이 있으면 DB 리포트에 머지
+            // 본인 리포트일 때만 현재 세션 메모리의 영상/프레임 머지
+            const isOwn = data.user_id === profile?.id
             const memReport = memoryReportRef.current
-            if (memReport?.questionData) {
+            if (isOwn && memReport?.questionData) {
               dbReport = {
                 ...dbReport,
                 questionData: (dbReport.questionData || []).map((qd, i) => {
@@ -346,6 +347,17 @@ function QuestionDetailCard({ data, evaluators }) {
                 controls
                 className="w-full rounded-xl bg-black max-h-64"
                 onPause={() => setPlayingClip(null)}
+                onLoadedMetadata={(e) => {
+                  // Blob 비디오 duration 수정 (MediaRecorder 메타데이터 누락 대응)
+                  const v = e.target
+                  if (v.duration === Infinity || isNaN(v.duration)) {
+                    v.currentTime = 1e10
+                    v.addEventListener('timeupdate', function fix() {
+                      v.removeEventListener('timeupdate', fix)
+                      v.currentTime = 0
+                    })
+                  }
+                }}
               />
             </div>
           )}
