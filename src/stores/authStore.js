@@ -2,16 +2,18 @@ import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 
 export const useAuthStore = create((set, get) => ({
-  user: null,        // supabase auth user
-  profile: null,     // public.users 레코드
-  quota: null,       // interview_quotas 레코드
+  user: null, // supabase auth user
+  profile: null, // public.users 레코드
+  quota: null, // interview_quotas 레코드
   loading: true,
   error: null,
 
   // 세션 초기화 (앱 시작 시)
   initialize: async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
       if (session?.user) {
         set({ user: session.user })
         await get().loadProfile()
@@ -48,12 +50,22 @@ export const useAuthStore = create((set, get) => ({
         // 쿼타 생성 (모든 가입자 3회 - 일반/맞춤형/하드모드 각 1회 체험)
         const initialQuota = 3
         await supabase.from('interview_quotas').insert({
-          user_id: user.id, total_quota: initialQuota, used_count: 0,
+          user_id: user.id,
+          total_quota: initialQuota,
+          used_count: 0,
         })
 
         // 다시 로드
-        const { data: retryProfile } = await supabase.from('users').select('*').eq('id', user.id).single()
-        const { data: retryQuota } = await supabase.from('interview_quotas').select('*').eq('user_id', user.id).single()
+        const { data: retryProfile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+        const { data: retryQuota } = await supabase
+          .from('interview_quotas')
+          .select('*')
+          .eq('user_id', user.id)
+          .single()
         set({ profile: retryProfile, quota: retryQuota })
         return
       }
@@ -92,7 +104,13 @@ export const useAuthStore = create((set, get) => ({
 
     const { error } = await supabase
       .from('users')
-      .update({ name, track, cohort: parseInt(cohort), onboarding_completed: true, updated_at: new Date().toISOString() })
+      .update({
+        name,
+        track,
+        cohort: parseInt(cohort),
+        onboarding_completed: true,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', user.id)
 
     if (error) {
@@ -134,7 +152,9 @@ export const useAuthStore = create((set, get) => ({
     if (profile?.role === 'main_admin') {
       // 메인 어드민: 배정된 트랙의 전 기수 (cohort=0), 배정 없으면 전체
       if (adminAssignments.length === 0) return true
-      return adminAssignments.some((a) => a.track === studentTrack && (a.cohort === 0 || a.cohort === studentCohort))
+      return adminAssignments.some(
+        (a) => a.track === studentTrack && (a.cohort === 0 || a.cohort === studentCohort),
+      )
     }
     if (profile?.role === 'sub_admin') {
       // 서브 어드민: 배정된 트랙+기수만

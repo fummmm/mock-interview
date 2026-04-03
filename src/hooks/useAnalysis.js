@@ -16,8 +16,14 @@ export function useAnalysis() {
       setProgress(10)
 
       const [textResult, visionResult] = await Promise.allSettled([
-        analyzeText({ questions, answers, track }).then((r) => { setProgress(50); return r }),
-        analyzeVision({ answers }).then((r) => { setProgress(80); return r }),
+        analyzeText({ questions, answers, track }).then((r) => {
+          setProgress(50)
+          return r
+        }),
+        analyzeVision({ answers }).then((r) => {
+          setProgress(80)
+          return r
+        }),
       ])
 
       setProgress(90)
@@ -54,27 +60,40 @@ export function buildReport(textData, visionData, answers, companySize = 'medium
       const s = fb.scores
       return Math.round((s.relevance + s.structure + s.keywords + s.specificity) / 4)
     })
-    const avgScore = questionScores.length > 0
-      ? Math.round(questionScores.reduce((a, b) => a + b, 0) / questionScores.length)
-      : 0
+    const avgScore =
+      questionScores.length > 0
+        ? Math.round(questionScores.reduce((a, b) => a + b, 0) / questionScores.length)
+        : 0
 
     return {
       ...ev,
       avgScore,
-      grade: avgScore >= 90 ? 'S' : avgScore >= 80 ? 'A' : avgScore >= 70 ? 'B' : avgScore >= 60 ? 'C' : 'D',
+      grade:
+        avgScore >= 90
+          ? 'S'
+          : avgScore >= 80
+            ? 'A'
+            : avgScore >= 70
+              ? 'B'
+              : avgScore >= 60
+                ? 'C'
+                : 'D',
     }
   })
 
   // 전체 종합 점수 (3명 평균)
   const allAvgScores = evaluatorReports.map((e) => e.avgScore).filter((s) => s > 0)
-  const overallScore = allAvgScores.length > 0
-    ? Math.round(allAvgScores.reduce((a, b) => a + b, 0) / allAvgScores.length)
-    : 0
+  const overallScore =
+    allAvgScores.length > 0
+      ? Math.round(allAvgScores.reduce((a, b) => a + b, 0) / allAvgScores.length)
+      : 0
 
   // 비전 데이터 매핑
   const visionByQuestion = {}
   if (visionData?.visionFeedbacks) {
-    visionData.visionFeedbacks.forEach((vf) => { visionByQuestion[vf.questionIndex] = vf })
+    visionData.visionFeedbacks.forEach((vf) => {
+      visionByQuestion[vf.questionIndex] = vf
+    })
   }
 
   // 질문별 데이터 (영상 + 프레임 + 전사 텍스트 + 모범 답안 + 문제 구절)
@@ -110,7 +129,12 @@ export function buildReport(textData, visionData, answers, companySize = 'medium
   })
 
   // 카테고리별 점수 (3명 평균)
-  const categoryScores = { relevance: 0, structure: 0, keywords: 0, specificity: 0 }
+  const categoryScores = {
+    relevance: 0,
+    structure: 0,
+    keywords: 0,
+    specificity: 0,
+  }
   let totalEvaluatorQuestions = 0
   evaluators.forEach((ev) => {
     ev.questionFeedbacks.forEach((fb) => {
@@ -129,7 +153,16 @@ export function buildReport(textData, visionData, answers, companySize = 'medium
   }
   categoryScores.nonverbal = visionData?.overallVisionScore || 0
 
-  const grade = overallScore >= 90 ? 'S' : overallScore >= 80 ? 'A' : overallScore >= 70 ? 'B' : overallScore >= 60 ? 'C' : 'D'
+  const grade =
+    overallScore >= 90
+      ? 'S'
+      : overallScore >= 80
+        ? 'A'
+        : overallScore >= 70
+          ? 'B'
+          : overallScore >= 60
+            ? 'C'
+            : 'D'
 
   // 합격 여부: 기업 규모별 판정 로직
   const passThreshold = companySize === 'large' ? 70 : 60

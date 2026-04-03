@@ -11,7 +11,10 @@ export function useAudioLevel(stream) {
   const contextRef = useRef(null)
 
   useEffect(() => {
-    if (!stream) { setLevel(0); return }
+    if (!stream) {
+      setLevel(0)
+      return
+    }
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
     const analyser = audioCtx.createAnalyser()

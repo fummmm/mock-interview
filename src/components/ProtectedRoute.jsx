@@ -6,7 +6,7 @@ export default function ProtectedRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <p className="text-text-secondary">로딩 중...</p>
       </div>
     )
@@ -22,7 +22,7 @@ export function OnboardingGuard({ children }) {
 
   if (loading || (user && !profile)) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <p className="text-text-secondary">프로필 로딩 중...</p>
       </div>
     )
@@ -40,7 +40,7 @@ export function AdminRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <p className="text-text-secondary">로딩 중...</p>
       </div>
     )

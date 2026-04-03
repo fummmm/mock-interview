@@ -50,10 +50,16 @@ export function useMediaRecorder(stream) {
       setIsRecording(false)
 
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'video/webm' })
+        const blob = new Blob(chunksRef.current, {
+          type: recorder.mimeType || 'video/webm',
+        })
         const blobUrl = URL.createObjectURL(blob)
         chunksRef.current = []
-        resolve({ blob, blobUrl, duration: Math.floor((Date.now() - startTimeRef.current) / 1000) })
+        resolve({
+          blob,
+          blobUrl,
+          duration: Math.floor((Date.now() - startTimeRef.current) / 1000),
+        })
       }
 
       recorder.stop()
