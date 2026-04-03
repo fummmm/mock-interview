@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
+import CustomSelect from '../components/CustomSelect'
 import { supabase } from '../lib/supabase'
 
 const TRACK_LABELS = { unity: 'Unity', unreal: 'Unreal', pm: 'PM', design: '게임기획', spring: 'Spring', behavioral: '인성', cs: 'CS지식' }
@@ -80,20 +81,22 @@ export default function AdminStudents() {
         </div>
 
         {/* 필터 */}
-        <div className="flex gap-3 flex-wrap">
-          <select value={filterTrack} onChange={(e) => setFilterTrack(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-bg-card border border-border text-sm text-text-primary">
-            <option value="">전체 트랙</option>
-            {Object.entries(TRACK_LABELS).filter(([k]) => k !== 'behavioral').map(([id, label]) => (
-              <option key={id} value={id}>{label}</option>
-            ))}
-          </select>
-          <select value={filterCohort} onChange={(e) => setFilterCohort(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-bg-card border border-border text-sm text-text-primary">
-            <option value="">전체 기수</option>
-            {cohorts.map((c) => <option key={c} value={c}>{c}기</option>)}
-          </select>
-          <span className="text-sm text-text-secondary self-center">{filtered.length}명</span>
+        <div className="flex gap-3 flex-wrap items-center">
+          <CustomSelect
+            value={filterTrack}
+            onChange={setFilterTrack}
+            placeholder="전체 트랙"
+            className="w-36"
+            options={[{ value: '', label: '전체 트랙' }, ...Object.entries(TRACK_LABELS).filter(([k]) => k !== 'behavioral' && k !== 'cs').map(([id, label]) => ({ value: id, label }))]}
+          />
+          <CustomSelect
+            value={filterCohort}
+            onChange={setFilterCohort}
+            placeholder="전체 기수"
+            className="w-32"
+            options={[{ value: '', label: '전체 기수' }, ...cohorts.map((c) => ({ value: c.toString(), label: `${c}기` }))]}
+          />
+          <span className="text-sm text-text-secondary">{filtered.length}명</span>
         </div>
 
         {loading ? (
@@ -123,10 +126,12 @@ export default function AdminStudents() {
                     {editingId === s.id ? (
                       <>
                         <td className="py-2 px-2">
-                          <select value={editTrack} onChange={(e) => setEditTrack(e.target.value)}
-                            className="px-2 py-1 rounded bg-bg-secondary border border-border text-xs text-text-primary">
-                            {Object.entries(TRACK_OPTIONS).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-                          </select>
+                          <CustomSelect
+                            value={editTrack}
+                            onChange={setEditTrack}
+                            className="w-28"
+                            options={Object.entries(TRACK_OPTIONS).map(([id, label]) => ({ value: id, label }))}
+                          />
                         </td>
                         <td className="py-2 px-2">
                           <input type="text" inputMode="numeric" value={editCohort}

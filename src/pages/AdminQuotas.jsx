@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
+import CustomSelect from '../components/CustomSelect'
 
 const TRACK_LABELS = { unity: 'Unity', unreal: 'Unreal', pm: 'PM', design: '게임기획', spring: 'Spring', cs: 'CS지식' }
 
@@ -144,21 +145,21 @@ export default function AdminQuotas() {
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs text-text-secondary">트랙</label>
-                  <select value={batchTrack} onChange={(e) => setBatchTrack(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-bg-secondary border border-border text-text-primary">
-                    <option value="">선택</option>
-                    {Object.entries(TRACK_LABELS).map(([id, label]) => (
-                      <option key={id} value={id}>{label}</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    value={batchTrack}
+                    onChange={setBatchTrack}
+                    placeholder="선택"
+                    options={Object.entries(TRACK_LABELS).filter(([k]) => k !== 'cs').map(([id, label]) => ({ value: id, label }))}
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-text-secondary">기수</label>
-                  <select value={batchCohort} onChange={(e) => setBatchCohort(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-bg-secondary border border-border text-text-primary">
-                    <option value="">선택</option>
-                    {cohorts.map((c) => <option key={c} value={c}>{c}기</option>)}
-                  </select>
+                  <CustomSelect
+                    value={batchCohort}
+                    onChange={setBatchCohort}
+                    placeholder="선택"
+                    options={cohorts.map((c) => ({ value: c.toString(), label: `${c}기` }))}
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-text-secondary">추가 횟수</label>

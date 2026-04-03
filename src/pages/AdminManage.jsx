@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
+import CustomSelect from '../components/CustomSelect'
 
 const TRACK_LABELS = { unity: 'Unity', unreal: 'Unreal', pm: 'PM', design: '게임기획', spring: 'Spring', cs: 'CS지식' }
 
@@ -117,11 +118,15 @@ export default function AdminManage() {
               )}
               {selectedUser && (
                 <div className="flex gap-3 items-center">
-                  <select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)}
-                    className="px-3 py-2 rounded-lg bg-bg-secondary border border-border text-sm text-text-primary">
-                    <option value="sub_admin">서브 어드민 (튜터/담임)</option>
-                    <option value="main_admin">메인 어드민 (총괄)</option>
-                  </select>
+                  <CustomSelect
+                    value={selectedRole}
+                    onChange={setSelectedRole}
+                    className="w-52"
+                    options={[
+                      { value: 'sub_admin', label: '서브 어드민 (튜터/담임)' },
+                      { value: 'main_admin', label: '메인 어드민 (총괄)' },
+                    ]}
+                  />
                   <button onClick={handlePromote} className="px-6 py-2 rounded-xl bg-accent text-white text-sm cursor-pointer">
                     지정
                   </button>
@@ -183,13 +188,13 @@ export default function AdminManage() {
 
                     {/* 할당 추가 */}
                     <div className="flex gap-2 items-end">
-                      <select value={assignTrack} onChange={(e) => setAssignTrack(e.target.value)}
-                        className="px-2 py-1.5 rounded-lg bg-bg-secondary border border-border text-xs text-text-primary">
-                        <option value="">트랙</option>
-                        {Object.entries(TRACK_LABELS).map(([id, label]) => (
-                          <option key={id} value={id}>{label}</option>
-                        ))}
-                      </select>
+                      <CustomSelect
+                        value={assignTrack}
+                        onChange={setAssignTrack}
+                        placeholder="트랙"
+                        className="w-32"
+                        options={Object.entries(TRACK_LABELS).filter(([k]) => k !== 'cs').map(([id, label]) => ({ value: id, label }))}
+                      />
                       {!isAdminMain && (
                         <input type="text" inputMode="numeric" value={assignCohort}
                           onChange={(e) => setAssignCohort(e.target.value.replace(/[^0-9]/g, ''))}
