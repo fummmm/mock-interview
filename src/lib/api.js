@@ -487,6 +487,7 @@ ${evaluatorConfig.jsonExample}
       const content = await callOpenRouter({
         model: 'anthropic/claude-sonnet-4',
         maxTokens: 65536,
+        timeoutMs: 300000, // 5분 (면접관 3명 × 5~6질문 상세 평가는 시간 소요)
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: answersText },
