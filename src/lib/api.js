@@ -232,13 +232,31 @@ ${track && TRACK_TERMS[track] ? `8. **${track.toUpperCase()} 트랙 전문용어
 /**
  * 꼬리질문 생성 - 답변이 부족할 때만
  */
-export async function generateFollowUp(questionText, roughTranscript, evaluatorNames = [], questionId = '') {
+export async function generateFollowUp(questionText, roughTranscript, evaluatorNames = [], questionId = '', recordingDuration = 0) {
   // 자기소개, 마무리 질문은 꼬리질문 스킵
   if (questionId === 'beh-intro' || questionId === 'beh-lastq') {
     return { needed: false }
   }
 
-  if (!roughTranscript || roughTranscript.trim().length < 5) {
+  const hasTranscript = roughTranscript && roughTranscript.trim().length >= 5
+
+  // 30초 이상 답변했으면 꼬리질문 불필요 (충분히 답변함)
+  if (recordingDuration >= 30) {
+    return { needed: false }
+  }
+
+  // 15초 미만 + 답변 내용 없음 → 회피성 답변으로 판단 → 꼬리질문 생성
+  if (recordingDuration < 15 && !hasTranscript) {
+    const asker = evaluatorNames[0]
+    return {
+      needed: true,
+      question: '답변이 짧았는데, 비슷한 상황을 경험하지 못했더라도 어떻게 접근하실지 말씀해주시겠어요?',
+      evaluatorId: asker?.id || 'hr',
+    }
+  }
+
+  // Web Speech 텍스트가 없으면 판단 불가 → 스킵
+  if (!hasTranscript) {
     return { needed: false }
   }
 
