@@ -188,6 +188,18 @@ export default function AnalyzingPage() {
     }
   }
 
+  // 대기 시간별 격려 문구
+  const waitMessages = [
+    { after: 30, text: '면접관들이 꼼꼼하게 평가 중입니다' },
+    { after: 60, text: '답변 하나하나 정성껏 분석하고 있어요' },
+    { after: 90, text: '거의 다 됐습니다. 조금만 더 기다려주세요' },
+    { after: 120, text: '질문이 많을수록 분석에 시간이 걸립니다' },
+    { after: 180, text: '아직 열심히 분석 중이에요. 잠시만요' },
+    { after: 240, text: '면접관 3명이 각자 의견을 정리하고 있습니다' },
+    { after: 300, text: '곧 완료됩니다. 끝까지 기다려주세요' },
+  ]
+  const waitMessage = step === 'llm' ? [...waitMessages].reverse().find((m) => elapsed >= m.after)?.text : null
+
   const formatBytes = (bytes) => bytes ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : ''
 
   return (
@@ -254,6 +266,9 @@ export default function AnalyzingPage() {
             {step === 'error' ? '분석 중 오류 발생' : '답변을 분석하고 있습니다'}
           </h1>
           <p className="text-text-secondary">{statusText}</p>
+          {waitMessage && (
+            <p className="text-sm text-text-secondary/70 mt-1" style={{ animation: 'fadeIn 0.5s ease-in' }}>{waitMessage}</p>
+          )}
 
           {step === 'model-download' && downloadInfo && downloadInfo.total && (
             <p className="text-xs text-text-secondary">
