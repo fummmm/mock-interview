@@ -132,24 +132,24 @@ export function buildReport(textData, visionData, answers, companySize = 'medium
   const grade = overallScore >= 90 ? 'S' : overallScore >= 80 ? 'A' : overallScore >= 70 ? 'B' : overallScore >= 60 ? 'C' : 'D'
 
   // 합격 여부: 기업 규모별 판정 로직
+  const passThreshold = companySize === 'large' ? 70 : 60
   const evaluatorReportsWithPass = evaluatorReports.map((e) => ({
     ...e,
-    pass: companySize === 'large' ? e.avgScore >= 60 : e.avgScore >= 60,
+    pass: e.avgScore >= passThreshold,
   }))
   const passCount = evaluatorReportsWithPass.filter((e) => e.pass).length
+  const totalEvaluators = evaluatorReportsWithPass.length
 
   let overallPass = false
   if (companySize === 'small') {
-    // 소규모: 평균 60+ AND 대표 점수 > 실무 점수
-    const ceo = evaluatorReportsWithPass.find((e) => e.id === 'ceo')
-    const senior = evaluatorReportsWithPass.find((e) => e.id === 'senior')
-    overallPass = overallScore >= 60 && ceo && senior && ceo.avgScore > senior.avgScore
+    // 스타트업 (2명): 과반 합격 (2/2) AND 평균 60+
+    overallPass = passCount >= Math.ceil(totalEvaluators / 2) && overallScore >= 60
   } else if (companySize === 'large') {
-    // 대기업: 4명 중 3명 합격 AND 전체 평균 80+
-    overallPass = passCount >= 3 && overallScore >= 80
+    // 대기업 (4명): 과반 합격 (3/4) AND 평균 70+
+    overallPass = passCount >= Math.ceil(totalEvaluators * 0.75) && overallScore >= 70
   } else {
-    // 중규모: 과반 합격 (2/3)
-    overallPass = passCount >= 2
+    // 중소/중견 (3명): 과반 합격 (2/3) AND 평균 60+
+    overallPass = passCount >= Math.ceil(totalEvaluators / 2) && overallScore >= 60
   }
 
   return {

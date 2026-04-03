@@ -126,13 +126,13 @@ export default function ReportPage() {
         {/* 헤더 */}
         <div className="text-center space-y-1">
           <h1 className="text-2xl font-bold">면접 분석 리포트</h1>
-          <p className="text-sm text-text-secondary">{report.questionCount}개 질문 / 면접관 3명 독립 평가</p>
+          <p className="text-sm text-text-secondary">{report.questionCount}개 질문 / 면접관 {report.evaluators?.length || 0}명 독립 평가</p>
         </div>
 
         {/* 종합 결과 + 레이더 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-bg-card border border-border rounded-2xl p-6 flex flex-col items-center justify-center gap-2">
-            <p className="text-sm text-text-secondary">종합 점수 (3명 평균)</p>
+            <p className="text-sm text-text-secondary">종합 점수 ({report.evaluators?.length || 0}명 평균)</p>
             <div className="animate-score-reveal">
               <span className={`text-6xl font-bold ${GRADE_COLOR[report.grade]}`}>{report.overallScore}</span>
               <span className="text-2xl text-text-secondary ml-1">/100</span>
