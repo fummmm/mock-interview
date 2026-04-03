@@ -145,8 +145,8 @@ export function buildReport(textData, visionData, answers, companySize = 'medium
     // 스타트업 (2명): 과반 합격 (2/2) AND 평균 60+
     overallPass = passCount >= Math.ceil(totalEvaluators / 2) && overallScore >= 60
   } else if (companySize === 'large') {
-    // 대기업 (4명): 과반 합격 (3/4) AND 평균 70+
-    overallPass = passCount >= Math.ceil(totalEvaluators * 0.75) && overallScore >= 70
+    // 대기업 (4명): 과반 합격 (3/4) AND 평균 75+
+    overallPass = passCount >= Math.ceil(totalEvaluators * 0.75) && overallScore >= 75
   } else {
     // 중소/중견 (3명): 과반 합격 (2/3) AND 평균 60+
     overallPass = passCount >= Math.ceil(totalEvaluators / 2) && overallScore >= 60
