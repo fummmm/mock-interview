@@ -220,8 +220,8 @@ ${track && TRACK_TERMS[track] ? `8. **${track.toUpperCase()} 트랙 전문용어
   }
 
   // 환각 방어 2: 원본이 Whisper 전형적 환각이면 빈 문자열 반환
-  const hallucinationCheck = /^(MBC|KBS|SBS|JTBC|YTN)\s*뉴스|뉴스.{0,5}입니다|^안녕하세요[,.]?\s*.{1,5}입니다\.?$|^.{1,5}입니다\.?$/
-  if (hallucinationCheck.test(rawTranscript.trim())) {
+  const hallucinationCheck = /^\s*(MBC|KBS|SBS|JTBC|YTN)\s*뉴스|뉴스.{0,5}입니다|^\s*안녕하세요[,.]?\s*.{1,5}입니다\.?$|^\s*.{1,5}입니다\.?$/
+  if (hallucinationCheck.test(rawTranscript.trim()) || rawTranscript.trim().length < 15) {
     console.warn('[교정] Whisper 환각 감지 - 빈 답변 처리:', rawTranscript)
     return ''
   }
