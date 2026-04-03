@@ -54,6 +54,16 @@ export default function SetupPage() {
 
   const handleStart = async () => {
     if (!canStart || starting) return
+
+    // 쿼타 차감 안내 (관리자 제외)
+    if (!mainAdmin) {
+      const r = remaining
+      const msg = r <= 1
+        ? `남은 면접 횟수가 ${r}회입니다. 시작하면 1회가 차감됩니다.\n\n면접을 시작하시겠습니까?`
+        : `면접 횟수 1회가 차감됩니다. (남은 횟수: ${r}회 → ${r - 1}회)\n\n면접을 시작하시겠습니까?`
+      if (!confirm(msg)) return
+    }
+
     setStarting(true)
 
     reset()
