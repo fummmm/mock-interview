@@ -48,7 +48,8 @@ self.addEventListener('message', async (event) => {
         language: 'ko',
         task: 'transcribe',
         return_timestamps: true,
-        chunk_length_s: 30,
+        chunk_length_s: 60,
+        stride_length_s: 5,
       })
 
       // 반복 환각 제거 + 짧은 환각 제거

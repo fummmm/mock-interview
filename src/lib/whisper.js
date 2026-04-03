@@ -118,7 +118,7 @@ async function _transcribeAudio(blob) {
     // 메인 스레드 폴백
     const pipe = globalThis.__whisperPipeline
     if (!pipe) throw new Error('모델이 로딩되지 않았습니다.')
-    const result = await pipe(audioData, { language: 'ko', task: 'transcribe', return_timestamps: true, chunk_length_s: 30 })
+    const result = await pipe(audioData, { language: 'ko', task: 'transcribe', return_timestamps: true, chunk_length_s: 60, stride_length_s: 5 })
     // 메인 스레드에서도 환각 필터 적용
     let text = result.text || ''
     text = _removeMainThreadHallucinations(text, audioData?.length || 0)
