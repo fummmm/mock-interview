@@ -10,5 +10,11 @@ export const useSettingsStore = create((set) => ({
   setTrack: (track) => set({ track }),
   setQuestionCount: (questionCount) => set({ questionCount }),
   setMode: (mode) => set({ mode }),
-  reset: () => set({ companySize: 'medium', track: null, questionCount: 5, mode: 'general' }),
+  reset: () =>
+    set({
+      companySize: 'medium',
+      track: null,
+      questionCount: 5,
+      mode: 'general',
+    }),
 }))

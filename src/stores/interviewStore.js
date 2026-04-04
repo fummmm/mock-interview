@@ -64,11 +64,23 @@ export const useInterviewStore = create((set, get) => ({
       // 쿼타 차감 (main_admin은 무제한이므로 스킵)
       const isMainAdmin = useAuthStore.getState().isMainAdmin()
       if (!isMainAdmin) {
-        const { data: updated, error: quotaErr } = await supabase.rpc('increment_used_count', { p_user_id: userId })
+        const { data: updated, error: quotaErr } = await supabase.rpc('increment_used_count', {
+          p_user_id: userId,
+        })
         if (quotaErr) {
-          const { data: q } = await supabase.from('interview_quotas').select('used_count, total_quota').eq('user_id', userId).single()
+          const { data: q } = await supabase
+            .from('interview_quotas')
+            .select('used_count, total_quota')
+            .eq('user_id', userId)
+            .single()
           if (q && q.used_count < q.total_quota) {
-            await supabase.from('interview_quotas').update({ used_count: q.used_count + 1, updated_at: new Date().toISOString() }).eq('user_id', userId)
+            await supabase
+              .from('interview_quotas')
+              .update({
+                used_count: q.used_count + 1,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('user_id', userId)
           }
         }
       }
@@ -88,11 +100,13 @@ export const useInterviewStore = create((set, get) => ({
 
     try {
       // 영상 blob은 저장 불가하므로 제거
-      const cleanReport = JSON.parse(JSON.stringify(reportData, (key, val) => {
-        if (key === 'videoBlob' || key === 'videoBlobUrl') return undefined
-        if (key === 'frames') return [] // base64 프레임도 DB에는 안 넣음 (용량)
-        return val
-      }))
+      const cleanReport = JSON.parse(
+        JSON.stringify(reportData, (key, val) => {
+          if (key === 'videoBlob' || key === 'videoBlobUrl') return undefined
+          if (key === 'frames') return [] // base64 프레임도 DB에는 안 넣음 (용량)
+          return val
+        }),
+      )
 
       const { data, error } = await supabase
         .from('interview_results')
@@ -137,13 +151,18 @@ export const useInterviewStore = create((set, get) => ({
   },
 
   setPhase: (phase) => set({ phase }),
-  setMediaStream: (stream) => set({ mediaStream: stream, permissionStatus: stream ? 'granted' : 'denied' }),
+  setMediaStream: (stream) =>
+    set({
+      mediaStream: stream,
+      permissionStatus: stream ? 'granted' : 'denied',
+    }),
 
-  updateAnswer: (index, data) => set((state) => {
-    const answers = [...state.answers]
-    answers[index] = { ...answers[index], ...data }
-    return { answers }
-  }),
+  updateAnswer: (index, data) =>
+    set((state) => {
+      const answers = [...state.answers]
+      answers[index] = { ...answers[index], ...data }
+      return { answers }
+    }),
 
   nextQuestion: () => {
     const { currentIndex, questions } = get()

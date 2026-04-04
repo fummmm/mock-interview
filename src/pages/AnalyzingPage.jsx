@@ -57,9 +57,18 @@ export default function AnalyzingPage() {
     if (gameActive || step === 'error') return
     const handler = (e) => {
       const dirMap = {
-        ArrowUp: 'UP', ArrowDown: 'DOWN', ArrowLeft: 'LEFT', ArrowRight: 'RIGHT',
-        w: 'UP', s: 'DOWN', a: 'LEFT', d: 'RIGHT',
-        W: 'UP', S: 'DOWN', A: 'LEFT', D: 'RIGHT',
+        ArrowUp: 'UP',
+        ArrowDown: 'DOWN',
+        ArrowLeft: 'LEFT',
+        ArrowRight: 'RIGHT',
+        w: 'UP',
+        s: 'DOWN',
+        a: 'LEFT',
+        d: 'RIGHT',
+        W: 'UP',
+        S: 'DOWN',
+        A: 'LEFT',
+        D: 'RIGHT',
       }
       if (dirMap[e.key]) {
         e.preventDefault()
@@ -86,7 +95,7 @@ export default function AnalyzingPage() {
             setDownloadInfo(info)
             if (info.total) setProgress(Math.round((info.loaded / info.total) * 20))
           },
-          (msg) => setStatusText(msg)
+          (msg) => setStatusText(msg),
         )
       }
       setProgress(20)
@@ -118,7 +127,12 @@ export default function AnalyzingPage() {
         setStatusText(`질문 ${i + 1} 음성 변환 중...`)
         try {
           const result = await transcribeAudio(a.videoBlob)
-          updateAnswer(i, { rawTranscript: result.transcript, transcript: result.transcript, fillerWordCount: result.fillerWordCount, silenceSegments: result.silencePositions || [] })
+          updateAnswer(i, {
+            rawTranscript: result.transcript,
+            transcript: result.transcript,
+            fillerWordCount: result.fillerWordCount,
+            silenceSegments: result.silencePositions || [],
+          })
           const corrected = await correctTranscript(result.transcript, a.questionText, track)
           updateAnswer(i, { transcript: corrected })
         } catch (e) {
@@ -135,7 +149,12 @@ export default function AnalyzingPage() {
       const updatedAnswers = useInterviewStore.getState().answers
 
       const [textResult, visionResult] = await Promise.allSettled([
-        analyzeText({ questions, answers: updatedAnswers, track, companySize }).then((r) => {
+        analyzeText({
+          questions,
+          answers: updatedAnswers,
+          track,
+          companySize,
+        }).then((r) => {
           setProgress(75)
           setStatusText('텍스트 분석 완료, 영상 분석 중...')
           return r
@@ -154,18 +173,25 @@ export default function AnalyzingPage() {
 
       // 텍스트 분석 실패 시 한번 더 단독 재시도
       if (!textData) {
-        const textError = textResult.status === 'rejected' ? textResult.reason?.message || '알 수 없는 오류' : null
+        const textError =
+          textResult.status === 'rejected' ? textResult.reason?.message || '알 수 없는 오류' : null
         console.error('[분석] 텍스트 분석 실패, 단독 재시도:', textError)
         setStatusText('면접관 평가 재시도 중...')
         try {
-          textData = await analyzeText({ questions, answers: updatedAnswers, track, companySize })
+          textData = await analyzeText({
+            questions,
+            answers: updatedAnswers,
+            track,
+            companySize,
+          })
           setProgress(85)
         } catch (retryErr) {
           console.error('[분석] 텍스트 분석 재시도도 실패:', retryErr.message)
         }
       }
 
-      if (!textData && !visionData) throw new Error('텍스트 분석과 비전 분석 모두 실패했습니다. 다시 시도해주세요.')
+      if (!textData && !visionData)
+        throw new Error('텍스트 분석과 비전 분석 모두 실패했습니다. 다시 시도해주세요.')
 
       const { buildReport } = await import('../hooks/useAnalysis')
       const report = buildReport(textData, visionData, updatedAnswers, companySize)
@@ -181,7 +207,6 @@ export default function AnalyzingPage() {
       setReport(report)
 
       setTimeout(() => navigate(resultId ? `/report/${resultId}` : '/report'), 500)
-
     } catch (e) {
       setError(e.message)
       setStep('error')
@@ -206,24 +231,29 @@ export default function AnalyzingPage() {
     '비언어적 커뮤니케이션도 함께 분석 중이에요',
     '곧 리포트가 완성됩니다',
   ]
-  const waitIdx = step === 'llm' && elapsed >= 10 ? Math.floor((elapsed - 10) / 8) % waitMessages.length : -1
+  const waitIdx =
+    step === 'llm' && elapsed >= 10 ? Math.floor((elapsed - 10) / 8) % waitMessages.length : -1
   const waitMessage = waitIdx >= 0 ? waitMessages[waitIdx] : null
 
-  const formatBytes = (bytes) => bytes ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : ''
+  const formatBytes = (bytes) => (bytes ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : '')
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6">
-      <div className="max-w-lg w-full text-center space-y-8">
-
+    <div className="flex flex-1 flex-col items-center justify-center p-6">
+      <div className="w-full max-w-lg space-y-8 text-center">
         {/* 게임 힌트 (점 위에 표시, 5초 후 페이드인) */}
         {step !== 'error' && !gameActive && (
-          <p className="text-sm text-text-secondary"
-            style={{ opacity: showHint ? 1 : 0, transition: 'opacity 1s ease-in' }}>
+          <p
+            className="text-text-secondary text-sm"
+            style={{
+              opacity: showHint ? 1 : 0,
+              transition: 'opacity 1s ease-in',
+            }}
+          >
             방향키를 눌러보세요
           </p>
         )}
         {step !== 'error' && gameActive && (
-          <p className="text-xs text-text-secondary/60">방향키/WASD 조작 | ESC 닫기</p>
+          <p className="text-text-secondary/60 text-xs">방향키/WASD 조작 | ESC 닫기</p>
         )}
 
         {/* 게임/점 영역 */}
@@ -238,12 +268,13 @@ export default function AnalyzingPage() {
                 borderWidth: 1,
                 borderStyle: 'solid',
                 borderColor: gameActive ? 'rgba(255,255,255,0.08)' : 'transparent',
-                transition: 'width 0.5s ease-out, height 0.5s ease-out, background-color 0.4s ease-out, border-color 0.4s ease-out',
+                transition:
+                  'width 0.5s ease-out, height 0.5s ease-out, background-color 0.4s ease-out, border-color 0.4s ease-out',
               }}
             >
               {/* 점 3개 — 항상 렌더, gameActive 시 페이드아웃 */}
               <div
-                className="absolute inset-0 flex justify-center items-center gap-2"
+                className="absolute inset-0 flex items-center justify-center gap-2"
                 style={{
                   opacity: gameActive ? 0 : 1,
                   transition: 'opacity 0.3s ease-out',
@@ -251,19 +282,22 @@ export default function AnalyzingPage() {
                 }}
               >
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="w-3 h-3 rounded-full bg-accent" style={{
-                    animation: gameActive ? 'none' : 'analyzing-dots 1.4s infinite ease-in-out both',
-                    animationDelay: `${i * 0.16}s`,
-                  }} />
+                  <div
+                    key={i}
+                    className="bg-accent h-3 w-3 rounded-full"
+                    style={{
+                      animation: gameActive
+                        ? 'none'
+                        : 'analyzing-dots 1.4s infinite ease-in-out both',
+                      animationDelay: `${i * 0.16}s`,
+                    }}
+                  />
                 ))}
               </div>
 
               {/* 스네이크 게임 — 점 페이드아웃 후 마운트 */}
               {gameReady && (
-                <SnakeGame
-                  initialDir={initialDir}
-                  onClose={() => setGameActive(false)}
-                />
+                <SnakeGame initialDir={initialDir} onClose={() => setGameActive(false)} />
               )}
             </div>
           </div>
@@ -276,24 +310,35 @@ export default function AnalyzingPage() {
           </h1>
           <p className="text-text-secondary">{statusText}</p>
           {waitMessage && (
-            <p className="text-sm text-text-secondary/70 mt-1" style={{ animation: 'fadeIn 0.5s ease-in' }}>{waitMessage}</p>
+            <p
+              className="text-text-secondary/70 mt-1 text-sm"
+              style={{ animation: 'fadeIn 0.5s ease-in' }}
+            >
+              {waitMessage}
+            </p>
           )}
 
           {step === 'model-download' && downloadInfo && downloadInfo.total && (
-            <p className="text-xs text-text-secondary">
+            <p className="text-text-secondary text-xs">
               모델 다운로드: {formatBytes(downloadInfo.loaded)} / {formatBytes(downloadInfo.total)}
-              <br /><span className="text-text-secondary/60">(최초 1회만, 이후 캐시)</span>
+              <br />
+              <span className="text-text-secondary/60">(최초 1회만, 이후 캐시)</span>
             </p>
           )}
 
           {step !== 'error' && (
-            <div className="flex justify-center gap-6 text-xs text-text-secondary mt-4">
+            <div className="text-text-secondary mt-4 flex justify-center gap-6 text-xs">
               {['model-download', 'whisper', 'llm'].map((s, i) => {
                 const labels = ['1. 모델 준비', '2. 음성 변환 + 교정', '3. 평가']
                 const steps = ['model-download', 'whisper', 'llm']
                 const currentIdx = steps.indexOf(step)
                 return (
-                  <span key={s} className={step === s ? 'text-accent font-medium' : currentIdx > i ? 'text-success' : ''}>
+                  <span
+                    key={s}
+                    className={
+                      step === s ? 'text-accent font-medium' : currentIdx > i ? 'text-success' : ''
+                    }
+                  >
                     {currentIdx > i ? labels[i] + ' 완료' : labels[i]}
                   </span>
                 )
@@ -303,24 +348,42 @@ export default function AnalyzingPage() {
         </div>
 
         {/* 프로그레스 바 */}
-        <div className="w-full h-2 bg-bg-elevated rounded-full overflow-hidden">
-          <div className="h-full bg-accent rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${progress}%` }} />
+        <div className="bg-bg-elevated h-2 w-full overflow-hidden rounded-full">
+          <div
+            className="bg-accent h-full rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${progress}%` }}
+          />
         </div>
-        <div className="flex justify-between text-sm text-text-secondary">
+        <div className="text-text-secondary flex justify-between text-sm">
           <span>{progress}%</span>
-          <span>{Math.floor(elapsed / 60)}:{(elapsed % 60).toString().padStart(2, '0')} 경과</span>
+          <span>
+            {Math.floor(elapsed / 60)}:{(elapsed % 60).toString().padStart(2, '0')} 경과
+          </span>
         </div>
 
         {/* 에러 */}
         {error && (
-          <div className="bg-danger/10 border border-danger/30 rounded-xl p-4 space-y-3">
+          <div className="bg-danger/10 border-danger/30 space-y-3 rounded-xl border p-4">
             <p className="text-danger text-sm">{error}</p>
-            <div className="flex gap-3 justify-center">
-              <button onClick={() => { startedRef.current = false; setError(null); setStep('init'); setProgress(0); runPipeline() }}
-                className="px-4 py-2 rounded-lg bg-accent text-white text-sm cursor-pointer">다시 시도</button>
-              <button onClick={() => navigate('/')}
-                className="px-4 py-2 rounded-lg border border-border text-text-secondary text-sm cursor-pointer">홈으로</button>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => {
+                  startedRef.current = false
+                  setError(null)
+                  setStep('init')
+                  setProgress(0)
+                  runPipeline()
+                }}
+                className="bg-accent cursor-pointer rounded-lg px-4 py-2 text-sm text-white"
+              >
+                다시 시도
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="border-border text-text-secondary cursor-pointer rounded-lg border px-4 py-2 text-sm"
+              >
+                홈으로
+              </button>
             </div>
           </div>
         )}

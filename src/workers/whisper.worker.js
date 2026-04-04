@@ -7,39 +7,45 @@ self.addEventListener('message', async (event) => {
 
   if (type === 'load') {
     try {
-      self.postMessage({ type: 'status', message: 'AI 음성 인식 모델을 준비하고 있습니다...' })
+      self.postMessage({
+        type: 'status',
+        message: 'AI 음성 인식 모델을 준비하고 있습니다...',
+      })
 
-      transcriber = await pipeline(
-        'automatic-speech-recognition',
-        'Xenova/whisper-base',
-        {
-          progress_callback: (progress) => {
-            if (progress.status === 'progress' && progress.progress) {
-              self.postMessage({
-                type: 'download-progress',
-                file: progress.file,
-                progress: progress.progress,
-                loaded: progress.loaded,
-                total: progress.total,
-              })
-            }
-            if (progress.status === 'done') {
-              self.postMessage({ type: 'download-done', file: progress.file })
-            }
-          },
-        }
-      )
+      transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-base', {
+        progress_callback: (progress) => {
+          if (progress.status === 'progress' && progress.progress) {
+            self.postMessage({
+              type: 'download-progress',
+              file: progress.file,
+              progress: progress.progress,
+              loaded: progress.loaded,
+              total: progress.total,
+            })
+          }
+          if (progress.status === 'done') {
+            self.postMessage({ type: 'download-done', file: progress.file })
+          }
+        },
+      })
 
       self.postMessage({ type: 'ready' })
     } catch (err) {
-      self.postMessage({ type: 'error', message: `모델 로딩 실패: ${err.message}` })
+      self.postMessage({
+        type: 'error',
+        message: `모델 로딩 실패: ${err.message}`,
+      })
     }
   }
 
   if (type === 'transcribe') {
     const requestId = event.data.requestId || ''
     if (!transcriber) {
-      self.postMessage({ type: 'error', requestId, message: '모델이 아직 로딩되지 않았습니다.' })
+      self.postMessage({
+        type: 'error',
+        requestId,
+        message: '모델이 아직 로딩되지 않았습니다.',
+      })
       return
     }
 
@@ -64,7 +70,11 @@ self.addEventListener('message', async (event) => {
         chunks: result.chunks || [],
       })
     } catch (err) {
-      self.postMessage({ type: 'error', requestId, message: `변환 실패: ${err.message}` })
+      self.postMessage({
+        type: 'error',
+        requestId,
+        message: `변환 실패: ${err.message}`,
+      })
     }
   }
 })
@@ -82,8 +92,15 @@ function removeShortHallucinations(text, audioSamples) {
   // 1) 짧은 오디오(10초 미만) + 짧은 텍스트(30자 미만): 환각 패턴 매칭
   if (durationSec < 10 && cleaned.length < 30) {
     const exactMatch = [
-      '감사합니다', '네', '수고하셨습니다', '고맙습니다', '알겠습니다', '예',
-      '시청해주셔서감사합니다', '구독과좋아요', '좋아요와구독',
+      '감사합니다',
+      '네',
+      '수고하셨습니다',
+      '고맙습니다',
+      '알겠습니다',
+      '예',
+      '시청해주셔서감사합니다',
+      '구독과좋아요',
+      '좋아요와구독',
     ]
     if (exactMatch.some((h) => cleaned === h)) return ''
   }

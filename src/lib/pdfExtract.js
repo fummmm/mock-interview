@@ -3,7 +3,7 @@ import Tesseract from 'tesseract.js'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
+  import.meta.url,
 ).toString()
 
 /**
@@ -18,7 +18,10 @@ export async function extractTextFromPdf(file, maxChars = 5000) {
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i)
     const content = await page.getTextContent()
-    const text = content.items.map((item) => item.str).join(' ').trim()
+    const text = content.items
+      .map((item) => item.str)
+      .join(' ')
+      .trim()
     textPages.push(text)
     if (textPages.join('\n').length > maxChars) break
   }
@@ -42,7 +45,9 @@ export async function extractTextFromPdf(file, maxChars = 5000) {
     await page.render({ canvasContext: ctx, viewport }).promise
 
     const dataUrl = canvas.toDataURL('image/png')
-    const { data: { text } } = await Tesseract.recognize(dataUrl, 'kor+eng')
+    const {
+      data: { text },
+    } = await Tesseract.recognize(dataUrl, 'kor+eng')
     ocrPages.push(text.trim())
 
     if (ocrPages.join('\n').length > maxChars) break

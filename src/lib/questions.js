@@ -16,7 +16,15 @@ const TRACK_POOLS = {
   cs: csQuestions.questions,
 }
 
-const INTRO_IDS = ['beh-intro', 'unity-intro', 'unreal-intro', 'pm-intro', 'design-intro', 'spring-intro', 'cs-intro']
+const INTRO_IDS = [
+  'beh-intro',
+  'unity-intro',
+  'unreal-intro',
+  'pm-intro',
+  'design-intro',
+  'spring-intro',
+  'cs-intro',
+]
 
 /**
  * 트랙별 질문 풀에서 지정 수만큼 반환
@@ -45,10 +53,10 @@ export function getQuestions(count = 4, track = 'behavioral', companySize = 'med
 
   // 대기업: largeText 보유 질문 중 일부만 적용 (최소 2개 보장)
   if (companySize === 'large') {
-    const largeEligible = result.map((q, i) => q.largeText ? i : -1).filter((i) => i >= 0)
+    const largeEligible = result.map((q, i) => (q.largeText ? i : -1)).filter((i) => i >= 0)
     const largeCount = Math.max(2, Math.ceil(largeEligible.length * 0.5))
     const selected = new Set(shuffle(largeEligible).slice(0, largeCount))
-    result = result.map((q, i) => selected.has(i) ? { ...q, text: q.largeText } : q)
+    result = result.map((q, i) => (selected.has(i) ? { ...q, text: q.largeText } : q))
   }
 
   return result
@@ -57,8 +65,8 @@ export function getQuestions(count = 4, track = 'behavioral', companySize = 'med
 function shuffle(arr) {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
   }
   return a
 }

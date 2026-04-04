@@ -19,10 +19,9 @@ let transcribeQueue = Promise.resolve()
 function getWorker() {
   if (!worker && !useMainThread) {
     try {
-      worker = new Worker(
-        new URL('../workers/whisper.worker.js', import.meta.url),
-        { type: 'module' }
-      )
+      worker = new Worker(new URL('../workers/whisper.worker.js', import.meta.url), {
+        type: 'module',
+      })
       worker.onerror = (e) => {
         console.warn('Whisper Worker error:', e.message)
         useMainThread = true
@@ -54,7 +53,7 @@ export async function preloadModel(onProgress, onStatus) {
           if (p.status === 'progress' && p.progress) onProgress?.(p)
           if (p.status === 'initiate') onStatus?.(`다운로드 중: ${p.file}`)
         },
-      }
+      },
     )
     isModelReady = true
     return
@@ -101,10 +100,12 @@ export async function preloadModel(onProgress, onStatus) {
  */
 export function transcribeAudio(blob) {
   // 큐에 추가: 이전 작업이 끝난 후에 실행
-  const task = transcribeQueue.then(() => _transcribeAudio(blob)).catch((e) => {
-    console.warn('[Whisper] 변환 실패:', e.message)
-    throw e
-  })
+  const task = transcribeQueue
+    .then(() => _transcribeAudio(blob))
+    .catch((e) => {
+      console.warn('[Whisper] 변환 실패:', e.message)
+      throw e
+    })
   transcribeQueue = task.catch(() => {}) // 에러가 큐를 끊지 않게
   return task
 }
@@ -118,11 +119,21 @@ async function _transcribeAudio(blob) {
     // 메인 스레드 폴백
     const pipe = globalThis.__whisperPipeline
     if (!pipe) throw new Error('모델이 로딩되지 않았습니다.')
-    const result = await pipe(audioData, { language: 'ko', task: 'transcribe', return_timestamps: true, chunk_length_s: 60, stride_length_s: 5 })
+    const result = await pipe(audioData, {
+      language: 'ko',
+      task: 'transcribe',
+      return_timestamps: true,
+      chunk_length_s: 60,
+      stride_length_s: 5,
+    })
     // 메인 스레드에서도 환각 필터 적용
     let text = result.text || ''
     text = _removeMainThreadHallucinations(text, audioData?.length || 0)
-    return { transcript: text, chunks: result.chunks || [], ...analyzeTranscript(text, result.chunks) }
+    return {
+      transcript: text,
+      chunks: result.chunks || [],
+      ...analyzeTranscript(text, result.chunks),
+    }
   }
 
   // Worker 방식 (requestId로 결과 매칭, 동시 요청 충돌 방지)
@@ -142,7 +153,11 @@ async function _transcribeAudio(blob) {
         clearTimeout(timeout)
         worker.removeEventListener('message', handler)
         const analysis = analyzeTranscript(e.data.text, e.data.chunks)
-        resolve({ transcript: e.data.text, chunks: e.data.chunks, ...analysis })
+        resolve({
+          transcript: e.data.text,
+          chunks: e.data.chunks,
+          ...analysis,
+        })
       }
       if (e.data.type === 'error') {
         clearTimeout(timeout)
@@ -161,10 +176,21 @@ function _removeMainThreadHallucinations(text, audioSamples) {
   if (!text || !text.trim()) return ''
   const trimmed = text.trim()
   const hallucinationPatterns = [
-    /^MBC\s*뉴스/i, /^KBS\s*뉴스/i, /^SBS\s*뉴스/i, /^JTBC\s*뉴스/i, /^YTN\s*뉴스/i,
-    /뉴스.{0,5}입니다/, /^안녕하세요[,.]?\s*.{1,5}입니다\.?$/,
-    /^.{1,5}입니다\.?$/, /시청해\s*주셔서/, /구독.*좋아요/, /좋아요.*구독/,
-    /^자막.*제공/i, /^번역.*자막/i, /^Thank you/i, /^Bye/i,
+    /^MBC\s*뉴스/i,
+    /^KBS\s*뉴스/i,
+    /^SBS\s*뉴스/i,
+    /^JTBC\s*뉴스/i,
+    /^YTN\s*뉴스/i,
+    /뉴스.{0,5}입니다/,
+    /^안녕하세요[,.]?\s*.{1,5}입니다\.?$/,
+    /^.{1,5}입니다\.?$/,
+    /시청해\s*주셔서/,
+    /구독.*좋아요/,
+    /좋아요.*구독/,
+    /^자막.*제공/i,
+    /^번역.*자막/i,
+    /^Thank you/i,
+    /^Bye/i,
   ]
   if (hallucinationPatterns.some((p) => p.test(trimmed))) return ''
   // 반복 환각 제거
@@ -174,7 +200,9 @@ function _removeMainThreadHallucinations(text, audioSamples) {
 
 async function blobToAudioData(blob) {
   const arrayBuffer = await blob.arrayBuffer()
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 })
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)({
+    sampleRate: 16000,
+  })
   const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
   const channelData = audioBuffer.getChannelData(0)
   audioCtx.close()

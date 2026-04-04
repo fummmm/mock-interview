@@ -61,7 +61,8 @@ export function useFrameCapture(videoRef) {
     const last = captureFrame()
     if (last) {
       const prev = framesRef.current
-      const final = prev.length < MAX_FRAMES ? [...prev, last] : [...prev.slice(0, MAX_FRAMES - 1), last]
+      const final =
+        prev.length < MAX_FRAMES ? [...prev, last] : [...prev.slice(0, MAX_FRAMES - 1), last]
       updateFrames(final)
       return final
     }

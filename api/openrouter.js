@@ -18,8 +18,9 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': req.headers.referer || req.headers.origin || 'https://mock-interview.vercel.app',
+        Authorization: `Bearer ${apiKey}`,
+        'HTTP-Referer':
+          req.headers.referer || req.headers.origin || 'https://mock-interview.vercel.app',
         'X-Title': 'AI Mock Interview',
       },
       body: JSON.stringify(req.body),

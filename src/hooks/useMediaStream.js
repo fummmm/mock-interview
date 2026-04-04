@@ -22,44 +22,48 @@ export function useMediaStream() {
     }
   }, [])
 
-  const requestPermission = useCallback(async (videoId, audioId) => {
-    setStatus('requesting')
-    setError(null)
-    try {
-      const constraints = {
-        video: videoId
-          ? { deviceId: { exact: videoId }, width: 640, height: 480 }
-          : { width: 640, height: 480, facingMode: 'user' },
-        audio: audioId
-          ? { deviceId: { exact: audioId } }
-          : true,
+  const requestPermission = useCallback(
+    async (videoId, audioId) => {
+      setStatus('requesting')
+      setError(null)
+      try {
+        const constraints = {
+          video: videoId
+            ? { deviceId: { exact: videoId }, width: 640, height: 480 }
+            : { width: 640, height: 480, facingMode: 'user' },
+          audio: audioId ? { deviceId: { exact: audioId } } : true,
+        }
+        const mediaStream = await navigator.mediaDevices.getUserMedia(constraints)
+        setStream(mediaStream)
+        setStatus('granted')
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream
+        }
+        // 권한 획득 후 기기 목록 갱신 (라벨 노출됨)
+        await loadDevices()
+        return mediaStream
+      } catch (err) {
+        setError(err.message)
+        setStatus('denied')
+        return null
       }
-      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints)
-      setStream(mediaStream)
-      setStatus('granted')
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream
-      }
-      // 권한 획득 후 기기 목록 갱신 (라벨 노출됨)
-      await loadDevices()
-      return mediaStream
-    } catch (err) {
-      setError(err.message)
-      setStatus('denied')
-      return null
-    }
-  }, [loadDevices])
+    },
+    [loadDevices],
+  )
 
   // 기기 변경
-  const switchDevice = useCallback(async (videoId, audioId) => {
-    // 기존 스트림 정리
-    if (stream) {
-      stream.getTracks().forEach((t) => t.stop())
-    }
-    if (videoId) setSelectedVideo(videoId)
-    if (audioId) setSelectedAudio(audioId)
-    return requestPermission(videoId || selectedVideo, audioId || selectedAudio)
-  }, [stream, selectedVideo, selectedAudio, requestPermission])
+  const switchDevice = useCallback(
+    async (videoId, audioId) => {
+      // 기존 스트림 정리
+      if (stream) {
+        stream.getTracks().forEach((t) => t.stop())
+      }
+      if (videoId) setSelectedVideo(videoId)
+      if (audioId) setSelectedAudio(audioId)
+      return requestPermission(videoId || selectedVideo, audioId || selectedAudio)
+    },
+    [stream, selectedVideo, selectedAudio, requestPermission],
+  )
 
   const stopStream = useCallback(() => {
     if (stream) {
@@ -84,8 +88,16 @@ export function useMediaStream() {
   }, [stream])
 
   return {
-    stream, videoRef, error, status,
-    devices, selectedVideo, selectedAudio,
-    requestPermission, switchDevice, stopStream, loadDevices,
+    stream,
+    videoRef,
+    error,
+    status,
+    devices,
+    selectedVideo,
+    selectedAudio,
+    requestPermission,
+    switchDevice,
+    stopStream,
+    loadDevices,
   }
 }
