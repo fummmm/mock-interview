@@ -11,8 +11,9 @@ export async function correctTranscript(rawTranscript, questionText, track = '')
   if (!rawTranscript || rawTranscript.trim().length < 5) return rawTranscript || ''
 
   const content = await callOpenRouter({
-    model: 'anthropic/claude-sonnet-4',
+    model: 'anthropic/claude-haiku-4-5-20251001',
     maxTokens: 8192,
+    timeoutMs: 300000,
     messages: [
       {
         role: 'system',
