@@ -155,7 +155,7 @@ export async function generateFollowUp(
     model: 'anthropic/claude-haiku-4-5-20251001',
     maxTokens: 512,
     temperature: 0.3,
-    timeoutMs: 8000,
+    timeoutMs: 30000,
     jsonMode: true,
     messages: [
       {
