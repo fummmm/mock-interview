@@ -87,6 +87,10 @@ ${track && TRACK_TERMS[track] ? `8. **${track.toUpperCase()} 트랙 전문용어
 
   const corrected = content?.trim() || rawTranscript
 
+  // STT 교정 전후 비교 로그
+  console.log(`[STT 교정] 원문(${rawTranscript.length}자): ${rawTranscript.slice(0, 80)}${rawTranscript.length > 80 ? '...' : ''}`)
+  console.log(`[STT 교정] 교정(${corrected.length}자): ${corrected.slice(0, 80)}${corrected.length > 80 ? '...' : ''}`)
+
   // 환각 방어 1: 원본이 30자 미만인데 교정 결과가 3배 이상 길면 LLM이 답변을 만들어낸 것
   if (rawTranscript.length < 30 && corrected.length > rawTranscript.length * 3 + 20) {
     console.warn('[교정] 환각 의심 - 원본 유지:', rawTranscript.length, '→', corrected.length)
