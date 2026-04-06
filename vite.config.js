@@ -7,8 +7,8 @@ export default defineConfig({
   build: {
     rolldownOptions: {
       output: {
-        // 프로덕션 빌드에서 console.log/warn 제거
-        banner: `if(typeof window!=='undefined'&&!window.__DEV__){console.log=()=>{};console.warn=()=>{};}`,
+        // 프로덕션 빌드에서 console.log/warn 제거 (디버깅 중 임시 비활성화)
+        // banner: `if(typeof window!=='undefined'&&!window.__DEV__){console.log=()=>{};console.warn=()=>{};}`,
       },
     },
   },
