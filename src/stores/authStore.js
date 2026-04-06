@@ -48,7 +48,7 @@ export const useAuthStore = create((set, get) => ({
         if (insertError) console.error('프로필 생성 실패:', insertError.message)
 
         // 쿼타 생성 (모든 가입자 3회 - 일반/맞춤형/하드모드 각 1회 체험)
-        const initialQuota = 3
+        const initialQuota = 5
         await supabase.from('interview_quotas').insert({
           user_id: user.id,
           total_quota: initialQuota,

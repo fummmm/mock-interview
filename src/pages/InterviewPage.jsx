@@ -10,13 +10,12 @@ import { correctTranscript, generateFollowUp } from '../lib/api'
 import { getEvaluators } from '../data/evaluators'
 import { formatTime } from '../lib/utils'
 import { useEffect, useCallback, useRef, useState } from 'react'
-import DeviceDropdown from '../components/DeviceDropdown'
 import BriefingPhase from '../components/interview/BriefingPhase'
 import ReadyPhase from '../components/interview/ReadyPhase'
 
 /**
  * 상태 머신:
- * briefing → ready → recording → generating-followup →
+ * briefing → ready → recording → reviewing →
  *   ├── followup-ready → followup-recording → next (ready or processing)
  *   └── no followup → next (ready or processing)
  */
@@ -45,15 +44,14 @@ export default function InterviewPage() {
     requestPermission,
     switchDevice,
     stopStream,
-    loadDevices,
   } = useMediaStream()
   const { isRecording, duration, startRecording, stopRecording } = useMediaRecorder(stream)
   const { frames, startCapture, stopCapture, clearFrames } = useFrameCapture(videoRef)
   const audioLevel = useAudioLevel(stream)
 
-  // Web Speech API (꼬리질문 생성용, UI 표시 없음)
-  const speechRef = useRef(null)
-  const roughTranscriptRef = useRef('')
+  // 꼬리질문 빈도 제어
+  const followUpCountRef = useRef(0)
+  const maxFollowUps = Math.min(3, Math.ceil(questions.length * 0.5))
 
   // 브리핑 + 꼬리질문 상태
   const [showBriefing, setShowBriefing] = useState(true)
@@ -61,8 +59,12 @@ export default function InterviewPage() {
   const [followUpQuestion, setFollowUpQuestion] = useState(null)
   const [followUpEvaluator, setFollowUpEvaluator] = useState(null)
   const [isFollowUp, setIsFollowUp] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false)
   const [retryMessage, setRetryMessage] = useState(null)
+
+  // reviewing 프로그레스 바 상태
+  const [reviewProgress, setReviewProgress] = useState(0)
+  const [reviewStage, setReviewStage] = useState(0) // 0: STT, 1: 교정, 2: 검토
+  const reviewTimerRef = useRef(null)
 
   // 하드모드 전용 state
   const [typingText, setTypingText] = useState('')
@@ -111,6 +113,41 @@ export default function InterviewPage() {
     return evaluators[index % evaluators.length]
   }
 
+  // reviewing 프로그레스 바 시뮬레이션 시작/정지
+  const startReviewProgress = useCallback(() => {
+    setReviewProgress(0)
+    setReviewStage(0)
+    const startTime = Date.now()
+    reviewTimerRef.current = setInterval(() => {
+      const elapsed = (Date.now() - startTime) / 1000
+      let progress
+      let stage
+      if (elapsed < 2) {
+        // 0~2초: 0% → 40%
+        progress = (elapsed / 2) * 40
+        stage = 0
+      } else if (elapsed < 4) {
+        // 2~4초: 40% → 70%
+        progress = 40 + ((elapsed - 2) / 2) * 30
+        stage = 1
+      } else {
+        // 4초~: 70% → 느리게 증가 (최대 95%)
+        progress = Math.min(95, 70 + (elapsed - 4) * 1.5)
+        stage = 2
+      }
+      setReviewProgress(progress)
+      setReviewStage(stage)
+    }, 100)
+  }, [])
+
+  const stopReviewProgress = useCallback(() => {
+    if (reviewTimerRef.current) {
+      clearInterval(reviewTimerRef.current)
+      reviewTimerRef.current = null
+    }
+    setReviewProgress(100)
+  }, [])
+
   // 설정 없으면 홈으로
   useEffect(() => {
     if (!track || questions.length === 0) navigate('/')
@@ -135,7 +172,7 @@ export default function InterviewPage() {
   const typingTimeoutRef = useRef(null)
   useEffect(() => {
     if (!isHardMode || showBriefing || showSetup) return
-    if (phase !== 'ready' || isGenerating) return
+    if (phase !== 'ready') return
     // 메인 질문 또는 꼬리질문 텍스트
     const fullText = isFollowUp ? followUpQuestion : currentQuestion?.text
     if (!fullText) return
@@ -170,7 +207,6 @@ export default function InterviewPage() {
               clearFrames()
               startRecording()
               startCapture()
-              startSpeech()
               setRetryMessage(null)
               setPhase('recording')
             }
@@ -190,7 +226,6 @@ export default function InterviewPage() {
     currentQuestion?.id,
     phase,
     isFollowUp,
-    isGenerating,
     followUpQuestion,
   ])
 
@@ -233,129 +268,12 @@ export default function InterviewPage() {
     }
   }, [showBriefing, showSetup, stream, videoRef])
 
-  // Web Speech API 초기화 (꼬리질문용 백그라운드)
-  const initSpeech = useCallback(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SR) return
-    const recognition = new SR()
-    recognition.lang = 'ko-KR'
-    recognition.continuous = true
-    recognition.interimResults = false
-    recognition.maxAlternatives = 1
-    recognition.onresult = (e) => {
-      for (let i = 0; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          roughTranscriptRef.current += ' ' + e.results[i][0].transcript
-        }
-      }
-    }
-    recognition.onend = () => {
-      if (speechRef.current?._active) {
-        try {
-          recognition.start()
-        } catch (e) {
-          /* ignore */
-        }
-      }
-    }
-    recognition.onerror = () => {} // 무시
-    speechRef.current = recognition
-  }, [])
-
-  useEffect(() => {
-    initSpeech()
-  }, [initSpeech])
-
-  const startSpeech = () => {
-    roughTranscriptRef.current = ''
-    if (speechRef.current) {
-      speechRef.current._active = true
-      try {
-        speechRef.current.start()
-      } catch (e) {
-        /* ignore */
-      }
-    }
-  }
-  const stopSpeech = () => {
-    if (speechRef.current) {
-      speechRef.current._active = false
-      try {
-        speechRef.current.stop()
-      } catch (e) {
-        /* ignore */
-      }
-    }
-  }
-
   const handleExit = useCallback(async () => {
-    stopSpeech()
     stopStream()
     const { abandonSession } = useInterviewStore.getState()
     await abandonSession()
     navigate('/')
   }, [stopStream, navigate])
-
-  // 백그라운드 STT + 교정 (세션 ID로 이전 세션 작업 무효화)
-  const processInBackground = useCallback(
-    (idx, blob, questionText, isFollowUpAnswer = false) => {
-      const mySession = useInterviewStore.getState().sessionId
-
-      // 녹화 3초 미만이면 STT 스킵 (Whisper 환각 방지)
-      const answer = useInterviewStore.getState().answers[idx]
-      const recDuration = isFollowUpAnswer
-        ? answer?.followUp?.recordingDuration
-        : answer?.recordingDuration
-      if (!recDuration || recDuration < 3) {
-        return
-      }
-
-      incPendingSTT()
-      ;(async () => {
-        try {
-          if (useInterviewStore.getState().sessionId !== mySession) return
-
-          const result = await transcribeAudio(blob)
-          if (useInterviewStore.getState().sessionId !== mySession) return
-
-          const corrected = await correctTranscript(result.transcript, questionText, track)
-          if (useInterviewStore.getState().sessionId !== mySession) return
-
-          if (isFollowUpAnswer) {
-            const state = useInterviewStore.getState()
-            const answers = [...state.answers]
-            if (answers[idx]) {
-              answers[idx] = {
-                ...answers[idx],
-                followUp: {
-                  ...answers[idx].followUp,
-                  rawTranscript: result.transcript,
-                  transcript: corrected,
-                  fillerWordCount: result.fillerWordCount,
-                },
-              }
-              useInterviewStore.setState({ answers })
-            }
-          } else {
-            updateAnswer(idx, {
-              rawTranscript: result.transcript,
-              transcript: corrected,
-              fillerWordCount: result.fillerWordCount,
-              silenceSegments: result.silencePositions || [],
-            })
-          }
-        } catch (e) {
-          console.warn(
-            `[백그라운드] Q${idx + 1}${isFollowUpAnswer ? ' 꼬리' : ''} 실패:`,
-            e.message,
-          )
-        } finally {
-          if (useInterviewStore.getState().sessionId === mySession) decPendingSTT()
-        }
-      })()
-    },
-    [updateAnswer, incPendingSTT, decPendingSTT],
-  )
 
   // === 메인 답변 시작 ===
   const handleStartAnswer = useCallback(() => {
@@ -363,20 +281,20 @@ export default function InterviewPage() {
     clearFrames()
     startRecording()
     startCapture()
-    startSpeech()
     setRetryMessage(null)
     setPhase('recording')
   }, [stream, clearFrames, startRecording, startCapture, setPhase])
 
-  // === 메인 답변 완료 → 꼬리질문 판단 ===
+  // === 메인 답변 완료 → reviewing 시퀀스 ===
   const handleStopAnswer = useCallback(async () => {
-    stopSpeech()
     const finalFrames = stopCapture()
     const result = await stopRecording()
-    if (!isMountedRef.current) return // 언마운트 후 setState 방지
+    if (!isMountedRef.current) return
     const idx = currentIndex
     const questionText = currentQuestion?.text || ''
+    const questionId = currentQuestion?.id || ''
 
+    // (1) 녹화 blob + 프레임 저장
     if (result) {
       updateAnswer(idx, {
         videoBlob: result.blob,
@@ -384,25 +302,148 @@ export default function InterviewPage() {
         recordingDuration: result.duration,
         frames: finalFrames || frames,
       })
-      processInBackground(idx, result.blob, questionText, false)
     }
 
-    // 꼬리질문 판단
-    setIsGenerating(true)
-    try {
-      const rough = roughTranscriptRef.current.trim()
+    const recordingDuration = result?.duration || 0
 
-      // 녹화 완료 → 무조건 진행 (답변 미감지 차단 제거)
-      // Web Speech API 실패해도 Whisper가 나중에 처리함
+    // (2) 사전 필터: 5초 미만 → 즉시 다음 질문
+    if (recordingDuration < 5) {
+      setFollowUpQuestion(null)
+      setIsFollowUp(false)
+      nextQuestion()
+      return
+    }
+
+    // (3) 사전 필터: 자기소개/마무리 → 즉시 다음 질문
+    if (questionId === 'beh-intro' || questionId === 'beh-lastq') {
+      setFollowUpQuestion(null)
+      setIsFollowUp(false)
+      nextQuestion()
+      return
+    }
+
+    // (4) 사전 필터: 꼬리질문 횟수 소진 → 즉시 다음 질문
+    if (followUpCountRef.current >= maxFollowUps) {
+      setFollowUpQuestion(null)
+      setIsFollowUp(false)
+      nextQuestion()
+      return
+    }
+
+    // (5) reviewing 진입
+    setPhase('reviewing')
+    startReviewProgress()
+
+    // 전체 타임아웃: 20초
+    const abortController = new AbortController()
+    const overallTimeout = setTimeout(() => {
+      abortController.abort()
+    }, 20000)
+
+    try {
+      let correctedText = ''
+      let rawText = ''
+      let fillerCount = 0
+      let silenceSegs = []
+
+      if (abortController.signal.aborted) throw new Error('reviewing timeout')
+
+      // (6) Whisper STT
+      let sttResult = null
+      try {
+        sttResult = await transcribeAudio(result.blob)
+        rawText = sttResult?.transcript || ''
+        fillerCount = sttResult?.fillerWordCount || 0
+        silenceSegs = sttResult?.silencePositions || []
+      } catch (sttErr) {
+        console.warn('[reviewing] STT 실패:', sttErr.message)
+        // STT 실패 폴백: 녹화 시간 기반 판단
+        updateAnswer(idx, { sttFailed: true })
+
+        if (recordingDuration >= 5 && recordingDuration <= 15) {
+          // 극히 짧은 답변 → incomplete 유형 하드코딩
+          const asker = evaluators[0]
+          followUpCountRef.current++
+          setFollowUpQuestion(
+            '답변이 짧았는데, 비슷한 상황을 경험하지 못했더라도 어떻게 접근하실지 말씀해주시겠어요?',
+          )
+          setFollowUpEvaluator(asker)
+          updateAnswer(idx, {
+            rawTranscript: '',
+            transcript: '',
+            followUp: {
+              question:
+                '답변이 짧았는데, 비슷한 상황을 경험하지 못했더라도 어떻게 접근하실지 말씀해주시겠어요?',
+              evaluatorId: asker.id,
+              evaluatorName: asker.name,
+              deficiency: 'incomplete',
+              c1: null,
+              c2: null,
+              c3: null,
+              transcript: '',
+              rawTranscript: '',
+              videoBlob: null,
+              videoBlobUrl: null,
+              frames: [],
+              recordingDuration: 0,
+            },
+          })
+          setIsFollowUp(true)
+          stopReviewProgress()
+          clearTimeout(overallTimeout)
+          setPhase('ready')
+          return
+        }
+        // 15~30초 또는 30초 이상: 판단 불가/충분히 답변 → 다음 질문
+        stopReviewProgress()
+        clearTimeout(overallTimeout)
+        setFollowUpQuestion(null)
+        setIsFollowUp(false)
+        nextQuestion()
+        return
+      }
+
+      if (abortController.signal.aborted) throw new Error('reviewing timeout')
+
+      // (7) LLM 교정
+      try {
+        correctedText = await correctTranscript(rawText, questionText, track)
+      } catch (corrErr) {
+        console.warn('[reviewing] 교정 실패:', corrErr.message)
+        correctedText = rawText // 교정 실패 시 raw 사용
+      }
+
+      if (abortController.signal.aborted) throw new Error('reviewing timeout')
+
+      // STT + 교정 결과를 답변 스토어에 저장
+      updateAnswer(idx, {
+        rawTranscript: rawText,
+        transcript: correctedText,
+        fillerWordCount: fillerCount,
+        silenceSegments: silenceSegs,
+      })
+
+      // (8) Haiku 판단 + 생성
       const followUp = await generateFollowUp(
         questionText,
-        rough || '',
+        correctedText,
         evaluators,
-        currentQuestion?.id || '',
-        result?.duration || 0,
+        questionId,
+        recordingDuration,
+        followUpCountRef.current,
+        maxFollowUps,
       )
 
-      if (followUp.needed && followUp.question) {
+      if (abortController.signal.aborted) throw new Error('reviewing timeout')
+
+      // (9) 꼬리질문 결과 처리
+      // 프론트엔드 최종 검증: Haiku가 needed:true 반환해도 횟수 초과 시 무시
+      if (
+        followUp.needed &&
+        followUp.question &&
+        followUpCountRef.current < maxFollowUps
+      ) {
+        followUpCountRef.current++
         const asker = evaluators.find((e) => e.id === followUp.evaluatorId) || evaluators[0]
         setFollowUpQuestion(followUp.question)
         setFollowUpEvaluator(asker)
@@ -411,6 +452,10 @@ export default function InterviewPage() {
             question: followUp.question,
             evaluatorId: asker.id,
             evaluatorName: asker.name,
+            deficiency: followUp.deficiency || null,
+            c1: followUp.c1 ?? null,
+            c2: followUp.c2 ?? null,
+            c3: followUp.c3 ?? null,
             transcript: '',
             rawTranscript: '',
             videoBlob: null,
@@ -420,17 +465,19 @@ export default function InterviewPage() {
           },
         })
         setIsFollowUp(true)
-        setIsGenerating(false)
+        stopReviewProgress()
+        clearTimeout(overallTimeout)
         setPhase('ready')
         return
       }
     } catch (e) {
-      console.warn('[꼬리질문] 생성 실패 (타임아웃 또는 API 오류):', e.message)
-      // 실패해도 무조건 다음으로 진행
+      console.warn('[reviewing] 실패 (타임아웃 또는 에러):', e.message)
+      // 에러 시 꼬리질문 스킵 → 다음 질문
     }
 
     // 꼬리질문 불필요 또는 실패 → 다음 메인 질문
-    setIsGenerating(false)
+    stopReviewProgress()
+    clearTimeout(overallTimeout)
     setFollowUpQuestion(null)
     setIsFollowUp(false)
     nextQuestion()
@@ -441,9 +488,13 @@ export default function InterviewPage() {
     currentIndex,
     currentQuestion,
     frames,
-    processInBackground,
     nextQuestion,
     setPhase,
+    startReviewProgress,
+    stopReviewProgress,
+    evaluators,
+    maxFollowUps,
+    track,
   ])
 
   // === 꼬리질문 답변 시작 ===
@@ -452,13 +503,11 @@ export default function InterviewPage() {
     clearFrames()
     startRecording()
     startCapture()
-    startSpeech()
     setPhase('recording')
   }, [stream, clearFrames, startRecording, startCapture, setPhase])
 
   // === 꼬리질문 답변 완료 → 다음 메인 질문 ===
   const handleStopFollowUp = useCallback(async () => {
-    stopSpeech()
     const finalFrames = stopCapture()
     const result = await stopRecording()
     const idx = currentIndex
@@ -477,7 +526,42 @@ export default function InterviewPage() {
         },
       }
       useInterviewStore.setState({ answers })
-      processInBackground(idx, result.blob, followUpQuestion || '', true)
+
+      // 꼬리질문 답변도 STT + 교정 수행 (백그라운드)
+      const followUpText = followUpQuestion || ''
+      const mySession = useInterviewStore.getState().sessionId
+      const recDuration = result.duration
+      if (recDuration && recDuration >= 3) {
+        incPendingSTT()
+        ;(async () => {
+          try {
+            if (useInterviewStore.getState().sessionId !== mySession) return
+            const sttResult = await transcribeAudio(result.blob)
+            if (useInterviewStore.getState().sessionId !== mySession) return
+            const corrected = await correctTranscript(sttResult.transcript, followUpText, track)
+            if (useInterviewStore.getState().sessionId !== mySession) return
+
+            const latestState = useInterviewStore.getState()
+            const latestAnswers = [...latestState.answers]
+            if (latestAnswers[idx]) {
+              latestAnswers[idx] = {
+                ...latestAnswers[idx],
+                followUp: {
+                  ...latestAnswers[idx].followUp,
+                  rawTranscript: sttResult.transcript,
+                  transcript: corrected,
+                  fillerWordCount: sttResult.fillerWordCount,
+                },
+              }
+              useInterviewStore.setState({ answers: latestAnswers })
+            }
+          } catch (e) {
+            console.warn(`[백그라운드] Q${idx + 1} 꼬리 실패:`, e.message)
+          } finally {
+            if (useInterviewStore.getState().sessionId === mySession) decPendingSTT()
+          }
+        })()
+      }
     }
 
     setFollowUpQuestion(null)
@@ -489,14 +573,15 @@ export default function InterviewPage() {
     currentIndex,
     frames,
     followUpQuestion,
-    processInBackground,
     nextQuestion,
+    incPendingSTT,
+    decPendingSTT,
+    track,
   ])
 
   // processing → 분석 페이지 이동
   useEffect(() => {
     if (phase === 'processing') {
-      stopSpeech()
       stopStream()
       navigate('/analyzing')
     }
@@ -540,6 +625,13 @@ export default function InterviewPage() {
 
   // 현재 표시할 질문 텍스트
   const displayQuestion = isFollowUp ? followUpQuestion : currentQuestion.text
+
+  // reviewing 프로그레스 바 텍스트
+  const reviewStageText = [
+    '답변을 텍스트로 변환하고 있습니다',
+    '답변 내용을 정리하고 있습니다',
+    '면접관이 답변을 검토하고 있습니다',
+  ]
 
   return (
     <div className="flex max-h-screen flex-1 flex-col p-4 sm:p-6">
@@ -674,8 +766,8 @@ export default function InterviewPage() {
                 style={{ transform: 'scaleX(-1)' }}
               />
 
-              {/* 답변 전 가이드 / 꼬리질문 생성 중 */}
-              {phase === 'ready' && !isGenerating && (
+              {/* 답변 전 가이드 */}
+              {phase === 'ready' && (
                 <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/50">
                   <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/60">
                     <div className="h-3 w-3 rounded-full bg-white/80" />
@@ -728,9 +820,19 @@ export default function InterviewPage() {
                 </div>
               )}
 
-              {/* 꼬리질문 생성 중 로딩 */}
-              {isGenerating && (
-                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/60">
+              {/* reviewing 오버레이 */}
+              {phase === 'reviewing' && (
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-5 bg-black/60">
+                  {/* 프로그레스 바 */}
+                  <div className="w-64">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+                      <div
+                        className="bg-accent h-full rounded-full transition-all duration-300"
+                        style={{ width: `${reviewProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                  {/* 점 애니메이션 */}
                   <div className="flex gap-2">
                     {[0, 1, 2].map((i) => (
                       <div
@@ -743,7 +845,17 @@ export default function InterviewPage() {
                       />
                     ))}
                   </div>
-                  <p className="text-sm text-white">면접관들이 답변을 검토하고 있습니다...</p>
+                  {/* 상태 텍스트 */}
+                  <p className="text-sm text-white">
+                    {reviewStageText[reviewStage]}
+                    <span
+                      style={{
+                        animation: 'analyzing-dots 1.4s infinite ease-in-out both',
+                      }}
+                    >
+                      ...
+                    </span>
+                  </p>
                 </div>
               )}
 
@@ -795,13 +907,13 @@ export default function InterviewPage() {
         <div className="flex justify-center gap-4 py-2">
           <button
             onClick={handleExit}
-            disabled={isRecording}
+            disabled={isRecording || phase === 'reviewing'}
             className="border-border bg-bg-card text-text-secondary hover:border-accent/50 cursor-pointer rounded-xl border px-5 py-2.5 transition-all disabled:cursor-not-allowed disabled:opacity-40"
           >
             나가기
           </button>
 
-          {isGenerating ? (
+          {phase === 'reviewing' ? (
             <button
               disabled
               className="bg-bg-elevated text-text-secondary cursor-not-allowed rounded-xl px-8 py-2.5"
