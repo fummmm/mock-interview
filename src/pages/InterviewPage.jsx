@@ -50,8 +50,6 @@ export default function InterviewPage() {
   const audioLevel = useAudioLevel(stream)
 
   // 꼬리질문 빈도 제어
-  const followUpCountRef = useRef(0)
-  const maxFollowUps = Math.min(3, Math.ceil(questions.length * 0.5))
 
   // 브리핑 + 꼬리질문 상태
   const [showBriefing, setShowBriefing] = useState(true)
@@ -322,15 +320,7 @@ export default function InterviewPage() {
       return
     }
 
-    // (4) 사전 필터: 꼬리질문 횟수 소진 → 즉시 다음 질문
-    if (followUpCountRef.current >= maxFollowUps) {
-      setFollowUpQuestion(null)
-      setIsFollowUp(false)
-      nextQuestion()
-      return
-    }
-
-    // (5) reviewing 진입
+    // (4) reviewing 진입
     setPhase('reviewing')
     startReviewProgress()
 
@@ -363,7 +353,6 @@ export default function InterviewPage() {
         if (recordingDuration >= 5 && recordingDuration <= 15) {
           // 극히 짧은 답변 → incomplete 유형 하드코딩
           const asker = evaluators[0]
-          followUpCountRef.current++
           setFollowUpQuestion(
             '답변이 짧았는데, 비슷한 상황을 경험하지 못했더라도 어떻게 접근하실지 말씀해주시겠어요?',
           )
@@ -430,20 +419,12 @@ export default function InterviewPage() {
         evaluators,
         questionId,
         recordingDuration,
-        followUpCountRef.current,
-        maxFollowUps,
       )
 
       if (abortController.signal.aborted) throw new Error('reviewing timeout')
 
-      // (9) 꼬리질문 결과 처리
-      // 프론트엔드 최종 검증: Haiku가 needed:true 반환해도 횟수 초과 시 무시
-      if (
-        followUp.needed &&
-        followUp.question &&
-        followUpCountRef.current < maxFollowUps
-      ) {
-        followUpCountRef.current++
+      // (9) 꼬리질문 결과 처리 (Haiku 판단에 전적으로 의존)
+      if (followUp.needed && followUp.question) {
         const asker = evaluators.find((e) => e.id === followUp.evaluatorId) || evaluators[0]
         setFollowUpQuestion(followUp.question)
         setFollowUpEvaluator(asker)
@@ -493,7 +474,6 @@ export default function InterviewPage() {
     startReviewProgress,
     stopReviewProgress,
     evaluators,
-    maxFollowUps,
     track,
   ])
 
@@ -762,7 +742,7 @@ export default function InterviewPage() {
                 autoPlay
                 muted
                 playsInline
-                className="h-full w-full object-cover"
+                className={`h-full w-full object-cover transition-all duration-500 ${phase === 'reviewing' ? 'blur-md scale-105' : ''}`}
                 style={{ transform: 'scaleX(-1)' }}
               />
 
