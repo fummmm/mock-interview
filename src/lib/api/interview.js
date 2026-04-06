@@ -105,157 +105,94 @@ ${track && TRACK_TERMS[track] ? `8. **${track.toUpperCase()} 트랙 전문용어
 }
 
 /**
- * 꼬리질문 판단+생성 - 3-Criteria Check (Haiku)
- * STT 텍스트를 받아 꼬리질문 필요 여부를 판단하고 생성한다.
- *
- * @param {string} questionText - 메인 질문 텍스트
- * @param {string} correctedTranscript - Whisper STT 원본 또는 교정 완료된 답변 텍스트
- * @param {Array} evaluatorNames - 면접관 패널 배열 [{id, name, role, style}, ...]
- * @param {string} questionId - 질문 ID (사전 필터용)
- * @param {number} recordingDuration - 녹화 시간 (초)
- * @returns {{ needed: boolean, question?: string, evaluatorId?: string, deficiency?: string, c1?: boolean, c2?: boolean, c3?: boolean, reason?: string }}
+ * 꼬리질문 생성 - 답변이 부족할 때만
  */
 export async function generateFollowUp(
   questionText,
-  correctedTranscript,
+  roughTranscript,
   evaluatorNames = [],
   questionId = '',
   recordingDuration = 0,
 ) {
-  try {
-    // --- 사전 필터 ---
+  // 자기소개, 마무리 질문은 꼬리질문 스킵
+  if (questionId === 'beh-intro' || questionId === 'beh-lastq') {
+    return { needed: false }
+  }
 
-    // 자기소개, 마무리 질문은 꼬리질문 스킵
-    if (questionId === 'beh-intro' || questionId === 'beh-lastq') {
-      return { needed: false }
+  const hasTranscript = roughTranscript && roughTranscript.trim().length >= 5
+
+  // 30초 이상 답변했으면 꼬리질문 불필요 (충분히 답변함)
+  if (recordingDuration >= 30) {
+    return { needed: false }
+  }
+
+  // 15초 미만 + 답변 내용 없음 → 회피성 답변으로 판단 → 꼬리질문 생성
+  if (recordingDuration < 15 && !hasTranscript) {
+    const asker = evaluatorNames[0]
+    return {
+      needed: true,
+      question:
+        '답변이 짧았는데, 비슷한 상황을 경험하지 못했더라도 어떻게 접근하실지 말씀해주시겠어요?',
+      evaluatorId: asker?.id || 'hr',
     }
+  }
 
-    // 5초 미만 답변 → 답변 의사 없음으로 판단, 스킵
-    if (recordingDuration < 5) {
-      return { needed: false }
-    }
+  // Web Speech 텍스트가 없으면 판단 불가 → 스킵
+  if (!hasTranscript) {
+    return { needed: false }
+  }
 
-    // incomplete 유형: 5~15초 녹화 + 교정 텍스트 30자 미만 → 하드코딩 꼬리질문
-    const transcriptLength = (correctedTranscript || '').trim().length
-    if (recordingDuration >= 5 && recordingDuration <= 15 && transcriptLength < 30) {
-      const asker = evaluatorNames[0]
-      return {
-        needed: true,
-        question:
-          '답변이 짧았는데, 비슷한 상황을 경험하지 못했더라도 어떻게 접근하실지 말씀해주시겠어요?',
-        evaluatorId: asker?.id || 'hr',
-        deficiency: 'incomplete',
-        c1: false,
-        c2: false,
-        c3: false,
-        reason: '답변이 극히 짧음 (15초 이내, 30자 미만)',
-      }
-    }
+  const nameList = evaluatorNames
+    .map((e) => `- ${e.id}: ${e.name} (${e.role}, ${e.style})`)
+    .join('\n')
 
-    // --- Haiku 호출 ---
-
-    const nameList = evaluatorNames
-      .map((e) => `- ${e.id}: ${e.name} (${e.role}, ${e.style})`)
-      .join('\n')
-
-    const content = await callOpenRouter({
-      model: 'anthropic/claude-haiku-4-5-20251001',
-      maxTokens: 512,
-      temperature: 0.3,
-      timeoutMs: 8000,
-      jsonMode: true,
-      messages: [
-        {
-          role: 'system',
-          content: `당신은 면접 패널의 일원입니다. 지원자의 답변을 3가지 기준으로 평가하고, 필요 시 꼬리질문을 생성합니다.
+  const content = await callOpenRouter({
+    model: 'anthropic/claude-sonnet-4',
+    messages: [
+      {
+        role: 'system',
+        content: `당신은 면접 패널의 일원입니다. 지원자의 답변을 듣고, 꼬리질문이 필요한지 판단합니다.
 
 ## 면접관 패널
 ${nameList}
 
-## 3가지 판단 기준 (모두 충족 시 PASS)
+## 꼬리질문 판단 기준
 
-1. **질문 의도 부합 (C1)**: 질문의 핵심 포인트에 직접 답변했는가?
-   - PASS: 질문이 묻는 내용에 대해 직접적으로 답함
-   - FAIL: 질문을 회피하거나, 전혀 관련 없는 이야기만 함
+대부분의 답변에는 꼬리질문이 불필요합니다. 10개 중 2~3개 정도만 꼬리질문이 필요합니다.
 
-2. **구체적 사례 (C2)**: 실제 경험이나 프로젝트를 1개 이상 언급했는가?
-   - PASS: 실제 프로젝트명, 상황, 시기 등 구체적 사례가 있음
-   - FAIL: "~할 것 같습니다", "~하는 게 중요합니다" 같은 일반론만 있음
+꼬리질문이 필요한 경우 (매우 제한적):
+- "없습니다" 등 회피 답변 → "비슷한 상황이라면 어떻게 하시겠어요?"
+- 경험을 말했지만 본인 역할이 전혀 언급되지 않은 경우에만 → "그 과정에서 본인이 직접 한 행동은?"
+- 결과나 교훈이 완전히 빠진 경우에만 → "그래서 결과는 어땠나요?"
 
-3. **본인 역할 (C3)**: 본인이 직접 한 행동/역할을 명시했는가?
-   - PASS: "제가 ~했습니다", "저는 ~를 담당" 등 본인 행동이 명확함
-   - FAIL: "저희 팀이 ~했습니다"만 있고 본인의 구체적 기여가 불분명
+꼬리질문이 불필요한 경우 (대부분 여기에 해당):
+- 30초 이상 답변한 경우 → 거의 항상 스킵
+- 사례를 하나라도 언급한 경우 → 스킵
+- 조금 부족하더라도 평가 리포트에서 충분히 지적 가능 → 스킵
+- 답변이 완벽하지 않아도 기본적인 내용이 있으면 → 스킵
 
-## 꼬리질문 유형
+## 금지되는 꼬리질문 (이런 질문은 절대 생성하지 마세요)
+- "좀 더 구체적으로 말씀해주시겠어요?"
+- "조금 더 자세히 설명해주시겠어요?"
+- "예시를 들어주시겠어요?"
+- "더 말씀해주실 것이 있나요?"
+- 위와 비슷한 포괄적/범용적 질문 전부 금지
 
-C1 FAIL → evasion: 가상 시나리오로 전환하여 사고 과정 확인
-C2 FAIL → abstract: 답변 속 키워드를 인용하며 구체적 사례 요청
-C3 FAIL → role-unclear: 답변 속 활동을 인용하며 본인 역할 질문
-3개 모두 PASS이지만 결과/교훈 완전 누락 → result-missing: 결과 확인
+꼬리질문은 반드시 답변 내용에서 특정 키워드나 사건을 인용하며 질문해야 합니다.
+예: "아까 '프론트엔드 작업이 지연됐다'고 하셨는데, 그때 백엔드 팀과 어떻게 일정을 조율하셨나요?"
 
-## STT 입력 안내
+반드시 JSON으로만 응답:
+{ "needed": true, "question": "꼬리질문", "evaluatorId": "질문하는 면접관 id", "reason": "판단 이유" }
+또는
+{ "needed": false }`,
+      },
+      {
+        role: 'user',
+        content: `[메인 질문] ${questionText}\n[답변 (음성 인식 결과, 부정확할 수 있음)] ${roughTranscript}`,
+      },
+    ],
+    jsonMode: true,
+  })
 
-아래 답변 텍스트는 Whisper 음성 인식 원본입니다. 교정을 거치지 않았으므로:
-- 단어 하나하나의 정확성에 의존하지 마세요
-- 답변의 전체 흐름, 맥락, 의미에 집중하여 판단하세요
-- 고유명사(회사명, 프로젝트명 등)가 잘못 인식되었을 수 있습니다
-- "어", "음" 같은 필러워드가 많을 수 있으나 판단에 영향주지 마세요
-
-## 판단 원칙
-
-- 3가지 기준을 엄격하게 적용하되, 애매한 경우에는 꼬리질문을 생성하지 마세요.
-- 평가 리포트에서 충분히 지적할 수 있는 수준의 부족함이면 꼬리질문 불필요입니다.
-- 꼬리질문은 답변이 명백히 부족할 때만 생성하세요.
-
-## 꼬리질문 생성 규칙
-
-- 반드시 답변 내용에서 특정 키워드, 프로젝트명, 사건을 인용하며 질문할 것
-- 답변 내용에서 키워드를 인용하되, STT 오인식일 수 있으므로 의미 단위로 인용하세요
-- 예: "프론트 핀트 개발" → "프론트엔드 개발 경험"으로 의미를 살려 인용
-- 금지 표현: "좀 더 구체적으로", "자세히 설명해주시겠어요", "예시를 들어주시겠어요", "더 말씀해주실 것이 있나요"
-- 꼬리질문은 1문장으로. 면접관 말투에 맞게.
-
-반드시 아래 JSON 형식으로만 응답:
-
-꼬리질문이 필요한 경우:
-{
-  "c1": true/false,
-  "c2": true/false,
-  "c3": true/false,
-  "deficiency": "evasion|abstract|role-unclear|result-missing",
-  "needed": true,
-  "question": "꼬리질문 내용",
-  "evaluatorId": "질문하는 면접관 id",
-  "reason": "1줄 판단 이유"
-}
-
-꼬리질문이 불필요한 경우:
-{
-  "c1": true,
-  "c2": true,
-  "c3": true,
-  "needed": false
-}`,
-        },
-        {
-          role: 'user',
-          content: `[메인 질문] ${questionText}\n[답변 (음성 인식 원본, 오인식 포함 가능)] ${correctedTranscript}\n[녹화 시간] ${recordingDuration}초`,
-        },
-      ],
-    })
-
-    const result = safeParseJSON(content, 'generateFollowUp')
-
-    // Haiku 응답에 needed 필드가 없으면 환각 방어 → 스킵
-    if (typeof result.needed !== 'boolean') {
-      console.warn('[generateFollowUp] Haiku 응답에 needed 필드 없음, 스킵 처리')
-      return { needed: false }
-    }
-
-    return result
-  } catch (error) {
-    // 모든 에러(타임아웃, JSON 파싱 실패, 네트워크 등) → 꼬리질문 스킵
-    console.warn('[generateFollowUp] 에러 발생, 꼬리질문 스킵:', error.message)
-    return { needed: false }
-  }
+  return safeParseJSON(content, 'generateFollowUp')
 }
