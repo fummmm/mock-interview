@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 
 const CAPTURE_INTERVAL = 5000
 const MAX_FRAMES = 6
+const DISABLED = true // 비전 분석 비활성화 — 5초 캡처로는 유의미한 분석 불가
 
 export function useFrameCapture(videoRef) {
   const [frames, setFrames] = useState([])
@@ -33,6 +34,7 @@ export function useFrameCapture(videoRef) {
   }
 
   const startCapture = useCallback(() => {
+    if (DISABLED) return
     updateFrames([])
     const first = captureFrame()
     if (first) updateFrames([first])

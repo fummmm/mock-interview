@@ -148,18 +148,14 @@ export default function AnalyzingPage() {
 
       const updatedAnswers = useInterviewStore.getState().answers
 
-      const [textResult, visionResult] = await Promise.allSettled([
+      // 비전 분석 비활성화 (5초 캡처로는 유의미한 분석 불가, 전체 영상 분석 필요)
+      const [textResult] = await Promise.allSettled([
         analyzeText({
           questions,
           answers: updatedAnswers,
           track,
           companySize,
         }).then((r) => {
-          setProgress(75)
-          setStatusText('텍스트 분석 완료, 영상 분석 중...')
-          return r
-        }),
-        analyzeVision({ answers: updatedAnswers }).then((r) => {
           setProgress(85)
           return r
         }),
@@ -169,7 +165,7 @@ export default function AnalyzingPage() {
       setStatusText('종합 리포트 생성 중...')
 
       let textData = textResult.status === 'fulfilled' ? textResult.value : null
-      const visionData = visionResult.status === 'fulfilled' ? visionResult.value : null
+      const visionData = null // 비전 분석 비활성화
 
       // 텍스트 분석 실패 시 한번 더 단독 재시도
       if (!textData) {
@@ -228,7 +224,7 @@ export default function AnalyzingPage() {
     '답변 하나하나 정성껏 분석하고 있어요',
     '질문이 많을수록 분석에 시간이 걸립니다',
     '면접관들의 코멘트를 취합하고 있습니다',
-    '비언어적 커뮤니케이션도 함께 분석 중이에요',
+    '면접관들이 점수를 조율하고 있어요',
     '곧 리포트가 완성됩니다',
   ]
   const waitIdx =
