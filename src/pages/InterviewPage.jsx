@@ -50,6 +50,8 @@ export default function InterviewPage() {
   const audioLevel = useAudioLevel(stream)
 
   // 꼬리질문 빈도 제어
+  const followUpCountRef = useRef(0)
+  const maxFollowUps = Math.min(3, Math.ceil(questions.length * 0.5))
 
   // 브리핑 + 꼬리질문 상태
   const [showBriefing, setShowBriefing] = useState(true)
@@ -61,7 +63,7 @@ export default function InterviewPage() {
 
   // reviewing 프로그레스 바 상태
   const [reviewProgress, setReviewProgress] = useState(0)
-  const [reviewStage, setReviewStage] = useState(0) // 0: STT, 1: 교정, 2: 검토
+  const [reviewStage, setReviewStage] = useState(0) // 0: STT, 1: 검토
   const reviewTimerRef = useRef(null)
 
   // 하드모드 전용 state
@@ -111,7 +113,7 @@ export default function InterviewPage() {
     return evaluators[index % evaluators.length]
   }
 
-  // reviewing 프로그레스 바 시뮬레이션 시작/정지
+  // reviewing 프로그레스 바 시뮬레이션 시작/정지 (2단계: STT → 검토)
   const startReviewProgress = useCallback(() => {
     setReviewProgress(0)
     setReviewStage(0)
@@ -120,18 +122,14 @@ export default function InterviewPage() {
       const elapsed = (Date.now() - startTime) / 1000
       let progress
       let stage
-      if (elapsed < 2) {
-        // 0~2초: 0% → 40%
-        progress = (elapsed / 2) * 40
+      if (elapsed < 6) {
+        // 0~6초: 0% → 70% (Stage 0: STT 처리)
+        progress = (elapsed / 6) * 70
         stage = 0
-      } else if (elapsed < 4) {
-        // 2~4초: 40% → 70%
-        progress = 40 + ((elapsed - 2) / 2) * 30
-        stage = 1
       } else {
-        // 4초~: 70% → 느리게 증가 (최대 95%)
-        progress = Math.min(95, 70 + (elapsed - 4) * 1.5)
-        stage = 2
+        // 6초~: 70% → 느리게 증가 (최대 95%) (Stage 1: 검토)
+        progress = Math.min(95, 70 + (elapsed - 6) * 1.5)
+        stage = 1
       }
       setReviewProgress(progress)
       setReviewStage(stage)
@@ -273,6 +271,33 @@ export default function InterviewPage() {
     navigate('/')
   }, [stopStream, navigate])
 
+  // === 백그라운드 STT+교정 헬퍼 ===
+  const startBackgroundSTT = useCallback((idx, blob, questionText) => {
+    const mySession = useInterviewStore.getState().sessionId
+    incPendingSTT()
+    ;(async () => {
+      try {
+        if (useInterviewStore.getState().sessionId !== mySession) return
+        const sttResult = await transcribeAudio(blob)
+        if (useInterviewStore.getState().sessionId !== mySession) return
+        updateAnswer(idx, {
+          rawTranscript: sttResult.transcript,
+          transcript: sttResult.transcript, // 교정 전 임시 저장
+          fillerWordCount: sttResult.fillerWordCount,
+          silenceSegments: sttResult.silencePositions || [],
+        })
+        // 교정
+        const corrected = await correctTranscript(sttResult.transcript, questionText, track)
+        if (useInterviewStore.getState().sessionId !== mySession) return
+        updateAnswer(idx, { transcript: corrected })
+      } catch (e) {
+        console.warn(`[백그라운드] Q${idx + 1} STT 실패:`, e.message)
+      } finally {
+        if (useInterviewStore.getState().sessionId === mySession) decPendingSTT()
+      }
+    })()
+  }, [incPendingSTT, decPendingSTT, updateAnswer, track])
+
   // === 메인 답변 시작 ===
   const handleStartAnswer = useCallback(() => {
     if (!stream) return
@@ -283,7 +308,7 @@ export default function InterviewPage() {
     setPhase('recording')
   }, [stream, clearFrames, startRecording, startCapture, setPhase])
 
-  // === 메인 답변 완료 → reviewing 시퀀스 ===
+  // === 메인 답변 완료 → 녹음 시간 기반 4분기 파이프라인 ===
   const handleStopAnswer = useCallback(async () => {
     const finalFrames = stopCapture()
     const result = await stopRecording()
@@ -304,7 +329,8 @@ export default function InterviewPage() {
 
     const recordingDuration = result?.duration || 0
 
-    // (2) 사전 필터: 5초 미만 → 즉시 다음 질문
+    // ─── 분기 A: 사전 필터 ───
+    // A-1: 5초 미만 → 즉시 다음 질문
     if (recordingDuration < 5) {
       setFollowUpQuestion(null)
       setIsFollowUp(false)
@@ -312,7 +338,7 @@ export default function InterviewPage() {
       return
     }
 
-    // (3) 사전 필터: 자기소개/마무리 → 즉시 다음 질문
+    // A-2: 자기소개/마무리 → 즉시 다음 질문
     if (questionId === 'beh-intro' || questionId === 'beh-lastq') {
       setFollowUpQuestion(null)
       setIsFollowUp(false)
@@ -320,55 +346,117 @@ export default function InterviewPage() {
       return
     }
 
-    // (4) reviewing 진입
-    setPhase('reviewing')
-    startReviewProgress()
+    // A-3: 꼬리질문 횟수 소진 → 백그라운드 STT + 즉시 다음 질문
+    if (followUpCountRef.current >= maxFollowUps) {
+      if (result?.blob) startBackgroundSTT(idx, result.blob, questionText)
+      setFollowUpQuestion(null)
+      setIsFollowUp(false)
+      nextQuestion()
+      return
+    }
 
-    // 전체 타임아웃: 20초
-    const abortController = new AbortController()
-    const overallTimeout = setTimeout(() => {
-      abortController.abort()
-    }, 20000)
-
-    try {
-      let correctedText = ''
-      let rawText = ''
-      let fillerCount = 0
-      let silenceSegs = []
-
-      if (abortController.signal.aborted) throw new Error('reviewing timeout')
-
-      // (6) Whisper STT
-      let sttResult = null
-      try {
-        sttResult = await transcribeAudio(result.blob)
-        rawText = sttResult?.transcript || ''
-        fillerCount = sttResult?.fillerWordCount || 0
-        silenceSegs = sttResult?.silencePositions || []
-      } catch (sttErr) {
-        console.warn('[reviewing] STT 실패:', sttErr.message)
-        // STT 실패 폴백: 녹화 시간 기반 판단
-        updateAnswer(idx, { sttFailed: true })
-
-        if (recordingDuration >= 5 && recordingDuration <= 15) {
-          // 극히 짧은 답변 → incomplete 유형 하드코딩
-          const asker = evaluators[0]
-          setFollowUpQuestion(
+    // ─── 분기 B: 5~15초 (incomplete, 즉시 꼬리질문) ───
+    if (recordingDuration >= 5 && recordingDuration < 15) {
+      const asker = evaluators[0]
+      setFollowUpQuestion(
+        '답변이 짧았는데, 비슷한 상황을 경험하지 못했더라도 어떻게 접근하실지 말씀해주시겠어요?',
+      )
+      setFollowUpEvaluator(asker)
+      updateAnswer(idx, {
+        followUp: {
+          question:
             '답변이 짧았는데, 비슷한 상황을 경험하지 못했더라도 어떻게 접근하실지 말씀해주시겠어요?',
+          evaluatorId: asker.id,
+          evaluatorName: asker.name,
+          deficiency: 'incomplete',
+          c1: null,
+          c2: null,
+          c3: null,
+          transcript: '',
+          rawTranscript: '',
+          videoBlob: null,
+          videoBlobUrl: null,
+          frames: [],
+          recordingDuration: 0,
+        },
+      })
+      setIsFollowUp(true)
+      followUpCountRef.current++
+      // 백그라운드 STT (리포트용)
+      if (result?.blob) startBackgroundSTT(idx, result.blob, questionText)
+      setPhase('ready')
+      return
+    }
+
+    // ─── 분기 C: 15~45초 (reviewing: STT 12초 타임아웃 → Haiku raw 판단) ───
+    if (recordingDuration >= 15 && recordingDuration < 45) {
+      setPhase('reviewing')
+      startReviewProgress()
+
+      try {
+        // Whisper STT (12초 타임아웃)
+        let rawText = ''
+        let fillerCount = 0
+        let silenceSegs = []
+        let sttResult = null
+
+        try {
+          sttResult = await Promise.race([
+            transcribeAudio(result.blob),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('STT 타임아웃')), 12000)),
+          ])
+          rawText = sttResult?.transcript || ''
+          fillerCount = sttResult?.fillerWordCount || 0
+          silenceSegs = sttResult?.silencePositions || []
+        } catch (sttErr) {
+          console.warn('[reviewing] STT 실패/타임아웃:', sttErr.message)
+          // STT 실패/타임아웃 → 다음 질문
+          updateAnswer(idx, { sttFailed: true })
+          stopReviewProgress()
+          setFollowUpQuestion(null)
+          setIsFollowUp(false)
+          nextQuestion()
+          return
+        }
+
+        // STT 결과 임시 저장 (raw)
+        updateAnswer(idx, {
+          rawTranscript: rawText,
+          transcript: rawText, // 교정 전 임시
+          fillerWordCount: fillerCount,
+          silenceSegments: silenceSegs,
+        })
+
+        // Haiku 판단+생성 (raw transcript 기반, 교정 없음)
+        let followUp = null
+        try {
+          followUp = await generateFollowUp(
+            questionText,
+            rawText,
+            evaluators,
+            questionId,
+            recordingDuration,
           )
+        } catch (haikuErr) {
+          console.warn('[reviewing] Haiku 판단 실패:', haikuErr.message)
+        }
+
+        stopReviewProgress()
+
+        // 꼬리질문 결과 처리
+        if (followUp?.needed && followUp?.question) {
+          const asker = evaluators.find((e) => e.id === followUp.evaluatorId) || evaluators[0]
+          setFollowUpQuestion(followUp.question)
           setFollowUpEvaluator(asker)
           updateAnswer(idx, {
-            rawTranscript: '',
-            transcript: '',
             followUp: {
-              question:
-                '답변이 짧았는데, 비슷한 상황을 경험하지 못했더라도 어떻게 접근하실지 말씀해주시겠어요?',
+              question: followUp.question,
               evaluatorId: asker.id,
               evaluatorName: asker.name,
-              deficiency: 'incomplete',
-              c1: null,
-              c2: null,
-              c3: null,
+              deficiency: followUp.deficiency || null,
+              c1: followUp.c1 ?? null,
+              c2: followUp.c2 ?? null,
+              c3: followUp.c3 ?? null,
               transcript: '',
               rawTranscript: '',
               videoBlob: null,
@@ -378,87 +466,43 @@ export default function InterviewPage() {
             },
           })
           setIsFollowUp(true)
-          stopReviewProgress()
-          clearTimeout(overallTimeout)
+          followUpCountRef.current++
           setPhase('ready')
-          return
+        } else {
+          // 꼬리질문 불필요 → 다음 질문
+          setFollowUpQuestion(null)
+          setIsFollowUp(false)
+          nextQuestion()
         }
-        // 15~30초 또는 30초 이상: 판단 불가/충분히 답변 → 다음 질문
+
+        // 백그라운드: Sonnet 교정 (리포트용, 논블로킹)
+        if (rawText) {
+          const mySession = useInterviewStore.getState().sessionId
+          incPendingSTT()
+          ;(async () => {
+            try {
+              const corrected = await correctTranscript(rawText, questionText, track)
+              if (useInterviewStore.getState().sessionId !== mySession) return
+              updateAnswer(idx, { transcript: corrected })
+            } catch (e) {
+              console.warn(`[백그라운드] Q${idx + 1} 교정 실패:`, e.message)
+            } finally {
+              if (useInterviewStore.getState().sessionId === mySession) decPendingSTT()
+            }
+          })()
+        }
+      } catch (e) {
+        console.warn('[reviewing] 예기치 않은 에러:', e.message)
         stopReviewProgress()
-        clearTimeout(overallTimeout)
         setFollowUpQuestion(null)
         setIsFollowUp(false)
         nextQuestion()
-        return
       }
-
-      if (abortController.signal.aborted) throw new Error('reviewing timeout')
-
-      // (7) LLM 교정
-      try {
-        correctedText = await correctTranscript(rawText, questionText, track)
-      } catch (corrErr) {
-        console.warn('[reviewing] 교정 실패:', corrErr.message)
-        correctedText = rawText // 교정 실패 시 raw 사용
-      }
-
-      if (abortController.signal.aborted) throw new Error('reviewing timeout')
-
-      // STT + 교정 결과를 답변 스토어에 저장
-      updateAnswer(idx, {
-        rawTranscript: rawText,
-        transcript: correctedText,
-        fillerWordCount: fillerCount,
-        silenceSegments: silenceSegs,
-      })
-
-      // (8) Haiku 판단 + 생성
-      const followUp = await generateFollowUp(
-        questionText,
-        correctedText,
-        evaluators,
-        questionId,
-        recordingDuration,
-      )
-
-      if (abortController.signal.aborted) throw new Error('reviewing timeout')
-
-      // (9) 꼬리질문 결과 처리 (Haiku 판단에 전적으로 의존)
-      if (followUp.needed && followUp.question) {
-        const asker = evaluators.find((e) => e.id === followUp.evaluatorId) || evaluators[0]
-        setFollowUpQuestion(followUp.question)
-        setFollowUpEvaluator(asker)
-        updateAnswer(idx, {
-          followUp: {
-            question: followUp.question,
-            evaluatorId: asker.id,
-            evaluatorName: asker.name,
-            deficiency: followUp.deficiency || null,
-            c1: followUp.c1 ?? null,
-            c2: followUp.c2 ?? null,
-            c3: followUp.c3 ?? null,
-            transcript: '',
-            rawTranscript: '',
-            videoBlob: null,
-            videoBlobUrl: null,
-            frames: [],
-            recordingDuration: 0,
-          },
-        })
-        setIsFollowUp(true)
-        stopReviewProgress()
-        clearTimeout(overallTimeout)
-        setPhase('ready')
-        return
-      }
-    } catch (e) {
-      console.warn('[reviewing] 실패 (타임아웃 또는 에러):', e.message)
-      // 에러 시 꼬리질문 스킵 → 다음 질문
+      return
     }
 
-    // 꼬리질문 불필요 또는 실패 → 다음 메인 질문
-    stopReviewProgress()
-    clearTimeout(overallTimeout)
+    // ─── 분기 D: 45초+ (충분한 답변, 즉시 다음 질문) ───
+    if (result?.blob) startBackgroundSTT(idx, result.blob, questionText)
     setFollowUpQuestion(null)
     setIsFollowUp(false)
     nextQuestion()
@@ -475,6 +519,8 @@ export default function InterviewPage() {
     stopReviewProgress,
     evaluators,
     track,
+    startBackgroundSTT,
+    maxFollowUps,
   ])
 
   // === 꼬리질문 답변 시작 ===
@@ -606,10 +652,9 @@ export default function InterviewPage() {
   // 현재 표시할 질문 텍스트
   const displayQuestion = isFollowUp ? followUpQuestion : currentQuestion.text
 
-  // reviewing 프로그레스 바 텍스트
+  // reviewing 프로그레스 바 텍스트 (2단계: STT → 검토)
   const reviewStageText = [
-    '답변을 텍스트로 변환하고 있습니다',
-    '답변 내용을 정리하고 있습니다',
+    '답변을 분석하고 있습니다',
     '면접관이 답변을 검토하고 있습니다',
   ]
 

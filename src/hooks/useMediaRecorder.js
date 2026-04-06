@@ -49,6 +49,16 @@ export function useMediaRecorder(stream) {
       clearInterval(timerRef.current)
       setIsRecording(false)
 
+      // 1. 마지막 청크 강제 플러시 (recording/paused 상태에서만 가능)
+      if (recorder.state === 'recording' || recorder.state === 'paused') {
+        try {
+          recorder.requestData()
+        } catch {
+          // requestData() 미지원 브라우저 대비 — 무시하고 진행
+        }
+      }
+
+      // 2. onstop에서 Blob 생성 (requestData 후이므로 모든 청크 수신됨)
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, {
           type: recorder.mimeType || 'video/webm',
@@ -62,7 +72,10 @@ export function useMediaRecorder(stream) {
         })
       }
 
-      recorder.stop()
+      // 3. requestData() 후 지연을 두고 stop (ondataavailable 처리 시간 확보)
+      setTimeout(() => {
+        recorder.stop()
+      }, 100)
     })
   }, [])
 
