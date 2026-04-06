@@ -15,7 +15,7 @@ const TRACK_LABELS = {
   spring: 'Spring',
 }
 
-const COUNTS = [5, 6]
+const COUNTS = [2, 5, 6]
 
 export default function SetupPage() {
   const navigate = useNavigate()
@@ -415,13 +415,16 @@ export default function SetupPage() {
                     <button
                       key={c}
                       onClick={() => setQuestionCount(c)}
-                      className={`h-16 w-16 cursor-pointer rounded-xl border text-xl font-bold transition-all ${
+                      className={`flex h-16 cursor-pointer flex-col items-center justify-center rounded-xl border text-xl font-bold transition-all ${
+                        c === 2 ? 'w-24' : 'w-16'
+                      } ${
                         questionCount === c
                           ? 'border-accent bg-accent/10 text-accent'
                           : 'border-border bg-bg-card hover:border-accent/50 text-text-secondary'
                       }`}
                     >
                       {c}
+                      {c === 2 && <span className="text-[10px] font-normal opacity-60">테스트</span>}
                     </button>
                   ))}
                 </div>

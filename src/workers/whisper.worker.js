@@ -58,6 +58,12 @@ self.addEventListener('message', async (event) => {
         stride_length_s: 5,
       })
 
+      // Whisper 진단 로그 (Worker)
+      const chunks = result.chunks || []
+      const lastTimestamp = chunks.length > 0 ? (chunks[chunks.length - 1].timestamp?.[1] || 0) : 0
+      const rawText = result.text || ''
+      console.log(`[Whisper 진단] 오디오: ${(audioData.length / 16000).toFixed(1)}초 | Whisper 끝: ${lastTimestamp.toFixed(1)}초 | 텍스트: ${rawText.length}자`)
+
       // 반복 환각 제거 + 짧은 환각 제거
       let text = result.text || ''
       text = removeRepetitions(text)
@@ -67,7 +73,7 @@ self.addEventListener('message', async (event) => {
         type: 'result',
         requestId,
         text,
-        chunks: result.chunks || [],
+        chunks,
       })
     } catch (err) {
       self.postMessage({

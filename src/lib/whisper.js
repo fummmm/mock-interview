@@ -126,6 +126,11 @@ async function _transcribeAudio(blob) {
       chunk_length_s: 60,
       stride_length_s: 5,
     })
+    // Whisper 진단 로그 (메인 스레드 폴백)
+    const chunks = result.chunks || []
+    const lastTimestamp = chunks.length > 0 ? (chunks[chunks.length - 1].timestamp?.[1] || 0) : 0
+    const text0 = result.text || ''
+    console.log(`[Whisper 진단] 오디오: ${(audioData.length / 16000).toFixed(1)}초 | Whisper 끝: ${lastTimestamp.toFixed(1)}초 | 텍스트: ${text0.length}자`)
     // 메인 스레드에서도 환각 필터 적용
     let text = result.text || ''
     text = _removeMainThreadHallucinations(text, audioData?.length || 0)
@@ -204,6 +209,7 @@ async function blobToAudioData(blob) {
     sampleRate: 16000,
   })
   const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
+  console.log(`[Whisper 진단] Blob 크기: ${blob.size} bytes | 디코딩 오디오: ${audioBuffer.duration.toFixed(1)}초`)
   const channelData = audioBuffer.getChannelData(0)
   audioCtx.close()
   return channelData
