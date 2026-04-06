@@ -122,13 +122,13 @@ export default function InterviewPage() {
       const elapsed = (Date.now() - startTime) / 1000
       let progress
       let stage
-      if (elapsed < 6) {
-        // 0~6초: 0% → 70% (Stage 0: STT 처리)
-        progress = (elapsed / 6) * 70
+      if (elapsed < 15) {
+        // 0~15초: 0% → 70% (Stage 0: STT 처리)
+        progress = (elapsed / 15) * 70
         stage = 0
       } else {
-        // 6초~: 70% → 느리게 증가 (최대 95%) (Stage 1: 검토)
-        progress = Math.min(95, 70 + (elapsed - 6) * 1.5)
+        // 15초~: 70% → 느리게 증가 (최대 95%) (Stage 1: 검토)
+        progress = Math.min(95, 70 + (elapsed - 15) * 1.5)
         stage = 1
       }
       setReviewProgress(progress)
@@ -346,9 +346,8 @@ export default function InterviewPage() {
       return
     }
 
-    // A-3: 꼬리질문 횟수 소진 → 백그라운드 STT + 즉시 다음 질문
+    // A-3: 꼬리질문 횟수 소진 → 즉시 다음 질문 (STT는 AnalyzingPage에서 처리)
     if (followUpCountRef.current >= maxFollowUps) {
-      if (result?.blob) startBackgroundSTT(idx, result.blob, questionText)
       setFollowUpQuestion(null)
       setIsFollowUp(false)
       nextQuestion()
@@ -382,14 +381,13 @@ export default function InterviewPage() {
       })
       setIsFollowUp(true)
       followUpCountRef.current++
-      // 백그라운드 STT (리포트용)
-      if (result?.blob) startBackgroundSTT(idx, result.blob, questionText)
+      // STT는 AnalyzingPage에서 처리 (Whisper 큐 점유 방지)
       setPhase('ready')
       return
     }
 
-    // ─── 분기 C: 15~45초 (reviewing: STT 12초 타임아웃 → Haiku raw 판단) ───
-    if (recordingDuration >= 15 && recordingDuration < 45) {
+    // ─── 분기 C: 15~35초 (reviewing: STT 25초 타임아웃 → Haiku raw 판단) ───
+    if (recordingDuration >= 15 && recordingDuration < 35) {
       setPhase('reviewing')
       startReviewProgress()
 
@@ -403,7 +401,7 @@ export default function InterviewPage() {
         try {
           sttResult = await Promise.race([
             transcribeAudio(result.blob),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('STT 타임아웃')), 12000)),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('STT 타임아웃')), 25000)),
           ])
           rawText = sttResult?.transcript || ''
           fillerCount = sttResult?.fillerWordCount || 0
@@ -501,8 +499,8 @@ export default function InterviewPage() {
       return
     }
 
-    // ─── 분기 D: 45초+ (충분한 답변, 즉시 다음 질문) ───
-    if (result?.blob) startBackgroundSTT(idx, result.blob, questionText)
+    // ─── 분기 D: 35초+ (충분한 답변, 즉시 다음 질문) ───
+    // STT는 AnalyzingPage에서 처리 (Whisper 큐 점유 방지)
     setFollowUpQuestion(null)
     setIsFollowUp(false)
     nextQuestion()
