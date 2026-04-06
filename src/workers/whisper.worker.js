@@ -54,8 +54,8 @@ self.addEventListener('message', async (event) => {
         language: 'ko',
         task: 'transcribe',
         return_timestamps: true,
-        chunk_length_s: 60,
-        stride_length_s: 5,
+        chunk_length_s: 15,
+        stride_length_s: 3,
       })
 
       // Whisper 진단 로그 (Worker)

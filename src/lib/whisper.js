@@ -123,8 +123,8 @@ async function _transcribeAudio(blob) {
       language: 'ko',
       task: 'transcribe',
       return_timestamps: true,
-      chunk_length_s: 60,
-      stride_length_s: 5,
+      chunk_length_s: 15,
+      stride_length_s: 3,
     })
     // Whisper 진단 로그 (메인 스레드 폴백)
     const chunks = result.chunks || []
