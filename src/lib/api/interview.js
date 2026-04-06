@@ -126,12 +126,12 @@ export async function generateFollowUp(
 
   const hasTranscript = roughTranscript && roughTranscript.trim().length >= 5
 
-  // 30초 이상 답변했으면 꼬리질문 불필요 (충분히 답변함)
-  if (recordingDuration >= 30) {
+  // 5초 미만 → 답변 의사 없음
+  if (recordingDuration < 5) {
     return { needed: false }
   }
 
-  // 15초 미만 + 답변 내용 없음 → 회피성 답변으로 판단 → 꼬리질문 생성
+  // 5~15초 + 답변 내용 없음 → 회피성 답변 → 하드코딩 꼬리질문
   if (recordingDuration < 15 && !hasTranscript) {
     const asker = evaluatorNames[0]
     return {
@@ -152,7 +152,11 @@ export async function generateFollowUp(
     .join('\n')
 
   const content = await callOpenRouter({
-    model: 'anthropic/claude-sonnet-4',
+    model: 'anthropic/claude-haiku-4-5-20251001',
+    maxTokens: 512,
+    temperature: 0.3,
+    timeoutMs: 8000,
+    jsonMode: true,
     messages: [
       {
         role: 'system',
@@ -161,42 +165,41 @@ export async function generateFollowUp(
 ## 면접관 패널
 ${nameList}
 
-## 꼬리질문 판단 기준
+## 꼬리질문 판단 기준 (3-Criteria Check)
 
-대부분의 답변에는 꼬리질문이 불필요합니다. 10개 중 2~3개 정도만 꼬리질문이 필요합니다.
+3가지 기준으로 판단합니다. 하나라도 명백히 FAIL이면 꼬리질문을 생성합니다.
 
-꼬리질문이 필요한 경우 (매우 제한적):
-- "없습니다" 등 회피 답변 → "비슷한 상황이라면 어떻게 하시겠어요?"
-- 경험을 말했지만 본인 역할이 전혀 언급되지 않은 경우에만 → "그 과정에서 본인이 직접 한 행동은?"
-- 결과나 교훈이 완전히 빠진 경우에만 → "그래서 결과는 어땠나요?"
+1. **질문 의도 부합**: 질문이 묻는 내용에 직접 답했는가?
+   - FAIL: 질문을 회피하거나 전혀 관련 없는 이야기만 함
+2. **구체적 사례**: 실제 경험/프로젝트를 1개 이상 언급했는가?
+   - FAIL: "~할 것 같습니다" 같은 일반론만 있고 실제 사례 없음
+3. **본인 역할**: 본인이 직접 한 행동/역할을 명시했는가?
+   - FAIL: "저희 팀이 ~했습니다"만 있고 본인 기여 불분명
 
-꼬리질문이 불필요한 경우 (대부분 여기에 해당):
-- 30초 이상 답변한 경우 → 거의 항상 스킵
-- 사례를 하나라도 언급한 경우 → 스킵
-- 조금 부족하더라도 평가 리포트에서 충분히 지적 가능 → 스킵
-- 답변이 완벽하지 않아도 기본적인 내용이 있으면 → 스킵
+## 판단 원칙
+- 3가지 모두 충족하면 꼬리질문 불필요 (needed: false)
+- 애매하면 꼬리질문 불필요 (리포트에서 충분히 지적 가능)
+- 답변이 길더라도 위 기준에 명백히 미달하면 꼬리질문 생성
 
-## 금지되는 꼬리질문 (이런 질문은 절대 생성하지 마세요)
-- "좀 더 구체적으로 말씀해주시겠어요?"
-- "조금 더 자세히 설명해주시겠어요?"
-- "예시를 들어주시겠어요?"
-- "더 말씀해주실 것이 있나요?"
-- 위와 비슷한 포괄적/범용적 질문 전부 금지
+## STT 입력 안내
+답변 텍스트는 실시간 음성 인식 결과라 오인식이 있을 수 있습니다.
+단어가 아닌 전체 맥락과 흐름에 집중하여 판단하세요.
 
-꼬리질문은 반드시 답변 내용에서 특정 키워드나 사건을 인용하며 질문해야 합니다.
-예: "아까 '프론트엔드 작업이 지연됐다'고 하셨는데, 그때 백엔드 팀과 어떻게 일정을 조율하셨나요?"
+## 꼬리질문 생성 규칙
+- 반드시 답변 내용에서 특정 키워드나 사건을 의미 단위로 인용하며 질문
+- 금지: "좀 더 구체적으로", "자세히 설명해주시겠어요", "예시를 들어주시겠어요"
+- 1문장, 면접관 말투에 맞게
 
 반드시 JSON으로만 응답:
-{ "needed": true, "question": "꼬리질문", "evaluatorId": "질문하는 면접관 id", "reason": "판단 이유" }
+{ "needed": true, "question": "꼬리질문", "evaluatorId": "질문하는 면접관 id", "reason": "1줄 판단 이유" }
 또는
 { "needed": false }`,
       },
       {
         role: 'user',
-        content: `[메인 질문] ${questionText}\n[답변 (음성 인식 결과, 부정확할 수 있음)] ${roughTranscript}`,
+        content: `[메인 질문] ${questionText}\n[답변 (음성 인식 원본, 오인식 포함 가능)] ${roughTranscript}\n[녹화 시간] ${recordingDuration}초`,
       },
     ],
-    jsonMode: true,
   })
 
   return safeParseJSON(content, 'generateFollowUp')
