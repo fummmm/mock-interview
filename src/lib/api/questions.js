@@ -147,14 +147,8 @@ export async function generateJobPostingQuestions(
   track,
   count = 2,
 ) {
-  if (!companyName && !position && screenshots.length === 0) return []
-
-  // 텍스트 입력만 있고 스크린샷이 없는 경우, 최소 의미 있는 입력인지 검증
-  if (screenshots.length === 0) {
-    const hasValidCompany = companyName && companyName.trim().length >= 2
-    const hasValidPosition = position && position.trim().length >= 2
-    if (!hasValidCompany || !hasValidPosition) return []
-  }
+  // 스크린샷 필수
+  if (screenshots.length === 0) return []
 
   const trackLabel = getTrackLabel(track)
 
@@ -178,7 +172,7 @@ export async function generateJobPostingQuestions(
   if (screenshots.length > 0) {
     userContent.push({
       type: 'text',
-      text: '위 이미지는 채용 공고의 자격요건/우대사항 캡처입니다. 이 내용을 분석하여 면접 질문을 생성해주세요.',
+      text: '위 이미지는 채용 공고의 자격요건/우대사항 캡처입니다. 이 내용을 분석하여 면접 질문을 생성해주세요. 만약 이미지가 채용 공고가 아니라고 판단되면 빈 배열 []만 반환하세요.',
     })
   }
 
@@ -212,6 +206,12 @@ export async function generateJobPostingQuestions(
 - "저희 팀에서는 OO를 하고 있는데, 비슷한 경험이 있으신가요?" (매번 같은 패턴)
 - "OO 경험을 요구하고 있는데..." (제3자 시점)
 - 하나의 질문 안에 여러 질문을 넣지 마세요 (한 질문 = 하나의 핵심)
+
+## 공고 유효성 판단 (이미지 분석 시 먼저 수행)
+이미지가 채용 공고가 **아닌** 경우 빈 배열 []만 반환하세요:
+- 채용 공고/자격요건/우대사항이 아닌 이미지 (메모, 스크린샷, 대화 등)
+- 텍스트가 거의 없는 이미지 (로고만, 사진만 등)
+- 채용과 무관한 콘텐츠 (뉴스, SNS, 게임 화면 등)
 
 ## 규칙
 - 공고의 자격요건/기술스택에서 핵심 키워드를 뽑아서 질문에 자연스럽게 녹일 것

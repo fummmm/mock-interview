@@ -53,10 +53,7 @@ export default function SetupPage() {
   const effectiveCount = mode === 'job' ? 5 : questionCount
   const hasResume = docs.some((d) => d.doc_type === 'resume')
   const hasPortfolio = docs.some((d) => d.doc_type === 'portfolio')
-  const hasJobInfo =
-    mode === 'job' &&
-    ((jobCompany.trim().length >= 2 && jobPosition.trim().length >= 2) ||
-      jobScreenshots.length > 0)
+  const hasJobInfo = mode === 'job' && jobScreenshots.length > 0
   const canStart = (mode === 'job' ? hasJobInfo : !!track) && (mainAdmin || remaining > 0)
 
   useEffect(() => {
@@ -580,12 +577,17 @@ export default function SetupPage() {
                   )}
                 </div>
 
-                {hasJobInfo && (
+                {hasJobInfo ? (
                   <div className="text-success flex items-center gap-2 text-sm">
                     <span className="bg-success h-2 w-2 rounded-full" />
-                    공고 정보 등록됨 - 면접 시 맞춤형 질문이 포함됩니다
+                    공고 캡처 등록됨 - 면접 시 맞춤형 질문이 포함됩니다
                   </div>
-                )}
+                ) : mode === 'job' ? (
+                  <div className="text-text-secondary flex items-center gap-2 text-sm">
+                    <span className="bg-warning h-2 w-2 rounded-full" />
+                    채용 공고 캡처를 붙여넣어야 면접을 시작할 수 있습니다
+                  </div>
+                ) : null}
               </section>
 
               {/* 질문 수 고정 안내 */}
