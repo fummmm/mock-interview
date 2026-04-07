@@ -158,7 +158,7 @@ export async function generateFollowUp(
     const text = roughTranscript.trim()
     const koreanChars = (text.match(/[\uAC00-\uD7A3]/g) || []).length
     const totalChars = text.replace(/[\s\d.,!?'"()\-:;]/g, '').length
-    if (totalChars > 10 && koreanChars / totalChars < 0.5) {
+    if (totalChars > 10 && koreanChars / totalChars < 0.3) {
       const asker = evaluatorNames[0]
       return {
         needed: true,
