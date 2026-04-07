@@ -149,6 +149,13 @@ export async function generateJobPostingQuestions(
 ) {
   if (!companyName && !position && screenshots.length === 0) return []
 
+  // 텍스트 입력만 있고 스크린샷이 없는 경우, 최소 의미 있는 입력인지 검증
+  if (screenshots.length === 0) {
+    const hasValidCompany = companyName && companyName.trim().length >= 2
+    const hasValidPosition = position && position.trim().length >= 2
+    if (!hasValidCompany || !hasValidPosition) return []
+  }
+
   const trackLabel = getTrackLabel(track)
 
   // 비전 모델에 스크린샷 + 텍스트 정보를 함께 전달

@@ -54,7 +54,9 @@ export default function SetupPage() {
   const hasResume = docs.some((d) => d.doc_type === 'resume')
   const hasPortfolio = docs.some((d) => d.doc_type === 'portfolio')
   const hasJobInfo =
-    mode === 'job' && (jobCompany.trim() || jobPosition.trim() || jobScreenshots.length > 0)
+    mode === 'job' &&
+    ((jobCompany.trim().length >= 2 && jobPosition.trim().length >= 2) ||
+      jobScreenshots.length > 0)
   const canStart = (mode === 'job' ? hasJobInfo : !!track) && (mainAdmin || remaining > 0)
 
   useEffect(() => {
