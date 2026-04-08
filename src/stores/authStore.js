@@ -71,11 +71,27 @@ export const useAuthStore = create((set, get) => ({
       }
     }
 
-    const { data: quota } = await supabase
+    let { data: quota } = await supabase
       .from('interview_quotas')
       .select('*')
       .eq('user_id', user.id)
       .single()
+
+    // 프로필은 있는데 쿼타가 없으면 생성 (트리거에서 quotas insert만 실패한 케이스)
+    if (!quota) {
+      const initialQuota = 5
+      await supabase.from('interview_quotas').insert({
+        user_id: user.id,
+        total_quota: initialQuota,
+        used_count: 0,
+      })
+      const { data: retryQuota } = await supabase
+        .from('interview_quotas')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+      quota = retryQuota
+    }
 
     set({ profile: profile || null, quota: quota || null })
   },

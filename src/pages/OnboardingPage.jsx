@@ -21,7 +21,7 @@ export default function OnboardingPage() {
 
   if (profile?.onboarding_completed) return <Navigate to="/" replace />
 
-  const canSave = name.trim() && track && cohort
+  const canSave = name.trim().length >= 2 && track && cohort && parseInt(cohort) > 0
 
   const handleSubmit = async () => {
     if (!canSave) return
