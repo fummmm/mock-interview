@@ -6,7 +6,7 @@
 // contentEditable 헬퍼
 function CE({ className = '', children, style = {} }) {
   return (
-    <div className={className} contentEditable suppressContentEditableWarning spellCheck={false} style={style}>
+    <div className={className} contentEditable suppressContentEditableWarning spellCheck={false} style={{ color: 'inherit', ...style }}>
       {children}
     </div>
   )
@@ -18,7 +18,7 @@ function HeaderVertical() {
     <>
       <CE className="text-xl font-bold">이름</CE>
       <CE className="text-sm mt-1" style={{ color: 'var(--accent)' }}>직무 타이틀 | 기술 스택</CE>
-      <div className="mt-3 space-y-1 text-xs text-gray-600">
+      <div className="mt-3 space-y-1 text-xs opacity-70">
         <div className="flex gap-2"><span className="font-medium w-12">이메일</span><CE>email@example.com</CE></div>
         <div className="flex gap-2"><span className="font-medium w-12">전화</span><CE>010-0000-0000</CE></div>
         <div className="flex gap-2"><span className="font-medium w-12">GitHub</span><CE>github.com/username</CE></div>
@@ -34,7 +34,7 @@ function HeaderHorizontal() {
         <CE className="text-xl font-bold">이름</CE>
         <CE className="text-sm mt-1" style={{ color: 'var(--accent)' }}>직무 타이틀</CE>
       </div>
-      <div className="text-right text-xs text-gray-600 space-y-0.5">
+      <div className="text-right text-xs opacity-70 space-y-0.5">
         <CE>email@example.com</CE>
         <CE>010-0000-0000</CE>
         <CE>github.com/username</CE>
@@ -47,20 +47,20 @@ function HeaderMinimal() {
   return (
     <div className="text-center">
       <CE className="text-xl font-bold">이름</CE>
-      <CE className="text-xs text-gray-500 mt-1">email@example.com | 010-0000-0000 | github.com/username</CE>
+      <CE className="text-xs opacity-60 mt-1">email@example.com | 010-0000-0000 | github.com/username</CE>
     </div>
   )
 }
 
 // === 한 줄 소개 ===
 function SummaryBasic() {
-  return <CE className="text-sm leading-relaxed text-gray-700">한 줄 소개를 작성하세요. 본인의 핵심 역량과 지원 동기를 간결하게 표현합니다.</CE>
+  return <CE className="text-sm leading-relaxed opacity-80">한 줄 소개를 작성하세요. 본인의 핵심 역량과 지원 동기를 간결하게 표현합니다.</CE>
 }
 
 function SummaryQuote() {
   return (
     <div className="border-l-3 pl-3" style={{ borderColor: 'var(--accent)' }}>
-      <CE className="text-sm italic text-gray-700 leading-relaxed">"한 줄 소개를 작성하세요."</CE>
+      <CE className="text-sm italic opacity-80 leading-relaxed">"한 줄 소개를 작성하세요."</CE>
     </div>
   )
 }
@@ -68,7 +68,7 @@ function SummaryQuote() {
 function SummaryAccent() {
   return (
     <div className="rounded-lg p-3" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 8%, white)' }}>
-      <CE className="text-sm leading-relaxed text-gray-700">한 줄 소개를 작성하세요.</CE>
+      <CE className="text-sm leading-relaxed opacity-80">한 줄 소개를 작성하세요.</CE>
     </div>
   )
 }
@@ -80,7 +80,7 @@ function SkillTag() {
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>기술 스택</div>
       <div className="flex flex-wrap gap-1.5">
         {['Unity', 'C#', 'Git', 'Jira'].map((s) => (
-          <CE key={s} className="rounded-full border border-gray-200 px-2.5 py-0.5 text-xs text-gray-700">{s}</CE>
+          <CE key={s} className="rounded-full border border-gray-200 px-2.5 py-0.5 text-xs opacity-80">{s}</CE>
         ))}
       </div>
     </div>
@@ -92,9 +92,9 @@ function SkillCategory() {
     <div>
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>기술 스택</div>
       <div className="space-y-1.5 text-xs">
-        <div><span className="font-medium text-gray-700">엔진</span> <CE className="inline text-gray-500">Unity, Unreal Engine</CE></div>
-        <div><span className="font-medium text-gray-700">언어</span> <CE className="inline text-gray-500">C#, C++, Blueprint</CE></div>
-        <div><span className="font-medium text-gray-700">도구</span> <CE className="inline text-gray-500">Git, Jira, Notion</CE></div>
+        <div><span className="font-medium opacity-80">엔진</span> <CE className="inline opacity-60">Unity, Unreal Engine</CE></div>
+        <div><span className="font-medium opacity-80">언어</span> <CE className="inline opacity-60">C#, C++, Blueprint</CE></div>
+        <div><span className="font-medium opacity-80">도구</span> <CE className="inline opacity-60">Git, Jira, Notion</CE></div>
       </div>
     </div>
   )
@@ -108,11 +108,11 @@ function ProjectDetail() {
       <div className="space-y-3">
         <div>
           <div className="flex justify-between items-baseline">
-            <CE className="font-medium text-sm text-gray-800">프로젝트명</CE>
-            <CE className="text-xs text-gray-400">2025.01 ~ 2025.03</CE>
+            <CE className="font-medium text-sm opacity-90">프로젝트명</CE>
+            <CE className="text-xs opacity-50">2025.01 ~ 2025.03</CE>
           </div>
-          <CE className="text-xs text-gray-500 mt-0.5">역할 / 팀 구성</CE>
-          <CE className="text-xs text-gray-600 mt-1 leading-relaxed">프로젝트 설명과 본인의 기여를 작성하세요.</CE>
+          <CE className="text-xs opacity-60 mt-0.5">역할 / 팀 구성</CE>
+          <CE className="text-xs opacity-70 mt-1 leading-relaxed">프로젝트 설명과 본인의 기여를 작성하세요.</CE>
         </div>
       </div>
     </div>
@@ -122,9 +122,9 @@ function ProjectDetail() {
 function ProjectCard() {
   return (
     <div className="rounded-lg border border-gray-100 p-3">
-      <CE className="font-medium text-sm text-gray-800">프로젝트명</CE>
-      <CE className="text-xs text-gray-400 mt-0.5">2025.01 ~ 2025.03</CE>
-      <CE className="text-xs text-gray-600 mt-2 leading-relaxed">프로젝트 설명을 작성하세요.</CE>
+      <CE className="font-medium text-sm opacity-90">프로젝트명</CE>
+      <CE className="text-xs opacity-50 mt-0.5">2025.01 ~ 2025.03</CE>
+      <CE className="text-xs opacity-70 mt-2 leading-relaxed">프로젝트 설명을 작성하세요.</CE>
     </div>
   )
 }
@@ -132,8 +132,8 @@ function ProjectCard() {
 function ProjectMinimal() {
   return (
     <div>
-      <CE className="font-medium text-sm text-gray-800">프로젝트명</CE>
-      <CE className="text-xs text-gray-600 mt-1 leading-relaxed">한 줄 설명</CE>
+      <CE className="font-medium text-sm opacity-90">프로젝트명</CE>
+      <CE className="text-xs opacity-70 mt-1 leading-relaxed">한 줄 설명</CE>
     </div>
   )
 }
@@ -144,8 +144,8 @@ function EducationVertical() {
     <div>
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>학력</div>
       <div>
-        <CE className="font-medium text-sm text-gray-800">OO대학교 컴퓨터공학과</CE>
-        <CE className="text-xs text-gray-400">2018.03 ~ 2024.02 (졸업)</CE>
+        <CE className="font-medium text-sm opacity-90">OO대학교 컴퓨터공학과</CE>
+        <CE className="text-xs opacity-50">2018.03 ~ 2024.02 (졸업)</CE>
       </div>
     </div>
   )
@@ -156,8 +156,8 @@ function EducationHorizontal() {
     <div>
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>학력</div>
       <div className="flex justify-between items-baseline">
-        <CE className="font-medium text-sm text-gray-800">OO대학교 컴퓨터공학과</CE>
-        <CE className="text-xs text-gray-400">2018 ~ 2024</CE>
+        <CE className="font-medium text-sm opacity-90">OO대학교 컴퓨터공학과</CE>
+        <CE className="text-xs opacity-50">2018 ~ 2024</CE>
       </div>
     </div>
   )
@@ -170,11 +170,11 @@ function ExperienceVertical() {
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>경력</div>
       <div>
         <div className="flex justify-between items-baseline">
-          <CE className="font-medium text-sm text-gray-800">회사명</CE>
-          <CE className="text-xs text-gray-400">2023.01 ~ 현재</CE>
+          <CE className="font-medium text-sm opacity-90">회사명</CE>
+          <CE className="text-xs opacity-50">2023.01 ~ 현재</CE>
         </div>
         <CE className="text-xs mt-0.5" style={{ color: 'var(--accent)' }}>직무 / 직급</CE>
-        <CE className="text-xs text-gray-600 mt-1 leading-relaxed">담당 업무를 작성하세요.</CE>
+        <CE className="text-xs opacity-70 mt-1 leading-relaxed">담당 업무를 작성하세요.</CE>
       </div>
     </div>
   )
@@ -185,9 +185,9 @@ function ExperienceTimeline() {
     <div>
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>경력</div>
       <div className="border-l-2 pl-3 ml-1" style={{ borderColor: 'var(--accent)' }}>
-        <CE className="font-medium text-sm text-gray-800">회사명</CE>
-        <CE className="text-xs text-gray-400">2023.01 ~ 현재</CE>
-        <CE className="text-xs text-gray-600 mt-1 leading-relaxed">담당 업무를 작성하세요.</CE>
+        <CE className="font-medium text-sm opacity-90">회사명</CE>
+        <CE className="text-xs opacity-50">2023.01 ~ 현재</CE>
+        <CE className="text-xs opacity-70 mt-1 leading-relaxed">담당 업무를 작성하세요.</CE>
       </div>
     </div>
   )
@@ -199,8 +199,8 @@ function CertList() {
     <div>
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>자격증 / 수상</div>
       <div className="space-y-1 text-xs">
-        <div className="flex justify-between"><CE className="text-gray-700">자격증/수상명</CE><CE className="text-gray-400">2025.01</CE></div>
-        <div className="flex justify-between"><CE className="text-gray-700">자격증/수상명</CE><CE className="text-gray-400">2024.06</CE></div>
+        <div className="flex justify-between"><CE className="opacity-80">자격증/수상명</CE><CE className="opacity-50">2025.01</CE></div>
+        <div className="flex justify-between"><CE className="opacity-80">자격증/수상명</CE><CE className="opacity-50">2024.06</CE></div>
       </div>
     </div>
   )
@@ -211,8 +211,8 @@ function CertBadge() {
     <div>
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>자격증 / 수상</div>
       <div className="flex flex-wrap gap-1.5">
-        <CE className="rounded border border-gray-200 px-2 py-0.5 text-xs text-gray-700">자격증명</CE>
-        <CE className="rounded border border-gray-200 px-2 py-0.5 text-xs text-gray-700">수상명</CE>
+        <CE className="rounded border border-gray-200 px-2 py-0.5 text-xs opacity-80">자격증명</CE>
+        <CE className="rounded border border-gray-200 px-2 py-0.5 text-xs opacity-80">수상명</CE>
       </div>
     </div>
   )
@@ -224,8 +224,8 @@ function LinkRow() {
     <div>
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>포트폴리오 / 링크</div>
       <div className="space-y-1 text-xs">
-        <div className="flex gap-2"><CE className="font-medium" style={{ color: 'var(--accent)' }}>GitHub</CE><CE className="text-gray-500">github.com/username</CE></div>
-        <div className="flex gap-2"><CE className="font-medium" style={{ color: 'var(--accent)' }}>Portfolio</CE><CE className="text-gray-500">portfolio.notion.site</CE></div>
+        <div className="flex gap-2"><CE className="font-medium" style={{ color: 'var(--accent)' }}>GitHub</CE><CE className="opacity-60">github.com/username</CE></div>
+        <div className="flex gap-2"><CE className="font-medium" style={{ color: 'var(--accent)' }}>Portfolio</CE><CE className="opacity-60">portfolio.notion.site</CE></div>
       </div>
     </div>
   )

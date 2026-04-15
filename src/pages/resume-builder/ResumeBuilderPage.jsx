@@ -19,30 +19,42 @@ export default function ResumeBuilderPage() {
   const selectedBlock = blocks.find((b) => b.id === selectedId)
 
   // 블록 추가 (사이드바에서 드롭)
-  const addBlock = useCallback((type, x = 40, y = 40) => {
+  const addBlock = useCallback((type, x, y) => {
     const def = BLOCK_DEFS[type]
     if (!def) return
     const id = `block-${nextId++}`
-    setBlocks((prev) => [
-      ...prev,
-      {
-        id,
-        type,
-        x,
-        y,
-        w: def.w || 400,
-        h: def.h || 'auto',
-        zIndex: prev.length + 10,
-        accent: '#E8344E',
-        fontColor: '#1a1a2e',
-        bgColor: '#ffffff',
-        bgOpacity: 100,
-        fontSize: 14,
-        padding: 12,
-        borderRadius: 0,
-        content: {},
-      },
-    ])
+    const isDecor = type.startsWith('cb-') || type.startsWith('dv-')
+    setBlocks((prev) => {
+      // 자동 배치: 마지막 블록 아래에 20px 간격
+      let posX = x ?? 40
+      let posY = y ?? 40
+      if (x === undefined && y === undefined && prev.length > 0) {
+        const lastBlock = prev[prev.length - 1]
+        const lastH = typeof lastBlock.h === 'number' ? lastBlock.h : 100
+        posX = lastBlock.x
+        posY = lastBlock.y + lastH + 20
+      }
+      return [
+        ...prev,
+        {
+          id,
+          type,
+          x: posX,
+          y: posY,
+          w: def.w || 400,
+          h: def.h || 'auto',
+          zIndex: prev.length + 10,
+          accent: '#E8344E',
+          fontColor: '#1a1a2e',
+          bgColor: isDecor ? '#ffffff' : '#ffffff',
+          bgOpacity: isDecor ? 0 : 100,
+          fontSize: 14,
+          padding: isDecor ? 0 : 12,
+          borderRadius: 0,
+          content: {},
+        },
+      ]
+    })
     setSelectedId(id)
   }, [])
 
