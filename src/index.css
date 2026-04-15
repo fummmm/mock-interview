@@ -117,8 +117,9 @@ select {
     box-shadow: none !important;
   }
 
-  /* react-rnd 블록 위치 보존 */
+  /* react-rnd 블록 위치 보존 + 보더 숨김 */
   .react-draggable {
     position: absolute !important;
+    outline: none !important;
   }
 }

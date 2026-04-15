@@ -52,6 +52,88 @@ function HeaderMinimal() {
   )
 }
 
+// === 사진 ===
+import { useRef } from 'react'
+
+function PhotoCircle({ block, updateBlock }) {
+  const inputRef = useRef(null)
+  const handleUpload = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => updateBlock(block.id, { content: { ...block.content, photoSrc: reader.result } })
+    reader.readAsDataURL(file)
+  }
+  return (
+    <div className="flex items-center justify-center" style={{ minHeight: 120 }}>
+      <div
+        className="overflow-hidden bg-gray-100 flex items-center justify-center cursor-pointer"
+        style={{ width: 120, height: 120, borderRadius: '50%' }}
+        onClick={() => inputRef.current?.click()}
+      >
+        {block.content?.photoSrc ? (
+          <img src={block.content.photoSrc} alt="사진" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-xs opacity-40">클릭하여 사진 추가</span>
+        )}
+      </div>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+    </div>
+  )
+}
+
+function PhotoSquare({ block, updateBlock }) {
+  const inputRef = useRef(null)
+  const handleUpload = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => updateBlock(block.id, { content: { ...block.content, photoSrc: reader.result } })
+    reader.readAsDataURL(file)
+  }
+  return (
+    <div className="flex items-center justify-center" style={{ minHeight: 120 }}>
+      <div
+        className="overflow-hidden bg-gray-100 flex items-center justify-center cursor-pointer"
+        style={{ width: 120, height: 150, borderRadius: 8 }}
+        onClick={() => inputRef.current?.click()}
+      >
+        {block.content?.photoSrc ? (
+          <img src={block.content.photoSrc} alt="사진" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-xs opacity-40">클릭하여 사진 추가</span>
+        )}
+      </div>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+    </div>
+  )
+}
+
+function PhotoBanner({ block, updateBlock }) {
+  const inputRef = useRef(null)
+  const handleUpload = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => updateBlock(block.id, { content: { ...block.content, photoSrc: reader.result } })
+    reader.readAsDataURL(file)
+  }
+  return (
+    <div
+      className="w-full bg-gray-100 flex items-center justify-center cursor-pointer overflow-hidden"
+      style={{ minHeight: 80, borderRadius: 4 }}
+      onClick={() => inputRef.current?.click()}
+    >
+      {block.content?.photoSrc ? (
+        <img src={block.content.photoSrc} alt="배너" className="w-full h-full object-cover" />
+      ) : (
+        <span className="text-xs opacity-40">클릭하여 배너 이미지 추가</span>
+      )}
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+    </div>
+  )
+}
+
 // === 한 줄 소개 ===
 function SummaryBasic() {
   return <CE className="text-sm leading-relaxed opacity-80">한 줄 소개를 작성하세요. 본인의 핵심 역량과 지원 동기를 간결하게 표현합니다.</CE>
@@ -261,6 +343,11 @@ export const BLOCK_DEFS = {
   'hd-h': { label: '가로형', group: '기본 정보', icon: '👤', w: 540, component: HeaderHorizontal },
   'hd-min': { label: '미니멀형', group: '기본 정보', icon: '👤', w: 520, component: HeaderMinimal },
 
+  // 사진
+  'ph-circle': { label: '원형', group: '사진', icon: '📷', w: 160, h: 160, component: PhotoCircle },
+  'ph-square': { label: '사각형', group: '사진', icon: '📷', w: 160, h: 190, component: PhotoSquare },
+  'ph-banner': { label: '배너', group: '사진', icon: '📷', w: 500, h: 120, component: PhotoBanner },
+
   // 한 줄 소개
   'sum-basic': { label: '기본', group: '한 줄 소개', icon: '💬', w: 460, component: SummaryBasic },
   'sum-quote': { label: '인용구', group: '한 줄 소개', icon: '💬', w: 460, component: SummaryQuote },
@@ -302,6 +389,6 @@ export const BLOCK_DEFS = {
 
 // 팔레트 그룹 순서
 export const PALETTE_GROUPS = [
-  '기본 정보', '한 줄 소개', '기술 스택', '프로젝트',
+  '기본 정보', '사진', '한 줄 소개', '기술 스택', '프로젝트',
   '학력', '경력', '자격증/수상', '포트폴리오', '장식', '구분선',
 ]

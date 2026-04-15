@@ -314,7 +314,11 @@ export default function ResumeBuilderPage() {
                     right: true,
                     bottom: true,
                   }}
-                  className={`group cursor-default ${selectedId === block.id ? 'ring-2 ring-accent' : ''}`}
+                  className="group cursor-default"
+                  style={{
+                    outline: selectedId === block.id ? '2px solid var(--color-accent, #E8344E)' : '1px dashed #00000025',
+                    outlineOffset: selectedId === block.id ? 0 : -1,
+                  }}
                 >
                   {/* 드래그 핸들 */}
                   <div className="block-drag-handle absolute -top-6 left-0 right-0 flex h-6 items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity print:hidden cursor-grab active:cursor-grabbing">
