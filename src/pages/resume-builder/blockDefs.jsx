@@ -16,7 +16,7 @@ function CE({ className = '', children, style = {} }) {
 function HeaderVertical() {
   return (
     <>
-      <CE className="text-xl font-bold">이름</CE>
+      <CE className="rb-title font-bold">이름</CE>
       <CE className="text-sm mt-1" style={{ color: 'var(--accent)' }}>직무 타이틀 | 기술 스택</CE>
       <div className="mt-3 space-y-1 text-xs opacity-70">
         <div className="flex gap-2"><span className="font-medium w-12">이메일</span><CE>email@example.com</CE></div>
@@ -31,7 +31,7 @@ function HeaderHorizontal() {
   return (
     <div className="flex justify-between items-start">
       <div>
-        <CE className="text-xl font-bold">이름</CE>
+        <CE className="rb-title font-bold">이름</CE>
         <CE className="text-sm mt-1" style={{ color: 'var(--accent)' }}>직무 타이틀</CE>
       </div>
       <div className="text-right text-xs opacity-70 space-y-0.5">
@@ -46,7 +46,7 @@ function HeaderHorizontal() {
 function HeaderMinimal() {
   return (
     <div className="text-center">
-      <CE className="text-xl font-bold">이름</CE>
+      <CE className="rb-title font-bold">이름</CE>
       <CE className="text-xs opacity-60 mt-1">email@example.com | 010-0000-0000 | github.com/username</CE>
     </div>
   )

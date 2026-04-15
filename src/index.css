@@ -86,6 +86,14 @@ select {
   animation: fade-in 0.3s ease-out;
 }
 
+/* 이력서 빌더: 블록 내부 폰트 크기 상속 강제 */
+.rb-block-content * {
+  font-size: inherit !important;
+}
+.rb-block-content .rb-title { font-size: 1.4em !important; }
+.rb-block-content .rb-subtitle { font-size: 0.85em !important; }
+.rb-block-content .rb-small { font-size: 0.75em !important; }
+
 /* === 이력서 빌더 PDF 출력 === */
 @media print {
   @page {

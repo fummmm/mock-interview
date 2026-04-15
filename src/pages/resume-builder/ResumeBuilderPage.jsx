@@ -336,7 +336,7 @@ export default function ResumeBuilderPage() {
 
                   {/* 블록 콘텐츠 */}
                   <div
-                    className="h-full w-full overflow-hidden"
+                    className="rb-block-content h-full w-full overflow-hidden"
                     style={{
                       backgroundColor: `rgba(${hexToRgb(block.bgColor)}, ${block.bgOpacity / 100})`,
                       padding: block.padding,
