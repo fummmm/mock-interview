@@ -21,7 +21,7 @@ export default function PropsPanel({ block, updateBlock, deleteBlock, bringToFro
   )
 
   return (
-    <div className="w-56 shrink-0 border-l border-border bg-bg-card flex flex-col overflow-y-auto print:hidden">
+    <div className="absolute right-0 top-0 bottom-0 w-72 z-30 border-l border-border bg-bg-card/95 backdrop-blur-sm flex flex-col overflow-y-auto print:hidden shadow-lg">
       {/* 헤더 */}
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-border">
         <span className="text-xs font-semibold">{def?.label || '블록'}</span>
