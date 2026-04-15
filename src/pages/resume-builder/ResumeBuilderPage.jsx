@@ -14,6 +14,7 @@ let nextId = 1
 export default function ResumeBuilderPage() {
   const [blocks, setBlocks] = useState([])
   const [selectedId, setSelectedId] = useState(null)
+  const [zoom, setZoom] = useState(0.7) // 초기 70% - FHD에서 A4 전체 보임
   const canvasRef = useRef(null)
 
   const selectedBlock = blocks.find((b) => b.id === selectedId)
@@ -245,6 +246,18 @@ export default function ResumeBuilderPage() {
 
         {/* 캔버스 스크롤 영역 */}
         <div className="flex-1 overflow-auto bg-bg-elevated p-8 print:overflow-visible print:p-0">
+          {/* 줌 컨트롤 */}
+          <div className="fixed bottom-16 right-4 z-40 flex items-center gap-1 rounded-lg border border-border bg-bg-card px-2 py-1 shadow-sm print:hidden">
+            <button onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))} className="w-6 h-6 rounded flex items-center justify-center text-text-secondary hover:bg-bg-elevated cursor-pointer">-</button>
+            <span className="text-xs text-text-secondary w-10 text-center">{Math.round(zoom * 100)}%</span>
+            <button onClick={() => setZoom((z) => Math.min(1.5, z + 0.1))} className="w-6 h-6 rounded flex items-center justify-center text-text-secondary hover:bg-bg-elevated cursor-pointer">+</button>
+            <button onClick={() => setZoom(1)} className="ml-1 text-[10px] text-text-secondary hover:text-accent cursor-pointer">100%</button>
+          </div>
+
+          <div
+            style={{ transform: `scale(${zoom})`, transformOrigin: 'top center', transition: 'transform 0.2s' }}
+            className="print:!transform-none"
+          >
           <div
             ref={canvasRef}
             className="relative mx-auto bg-white shadow-lg print:shadow-none"
@@ -290,15 +303,16 @@ export default function ResumeBuilderPage() {
                     triggerAutoSave()
                   }}
                   onMouseDown={() => setSelectedId(block.id)}
+                  dragHandleClassName="block-drag-handle"
                   enableResizing={{
                     bottomRight: true,
                     right: true,
                     bottom: true,
                   }}
-                  className={`group ${selectedId === block.id ? 'ring-2 ring-accent' : ''}`}
+                  className={`group cursor-default ${selectedId === block.id ? 'ring-2 ring-accent' : ''}`}
                 >
                   {/* 드래그 핸들 */}
-                  <div className="absolute -top-6 left-0 right-0 flex h-6 items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
+                  <div className="block-drag-handle absolute -top-6 left-0 right-0 flex h-6 items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity print:hidden cursor-grab active:cursor-grabbing">
                     <span className="text-[10px] text-text-secondary">{def.label}</span>
                     <button
                       onClick={(e) => {
@@ -336,6 +350,7 @@ export default function ResumeBuilderPage() {
               )
             })}
           </div>
+          </div>{/* zoom wrapper 닫기 */}
         </div>
 
         {/* 프로퍼티 패널 */}
