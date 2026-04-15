@@ -204,9 +204,14 @@ export default function ResumeBuilderPage() {
 
   // PDF 출력
   const printResume = useCallback(() => {
+    const prevZoom = zoom
     setSelectedId(null)
-    setTimeout(() => window.print(), 100)
-  }, [])
+    setZoom(1)
+    setTimeout(() => {
+      window.print()
+      setZoom(prevZoom)
+    }, 200)
+  }, [zoom])
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-primary print:block">
@@ -255,12 +260,12 @@ export default function ResumeBuilderPage() {
           </div>
 
           <div
+            id="zoom-wrapper"
             style={{ transform: `scale(${zoom})`, transformOrigin: 'top center', transition: 'transform 0.2s' }}
-            className="print:!transform-none"
           >
           <div
             ref={canvasRef}
-            className="relative mx-auto bg-white shadow-lg print:shadow-none"
+            className="resume-canvas relative mx-auto bg-white shadow-lg print:shadow-none"
             style={{ width: A4_W, minHeight: A4_H }}
             onClick={(e) => {
               if (e.target === canvasRef.current) setSelectedId(null)

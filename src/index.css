@@ -85,3 +85,40 @@ select {
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
+
+/* === 이력서 빌더 PDF 출력 === */
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 에디터 UI 숨김 */
+  .print-hide,
+  nav,
+  header {
+    display: none !important;
+  }
+
+  /* 줌 리셋 + 캔버스 정렬 */
+  #zoom-wrapper {
+    transform: none !important;
+  }
+
+  .resume-canvas {
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* react-rnd 블록 위치 보존 */
+  .react-draggable {
+    position: absolute !important;
+  }
+}
