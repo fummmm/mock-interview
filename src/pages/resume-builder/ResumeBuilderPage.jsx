@@ -358,16 +358,19 @@ export default function ResumeBuilderPage() {
           </div>{/* zoom wrapper 닫기 */}
         </div>
 
-        {/* 프로퍼티 패널 */}
-        {selectedBlock && (
-          <PropsPanel
-            block={selectedBlock}
-            updateBlock={updateBlock}
-            bringToFront={bringToFront}
-            sendToBack={sendToBack}
-          />
-        )}
       </div>
+
+      {/* 우측 프로퍼티 사이드바 */}
+      {selectedBlock && (
+        <PropsPanel
+          block={selectedBlock}
+          updateBlock={updateBlock}
+          deleteBlock={deleteBlock}
+          bringToFront={bringToFront}
+          sendToBack={sendToBack}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
     </div>
   )
 }
