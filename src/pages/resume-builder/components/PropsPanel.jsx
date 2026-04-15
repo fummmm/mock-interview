@@ -3,15 +3,17 @@ import { BLOCK_DEFS } from '../blockDefs'
 export default function PropsPanel({ block, updateBlock, deleteBlock, bringToFront, sendToBack, onClose }) {
   if (!block) return null
   const def = BLOCK_DEFS[block.type]
+  const type = block.type
 
-  const Btn = ({ onClick, children, title, active }) => (
-    <button
-      onClick={onClick}
-      title={title}
-      className={`w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer transition-all text-xs ${
-        active ? 'border-accent bg-accent/10 text-accent' : 'border-border text-text-secondary hover:border-accent/50'
-      }`}
-    >
+  // 컴포넌트 타입 분류
+  const isPhoto = type.startsWith('ph-')
+  const isDecor = type.startsWith('cb-')
+  const isDivider = type.startsWith('dv-')
+  const isText = !isPhoto && !isDecor && !isDivider
+
+  const Btn = ({ onClick, children, title }) => (
+    <button onClick={onClick} title={title}
+      className="w-7 h-7 rounded-lg border border-border flex items-center justify-center cursor-pointer transition-all text-xs text-text-secondary hover:border-accent/50">
       {children}
     </button>
   )
@@ -29,82 +31,105 @@ export default function PropsPanel({ block, updateBlock, deleteBlock, bringToFro
       </div>
 
       <div className="p-3 space-y-4">
-        {/* 배경 */}
-        <div className="space-y-2">
-          <Label>배경</Label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={block.bgColor}
-              onChange={(e) => updateBlock(block.id, { bgColor: e.target.value })}
-              className="w-8 h-8 rounded-lg border border-border cursor-pointer"
-            />
-            <div className="flex-1">
+
+        {/* === 사진 전용: 프레임 크기 === */}
+        {isPhoto && (
+          <div className="space-y-2">
+            <Label>프레임</Label>
+            <div className="space-y-2">
               <div className="flex items-center gap-1">
-                <span className="text-[10px] text-text-secondary">투명도</span>
-                <span className="text-[10px] text-text-secondary ml-auto">{block.bgOpacity}%</span>
+                <span className="text-[10px] text-text-secondary w-10">가로</span>
+                <Btn onClick={() => updateBlock(block.id, { w: Math.max(60, block.w - 10) })}>-</Btn>
+                <span className="text-[10px] w-8 text-center">{block.w}px</span>
+                <Btn onClick={() => updateBlock(block.id, { w: block.w + 10 })}>+</Btn>
               </div>
-              <input
-                type="range" min="0" max="100" value={block.bgOpacity}
-                onChange={(e) => updateBlock(block.id, { bgOpacity: parseInt(e.target.value) })}
-                className="w-full h-1 accent-accent"
-              />
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-text-secondary w-10">세로</span>
+                <Btn onClick={() => updateBlock(block.id, { h: Math.max(40, (typeof block.h === 'number' ? block.h : 160) - 10) })}>-</Btn>
+                <span className="text-[10px] w-8 text-center">{typeof block.h === 'number' ? block.h : '-'}px</span>
+                <Btn onClick={() => updateBlock(block.id, { h: (typeof block.h === 'number' ? block.h : 160) + 10 })}>+</Btn>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* 텍스트 */}
-        <div className="space-y-2">
-          <Label>텍스트</Label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={block.fontColor || '#1a1a2e'}
-              onChange={(e) => updateBlock(block.id, { fontColor: e.target.value })}
-              className="w-8 h-8 rounded-lg border border-border cursor-pointer"
-            />
-            <div className="flex items-center gap-1">
-              <Btn onClick={() => updateBlock(block.id, { fontSize: Math.max(8, block.fontSize - 1) })}>-</Btn>
-              <span className="text-xs w-6 text-center">{block.fontSize}</span>
-              <Btn onClick={() => updateBlock(block.id, { fontSize: block.fontSize + 1 })}>+</Btn>
+        {/* === 배경 (사진, 장식, 텍스트 - 구분선 제외) === */}
+        {!isDivider && (
+          <div className="space-y-2">
+            <Label>{isDecor ? '도형 색상' : '배경'}</Label>
+            <div className="flex items-center gap-2">
+              <input type="color" value={isDecor ? block.accent : block.bgColor}
+                onChange={(e) => updateBlock(block.id, isDecor ? { accent: e.target.value } : { bgColor: e.target.value })}
+                className="w-8 h-8 rounded-lg border border-border cursor-pointer" />
+              {!isDecor && (
+                <div className="flex-1">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-text-secondary">투명도</span>
+                    <span className="text-[10px] text-text-secondary ml-auto">{block.bgOpacity}%</span>
+                  </div>
+                  <input type="range" min="0" max="100" value={block.bgOpacity}
+                    onChange={(e) => updateBlock(block.id, { bgOpacity: parseInt(e.target.value) })}
+                    className="w-full h-1 accent-accent" />
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* 강조색 */}
-        <div className="space-y-2">
-          <Label>강조색</Label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={block.accent}
-              onChange={(e) => updateBlock(block.id, { accent: e.target.value })}
-              className="w-8 h-8 rounded-lg border border-border cursor-pointer"
-            />
-            <span className="text-[10px] text-text-secondary">섹션 제목, 구분선 색상</span>
-          </div>
-        </div>
-
-        {/* 여백 & 모서리 */}
-        <div className="space-y-2">
-          <Label>여백 & 모서리</Label>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] text-text-secondary w-7">여백</span>
-              <Btn onClick={() => updateBlock(block.id, { padding: Math.max(0, block.padding - 2) })}>-</Btn>
-              <span className="text-[10px] w-4 text-center">{block.padding}</span>
-              <Btn onClick={() => updateBlock(block.id, { padding: block.padding + 2 })}>+</Btn>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] text-text-secondary w-7">둥글기</span>
-              <Btn onClick={() => updateBlock(block.id, { borderRadius: Math.max(0, (block.borderRadius || 0) - 2) })}>-</Btn>
-              <span className="text-[10px] w-4 text-center">{block.borderRadius || 0}</span>
-              <Btn onClick={() => updateBlock(block.id, { borderRadius: (block.borderRadius || 0) + 2 })}>+</Btn>
+        {/* === 텍스트 (텍스트 컴포넌트만) === */}
+        {isText && (
+          <div className="space-y-2">
+            <Label>텍스트</Label>
+            <div className="flex items-center gap-2">
+              <input type="color" value={block.fontColor || '#1a1a2e'}
+                onChange={(e) => updateBlock(block.id, { fontColor: e.target.value })}
+                className="w-8 h-8 rounded-lg border border-border cursor-pointer" />
+              <div className="flex items-center gap-1">
+                <Btn onClick={() => updateBlock(block.id, { fontSize: Math.max(8, block.fontSize - 1) })}>-</Btn>
+                <span className="text-xs w-6 text-center">{block.fontSize}</span>
+                <Btn onClick={() => updateBlock(block.id, { fontSize: block.fontSize + 1 })}>+</Btn>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* 레이어 */}
+        {/* === 강조색 (텍스트 + 구분선) === */}
+        {(isText || isDivider) && (
+          <div className="space-y-2">
+            <Label>{isDivider ? '선 색상' : '강조색'}</Label>
+            <div className="flex items-center gap-2">
+              <input type="color" value={block.accent}
+                onChange={(e) => updateBlock(block.id, { accent: e.target.value })}
+                className="w-8 h-8 rounded-lg border border-border cursor-pointer" />
+              {isText && <span className="text-[10px] text-text-secondary">섹션 제목, 구분선 색상</span>}
+            </div>
+          </div>
+        )}
+
+        {/* === 여백 & 모서리 (구분선 제외) === */}
+        {!isDivider && (
+          <div className="space-y-2">
+            <Label>{isPhoto ? '모서리' : '여백 & 모서리'}</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {!isPhoto && !isDecor && (
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] text-text-secondary w-7">여백</span>
+                  <Btn onClick={() => updateBlock(block.id, { padding: Math.max(0, block.padding - 2) })}>-</Btn>
+                  <span className="text-[10px] w-4 text-center">{block.padding}</span>
+                  <Btn onClick={() => updateBlock(block.id, { padding: block.padding + 2 })}>+</Btn>
+                </div>
+              )}
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-text-secondary w-7">둥글기</span>
+                <Btn onClick={() => updateBlock(block.id, { borderRadius: Math.max(0, (block.borderRadius || 0) - 2) })}>-</Btn>
+                <span className="text-[10px] w-4 text-center">{block.borderRadius || 0}</span>
+                <Btn onClick={() => updateBlock(block.id, { borderRadius: (block.borderRadius || 0) + 2 })}>+</Btn>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* === 레이어 (공통) === */}
         <div className="space-y-2">
           <Label>레이어</Label>
           <div className="flex gap-1">
@@ -117,12 +142,10 @@ export default function PropsPanel({ block, updateBlock, deleteBlock, bringToFro
           </div>
         </div>
 
-        {/* 삭제 */}
+        {/* === 삭제 (공통) === */}
         <div className="pt-2 border-t border-border">
-          <button
-            onClick={() => deleteBlock(block.id)}
-            className="w-full py-1.5 rounded-lg border border-danger/30 text-xs text-danger hover:bg-danger/5 cursor-pointer transition-all"
-          >
+          <button onClick={() => deleteBlock(block.id)}
+            className="w-full py-1.5 rounded-lg border border-danger/30 text-xs text-danger hover:bg-danger/5 cursor-pointer transition-all">
             블록 삭제
           </button>
         </div>
