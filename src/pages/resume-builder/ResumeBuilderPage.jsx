@@ -175,25 +175,71 @@ export default function ResumeBuilderPage() {
     })
   }, [selectedId])
 
-  // 로컬 저장/불러오기
-  const saveToLocal = useCallback(() => {
-    localStorage.setItem('rb_react_current', JSON.stringify(blocks))
-  }, [blocks])
+  // 토스트 메시지
+  const [toast, setToast] = useState(null)
+  const showToast = useCallback((msg, duration = 2000) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), duration)
+  }, [])
 
+  // 버전 히스토리
+  const [showHistory, setShowHistory] = useState(false)
+  const MAX_VERSIONS = 20
+
+  const getVersions = () => {
+    try { return JSON.parse(localStorage.getItem('rb_versions') || '[]') } catch { return [] }
+  }
+
+  // 버전 저장 (수동)
+  const saveVersion = useCallback(() => {
+    const versions = getVersions()
+    const now = new Date()
+    const label = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    versions.unshift({ label, blocks: JSON.stringify(blocks), timestamp: now.toISOString() })
+    if (versions.length > MAX_VERSIONS) versions.pop()
+    localStorage.setItem('rb_versions', JSON.stringify(versions))
+    localStorage.setItem('rb_react_current', JSON.stringify(blocks))
+    showToast(`저장 완료 (버전 ${versions.length}개)`)
+  }, [blocks, showToast])
+
+  // 버전 복원
+  const restoreVersion = useCallback((idx) => {
+    const versions = getVersions()
+    const ver = versions[idx]
+    if (!ver) return
+    try {
+      const parsed = JSON.parse(ver.blocks)
+      setBlocks(parsed)
+      nextId = Math.max(...parsed.map((b) => parseInt(b.id.split('-')[1]) || 0), 0) + 1
+      setShowHistory(false)
+      showToast(`"${ver.label}" 버전으로 복원됨`)
+    } catch { /* ignore */ }
+  }, [showToast])
+
+  // 버전 삭제
+  const deleteVersion = useCallback((idx) => {
+    const versions = getVersions()
+    versions.splice(idx, 1)
+    localStorage.setItem('rb_versions', JSON.stringify(versions))
+    showToast('버전 삭제됨')
+  }, [showToast])
+
+  // 불러오기 (최신 자동저장)
   const loadFromLocal = useCallback(() => {
     const saved = localStorage.getItem('rb_react_current')
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
         setBlocks(parsed)
-        nextId = Math.max(...parsed.map((b) => parseInt(b.id.split('-')[1]) || 0)) + 1
-      } catch (e) {
-        /* ignore */
-      }
+        nextId = Math.max(...parsed.map((b) => parseInt(b.id.split('-')[1]) || 0), 0) + 1
+        showToast('불러오기 완료')
+      } catch { showToast('불러오기 실패') }
+    } else {
+      showToast('저장된 데이터가 없습니다')
     }
-  }, [])
+  }, [showToast])
 
-  // 자동 저장
+  // 자동 저장 (디바운스)
   const autoSaveTimer = useRef(null)
   const triggerAutoSave = useCallback(() => {
     clearTimeout(autoSaveTimer.current)
@@ -235,7 +281,13 @@ export default function ResumeBuilderPage() {
               불러오기
             </button>
             <button
-              onClick={saveToLocal}
+              onClick={() => setShowHistory(!showHistory)}
+              className={`rounded-lg border px-3 py-1.5 text-xs transition-all cursor-pointer ${showHistory ? 'border-accent text-accent bg-accent/5' : 'border-border text-text-secondary hover:border-accent/50'}`}
+            >
+              히스토리
+            </button>
+            <button
+              onClick={saveVersion}
               className="rounded-lg border border-accent/30 bg-accent/5 px-3 py-1.5 text-xs text-accent hover:bg-accent/10 transition-all cursor-pointer"
             >
               저장
@@ -365,6 +417,7 @@ export default function ResumeBuilderPage() {
       </div>
 
       {/* 우측 프로퍼티 사이드바 */}
+      {/* 우측 프로퍼티 사이드바 */}
       {selectedBlock && (
         <PropsPanel
           block={selectedBlock}
@@ -374,6 +427,44 @@ export default function ResumeBuilderPage() {
           sendToBack={sendToBack}
           onClose={() => setSelectedId(null)}
         />
+      )}
+
+      {/* 버전 히스토리 패널 */}
+      {showHistory && (
+        <div className="absolute right-0 top-10 bottom-0 w-72 z-40 border-l border-border bg-bg-card flex flex-col overflow-y-auto print:hidden shadow-lg">
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-border">
+            <span className="text-xs font-semibold">버전 히스토리</span>
+            <button onClick={() => setShowHistory(false)} className="text-text-secondary hover:text-text-primary cursor-pointer text-xs">x</button>
+          </div>
+          <div className="p-2 space-y-1 flex-1">
+            {getVersions().length === 0 ? (
+              <p className="text-xs text-text-secondary text-center py-8">저장된 버전이 없습니다</p>
+            ) : (
+              getVersions().map((ver, idx) => (
+                <div key={idx} className="flex items-center justify-between p-2 rounded-lg hover:bg-bg-elevated transition-all group">
+                  <div>
+                    <p className="text-xs font-medium">{ver.label}</p>
+                    <p className="text-[10px] text-text-secondary">{new Date(ver.timestamp).toLocaleString('ko-KR')}</p>
+                  </div>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => restoreVersion(idx)}
+                      className="text-[10px] text-accent hover:underline cursor-pointer">복원</button>
+                    <button onClick={() => deleteVersion(idx)}
+                      className="text-[10px] text-text-secondary hover:text-danger cursor-pointer">삭제</button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 토스트 */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg bg-bg-primary border border-border shadow-lg text-xs text-text-primary print:hidden"
+          style={{ animation: 'fadeIn 0.2s ease-out' }}>
+          {toast}
+        </div>
       )}
     </div>
   )
