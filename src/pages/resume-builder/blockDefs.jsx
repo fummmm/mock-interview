@@ -233,12 +233,12 @@ function LinkRow() {
 
 // === 색 블록 ===
 function ColorSolid({ block }) {
-  return <div className="w-full h-full min-h-[40px] rounded" style={{ backgroundColor: block?.accent || 'var(--accent)' }} />
+  return <div className="w-full h-full min-h-[40px]" style={{ backgroundColor: block?.accent || 'var(--accent)' }} />
 }
 
 function ColorGradient({ block }) {
   const c = block?.accent || '#E8344E'
-  return <div className="w-full h-full min-h-[40px] rounded" style={{ background: `linear-gradient(135deg, ${c}, ${c}88)` }} />
+  return <div className="w-full h-full min-h-[40px]" style={{ background: `linear-gradient(135deg, ${c}, ${c}88)` }} />
 }
 
 // === 구분선 ===

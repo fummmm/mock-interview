@@ -6,8 +6,8 @@ import PropsPanel from './components/PropsPanel'
 
 const A4_W = 794 // A4 width in px at 96dpi
 const A4_H = 1123 // A4 height in px
-const SNAP_THRESHOLD = 14
-const EDGE_THRESHOLD = 28
+const SNAP_THRESHOLD = 8
+const EDGE_THRESHOLD = 16
 
 let nextId = 1
 
@@ -32,12 +32,14 @@ export default function ResumeBuilderPage() {
         y,
         w: def.w || 400,
         h: def.h || 'auto',
-        zIndex: prev.length + 1,
+        zIndex: prev.length + 10,
         accent: '#E8344E',
+        fontColor: '#1a1a2e',
         bgColor: '#ffffff',
         bgOpacity: 100,
         fontSize: 14,
         padding: 12,
+        borderRadius: 0,
         content: {},
       },
     ])
@@ -156,7 +158,7 @@ export default function ResumeBuilderPage() {
     if (!selectedId) return
     setBlocks((prev) => {
       const min = Math.min(...prev.map((b) => b.zIndex))
-      return prev.map((b) => (b.id === selectedId ? { ...b, zIndex: min - 1 } : b))
+      return prev.map((b) => (b.id === selectedId ? { ...b, zIndex: Math.max(1, min - 1) } : b))
     })
   }, [selectedId])
 
@@ -200,16 +202,14 @@ export default function ResumeBuilderPage() {
 
       {/* 메인 영역 */}
       <div className="relative flex flex-1 flex-col overflow-hidden print:overflow-visible">
-        {/* 툴바 */}
+        {/* 상단 바 */}
         <div className="flex items-center justify-between border-b border-border bg-bg-card px-4 py-2 print:hidden">
-          <h1 className="text-sm font-semibold">이력서 빌더</h1>
-          <div className="flex gap-2">
-            <button
-              onClick={saveToLocal}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary hover:border-accent/50 transition-all cursor-pointer"
-            >
-              저장
-            </button>
+          <div className="flex items-center gap-3">
+            <a href="/" className="text-xs text-text-secondary hover:text-accent transition-colors">← 돌아가기</a>
+            <div className="w-px h-4 bg-border" />
+            <h1 className="text-sm font-semibold">이력서 빌더</h1>
+          </div>
+          <div className="flex items-center gap-2">
             <button
               onClick={loadFromLocal}
               className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary hover:border-accent/50 transition-all cursor-pointer"
@@ -217,8 +217,14 @@ export default function ResumeBuilderPage() {
               불러오기
             </button>
             <button
+              onClick={saveToLocal}
+              className="rounded-lg border border-accent/30 bg-accent/5 px-3 py-1.5 text-xs text-accent hover:bg-accent/10 transition-all cursor-pointer"
+            >
+              저장
+            </button>
+            <button
               onClick={printResume}
-              className="rounded-lg bg-accent px-3 py-1.5 text-xs text-white hover:bg-accent-hover transition-all cursor-pointer"
+              className="rounded-lg bg-accent px-4 py-1.5 text-xs font-medium text-white hover:bg-accent-hover transition-all cursor-pointer"
             >
               PDF 출력
             </button>
@@ -295,11 +301,13 @@ export default function ResumeBuilderPage() {
 
                   {/* 블록 콘텐츠 */}
                   <div
-                    className="h-full w-full overflow-hidden rounded"
+                    className="h-full w-full overflow-hidden"
                     style={{
                       backgroundColor: `rgba(${hexToRgb(block.bgColor)}, ${block.bgOpacity / 100})`,
                       padding: block.padding,
                       fontSize: block.fontSize,
+                      color: block.fontColor,
+                      borderRadius: block.borderRadius,
                       '--accent': block.accent,
                     }}
                   >
