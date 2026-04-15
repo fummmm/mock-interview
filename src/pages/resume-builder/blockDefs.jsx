@@ -53,7 +53,7 @@ function HeaderMinimal() {
 }
 
 // === 사진 ===
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 
 function PhotoCircle({ block, updateBlock }) {
   const inputRef = useRef(null)
@@ -134,6 +134,26 @@ function PhotoBanner({ block, updateBlock }) {
   )
 }
 
+// 항목 추가 버튼
+function AddBtn({ onClick, label = '추가' }) {
+  return (
+    <button onClick={onClick}
+      className="w-full mt-2 py-1 rounded border border-dashed border-gray-300 text-[10px] opacity-50 hover:opacity-80 cursor-pointer transition-all print:hidden">
+      + {label}
+    </button>
+  )
+}
+
+// 항목 삭제 버튼
+function DelBtn({ onClick }) {
+  return (
+    <button onClick={onClick}
+      className="absolute -right-1 -top-1 w-4 h-4 rounded-full bg-gray-200 text-[8px] flex items-center justify-center opacity-0 group-hover/item:opacity-100 cursor-pointer transition-opacity print:hidden">
+      x
+    </button>
+  )
+}
+
 // === 한 줄 소개 ===
 function SummaryBasic() {
   return <CE className="text-sm leading-relaxed opacity-80">한 줄 소개를 작성하세요. 본인의 핵심 역량과 지원 동기를 간결하게 표현합니다.</CE>
@@ -184,131 +204,202 @@ function SkillCategory() {
 
 // === 프로젝트 ===
 function ProjectDetail() {
+  const [items, setItems] = useState([{ id: 1 }])
   return (
     <div>
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>프로젝트</div>
       <div className="space-y-3">
-        <div>
-          <div className="flex justify-between items-baseline">
-            <CE className="font-medium text-sm opacity-90">프로젝트명</CE>
-            <CE className="text-xs opacity-50">2025.01 ~ 2025.03</CE>
+        {items.map((item, i) => (
+          <div key={item.id} className="relative group/item">
+            {items.length > 1 && <DelBtn onClick={() => setItems(items.filter((_, j) => j !== i))} />}
+            <div className="flex justify-between items-baseline">
+              <CE className="font-medium text-sm opacity-90">프로젝트명</CE>
+              <CE className="text-xs opacity-50">2025.01 ~ 2025.03</CE>
+            </div>
+            <CE className="text-xs opacity-60 mt-0.5">역할 / 팀 구성</CE>
+            <CE className="text-xs opacity-70 mt-1 leading-relaxed">프로젝트 설명과 본인의 기여를 작성하세요.</CE>
           </div>
-          <CE className="text-xs opacity-60 mt-0.5">역할 / 팀 구성</CE>
-          <CE className="text-xs opacity-70 mt-1 leading-relaxed">프로젝트 설명과 본인의 기여를 작성하세요.</CE>
-        </div>
+        ))}
       </div>
+      <AddBtn onClick={() => setItems([...items, { id: Date.now() }])} label="프로젝트 추가" />
     </div>
   )
 }
 
 function ProjectCard() {
+  const [items, setItems] = useState([{ id: 1 }])
   return (
-    <div className="rounded-lg border border-gray-100 p-3">
-      <CE className="font-medium text-sm opacity-90">프로젝트명</CE>
-      <CE className="text-xs opacity-50 mt-0.5">2025.01 ~ 2025.03</CE>
-      <CE className="text-xs opacity-70 mt-2 leading-relaxed">프로젝트 설명을 작성하세요.</CE>
+    <div>
+      <div className="space-y-2">
+        {items.map((item, i) => (
+          <div key={item.id} className="relative group/item rounded-lg border border-gray-100 p-3">
+            {items.length > 1 && <DelBtn onClick={() => setItems(items.filter((_, j) => j !== i))} />}
+            <CE className="font-medium text-sm opacity-90">프로젝트명</CE>
+            <CE className="text-xs opacity-50 mt-0.5">2025.01 ~ 2025.03</CE>
+            <CE className="text-xs opacity-70 mt-2 leading-relaxed">프로젝트 설명을 작성하세요.</CE>
+          </div>
+        ))}
+      </div>
+      <AddBtn onClick={() => setItems([...items, { id: Date.now() }])} label="프로젝트 추가" />
     </div>
   )
 }
 
 function ProjectMinimal() {
+  const [items, setItems] = useState([{ id: 1 }])
   return (
     <div>
-      <CE className="font-medium text-sm opacity-90">프로젝트명</CE>
-      <CE className="text-xs opacity-70 mt-1 leading-relaxed">한 줄 설명</CE>
+      <div className="space-y-2">
+        {items.map((item, i) => (
+          <div key={item.id} className="relative group/item">
+            {items.length > 1 && <DelBtn onClick={() => setItems(items.filter((_, j) => j !== i))} />}
+            <CE className="font-medium text-sm opacity-90">프로젝트명</CE>
+            <CE className="text-xs opacity-70 mt-1 leading-relaxed">한 줄 설명</CE>
+          </div>
+        ))}
+      </div>
+      <AddBtn onClick={() => setItems([...items, { id: Date.now() }])} label="프로젝트 추가" />
     </div>
   )
 }
 
 // === 학력 ===
 function EducationVertical() {
+  const [items, setItems] = useState([{ id: 1 }])
   return (
     <div>
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>학력</div>
-      <div>
-        <CE className="font-medium text-sm opacity-90">OO대학교 컴퓨터공학과</CE>
-        <CE className="text-xs opacity-50">2018.03 ~ 2024.02 (졸업)</CE>
+      <div className="space-y-2">
+        {items.map((item, i) => (
+          <div key={item.id} className="relative group/item">
+            {items.length > 1 && <DelBtn onClick={() => setItems(items.filter((_, j) => j !== i))} />}
+            <CE className="font-medium text-sm opacity-90">OO대학교 컴퓨터공학과</CE>
+            <CE className="text-xs opacity-50">2018.03 ~ 2024.02 (졸업)</CE>
+          </div>
+        ))}
       </div>
+      <AddBtn onClick={() => setItems([...items, { id: Date.now() }])} label="학력 추가" />
     </div>
   )
 }
 
 function EducationHorizontal() {
+  const [items, setItems] = useState([{ id: 1 }])
   return (
     <div>
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>학력</div>
-      <div className="flex justify-between items-baseline">
-        <CE className="font-medium text-sm opacity-90">OO대학교 컴퓨터공학과</CE>
-        <CE className="text-xs opacity-50">2018 ~ 2024</CE>
+      <div className="space-y-2">
+        {items.map((item, i) => (
+          <div key={item.id} className="relative group/item flex justify-between items-baseline">
+            {items.length > 1 && <DelBtn onClick={() => setItems(items.filter((_, j) => j !== i))} />}
+            <CE className="font-medium text-sm opacity-90">OO대학교 컴퓨터공학과</CE>
+            <CE className="text-xs opacity-50">2018 ~ 2024</CE>
+          </div>
+        ))}
       </div>
+      <AddBtn onClick={() => setItems([...items, { id: Date.now() }])} label="학력 추가" />
     </div>
   )
 }
 
 // === 경력 ===
 function ExperienceVertical() {
+  const [items, setItems] = useState([{ id: 1 }])
   return (
     <div>
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>경력</div>
-      <div>
-        <div className="flex justify-between items-baseline">
-          <CE className="font-medium text-sm opacity-90">회사명</CE>
-          <CE className="text-xs opacity-50">2023.01 ~ 현재</CE>
-        </div>
-        <CE className="text-xs mt-0.5" style={{ color: 'var(--accent)' }}>직무 / 직급</CE>
-        <CE className="text-xs opacity-70 mt-1 leading-relaxed">담당 업무를 작성하세요.</CE>
+      <div className="space-y-3">
+        {items.map((item, i) => (
+          <div key={item.id} className="relative group/item">
+            {items.length > 1 && <DelBtn onClick={() => setItems(items.filter((_, j) => j !== i))} />}
+            <div className="flex justify-between items-baseline">
+              <CE className="font-medium text-sm opacity-90">회사명</CE>
+              <CE className="text-xs opacity-50">2023.01 ~ 현재</CE>
+            </div>
+            <CE className="text-xs mt-0.5" style={{ color: 'var(--accent)' }}>직무 / 직급</CE>
+            <CE className="text-xs opacity-70 mt-1 leading-relaxed">담당 업무를 작성하세요.</CE>
+          </div>
+        ))}
       </div>
+      <AddBtn onClick={() => setItems([...items, { id: Date.now() }])} label="경력 추가" />
     </div>
   )
 }
 
 function ExperienceTimeline() {
+  const [items, setItems] = useState([{ id: 1 }])
   return (
     <div>
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>경력</div>
-      <div className="border-l-2 pl-3 ml-1" style={{ borderColor: 'var(--accent)' }}>
-        <CE className="font-medium text-sm opacity-90">회사명</CE>
-        <CE className="text-xs opacity-50">2023.01 ~ 현재</CE>
-        <CE className="text-xs opacity-70 mt-1 leading-relaxed">담당 업무를 작성하세요.</CE>
+      <div className="space-y-3">
+        {items.map((item, i) => (
+          <div key={item.id} className="relative group/item border-l-2 pl-3 ml-1" style={{ borderColor: 'var(--accent)' }}>
+            {items.length > 1 && <DelBtn onClick={() => setItems(items.filter((_, j) => j !== i))} />}
+            <CE className="font-medium text-sm opacity-90">회사명</CE>
+            <CE className="text-xs opacity-50">2023.01 ~ 현재</CE>
+            <CE className="text-xs opacity-70 mt-1 leading-relaxed">담당 업무를 작성하세요.</CE>
+          </div>
+        ))}
       </div>
+      <AddBtn onClick={() => setItems([...items, { id: Date.now() }])} label="경력 추가" />
     </div>
   )
 }
 
 // === 자격증/수상 ===
 function CertList() {
+  const [items, setItems] = useState([{ id: 1 }, { id: 2 }])
   return (
     <div>
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>자격증 / 수상</div>
       <div className="space-y-1 text-xs">
-        <div className="flex justify-between"><CE className="opacity-80">자격증/수상명</CE><CE className="opacity-50">2025.01</CE></div>
-        <div className="flex justify-between"><CE className="opacity-80">자격증/수상명</CE><CE className="opacity-50">2024.06</CE></div>
+        {items.map((item, i) => (
+          <div key={item.id} className="relative group/item flex justify-between">
+            {items.length > 1 && <DelBtn onClick={() => setItems(items.filter((_, j) => j !== i))} />}
+            <CE className="opacity-80">자격증/수상명</CE>
+            <CE className="opacity-50">2025.01</CE>
+          </div>
+        ))}
       </div>
+      <AddBtn onClick={() => setItems([...items, { id: Date.now() }])} label="항목 추가" />
     </div>
   )
 }
 
 function CertBadge() {
+  const [items, setItems] = useState([{ id: 1 }, { id: 2 }])
   return (
     <div>
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>자격증 / 수상</div>
       <div className="flex flex-wrap gap-1.5">
-        <CE className="rounded border border-gray-200 px-2 py-0.5 text-xs opacity-80">자격증명</CE>
-        <CE className="rounded border border-gray-200 px-2 py-0.5 text-xs opacity-80">수상명</CE>
+        {items.map((item, i) => (
+          <div key={item.id} className="relative group/item">
+            {items.length > 1 && <DelBtn onClick={() => setItems(items.filter((_, j) => j !== i))} />}
+            <CE className="rounded border border-gray-200 px-2 py-0.5 text-xs opacity-80">자격증명</CE>
+          </div>
+        ))}
       </div>
+      <AddBtn onClick={() => setItems([...items, { id: Date.now() }])} label="항목 추가" />
     </div>
   )
 }
 
 // === 포트폴리오 링크 ===
 function LinkRow() {
+  const [items, setItems] = useState([{ id: 1 }, { id: 2 }])
   return (
     <div>
       <div className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>포트폴리오 / 링크</div>
       <div className="space-y-1 text-xs">
-        <div className="flex gap-2"><CE className="font-medium" style={{ color: 'var(--accent)' }}>GitHub</CE><CE className="opacity-60">github.com/username</CE></div>
-        <div className="flex gap-2"><CE className="font-medium" style={{ color: 'var(--accent)' }}>Portfolio</CE><CE className="opacity-60">portfolio.notion.site</CE></div>
+        {items.map((item, i) => (
+          <div key={item.id} className="relative group/item flex gap-2">
+            {items.length > 1 && <DelBtn onClick={() => setItems(items.filter((_, j) => j !== i))} />}
+            <CE className="font-medium" style={{ color: 'var(--accent)' }}>링크명</CE>
+            <CE className="opacity-60">URL 입력</CE>
+          </div>
+        ))}
       </div>
+      <AddBtn onClick={() => setItems([...items, { id: Date.now() }])} label="링크 추가" />
     </div>
   )
 }
