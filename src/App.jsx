@@ -14,6 +14,7 @@ import AdminDashboard from './pages/AdminDashboard'
 import AdminStudents from './pages/AdminStudents'
 import AdminQuotas from './pages/AdminQuotas'
 import AdminManage from './pages/AdminManage'
+import ResumeBuilderPage from './pages/resume-builder/ResumeBuilderPage'
 
 const MIN_WIDTH = 1024
 
@@ -199,6 +200,11 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+      {/* 이력서 빌더 */}
+      <Route path="/resume-builder" element={
+        <ProtectedRoute><OnboardingGuard><ResumeBuilderPage /></OnboardingGuard></ProtectedRoute>
+      } />
 
       {/* 404 */}
       <Route path="*" element={<Navigate to="/" replace />} />
