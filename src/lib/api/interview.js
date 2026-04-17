@@ -10,6 +10,12 @@ import { callOpenRouter, TRACK_TERMS, safeParseJSON } from './client'
 export async function correctTranscript(rawTranscript, questionText, track = '') {
   if (!rawTranscript || rawTranscript.trim().length < 5) return rawTranscript || ''
 
+  // 파편적 답변(15자 미만)은 교정 시도 자체가 LLM 메타 응답을 유발하므로 스킵
+  if (rawTranscript.trim().length < 15) {
+    console.log('[STT 교정] 너무 짧아 교정 스킵:', rawTranscript)
+    return rawTranscript
+  }
+
   const content = await callOpenRouter({
     model: 'anthropic/claude-haiku-4-5',
     maxTokens: 8192,
@@ -83,7 +89,12 @@ ${track && TRACK_TERMS[track] ? `8. **${track.toUpperCase()} 트랙 전문용어
 - 말이 안 되면 발음이 유사한 다른 단어가 있는가?
 - 확신이 없으면 원본 유지 (잘못된 교정보다 오인식 유지가 나음)
 
-교정된 텍스트만 출력하세요.`,
+## 출력 규칙 (반드시 지킬 것)
+- 오직 교정된 답변 텍스트만 출력하세요
+- 설명, 메타 코멘트, 사과, 요청, "다시 제공해주세요" 같은 메시지를 절대 출력하지 마세요
+- 입력이 짧거나 파편적이거나 의미를 파악하기 어려워도, **있는 그대로(혹은 최소한의 교정으로) 반환**하세요
+- 빈 문자열, 질문 되묻기, 사용자에게 요청하는 응답 금지
+- 항상 답변 텍스트 1개만 출력 — 제목/라벨/설명 붙이지 마세요`,
       },
       {
         role: 'user',
@@ -97,6 +108,29 @@ ${track && TRACK_TERMS[track] ? `8. **${track.toUpperCase()} 트랙 전문용어
   // STT 교정 전후 비교 로그
   console.log(`[STT 교정] 원문(${rawTranscript.length}자): ${rawTranscript.slice(0, 80)}${rawTranscript.length > 80 ? '...' : ''}`)
   console.log(`[STT 교정] 교정(${corrected.length}자): ${corrected.slice(0, 80)}${corrected.length > 80 ? '...' : ''}`)
+
+  // 메타 응답 감지: LLM이 "교정 못 한다"고 설명하는 응답을 답변으로 쓰지 않도록
+  // (짧거나 파편적인 입력에서 Haiku/Sonnet이 종종 "다시 제공해주세요" 같은 메타 응답을 반환함)
+  const metaPhrases = [
+    '음성 인식 결과',
+    '교정이 어렵',
+    '교정하기 어렵',
+    '다시 제공',
+    '다시 한 번 확인',
+    '다시 확인',
+    '텍스트로는',
+    '파편적',
+    '불명확',
+    '전체 발화',
+    '완전한 문장을 파악',
+    '전체 답변 텍스트',
+    '제공해주시면 교정',
+  ]
+  const metaHitCount = metaPhrases.filter((p) => corrected.includes(p)).length
+  if (metaHitCount >= 2) {
+    console.warn('[교정] 메타 응답 감지 - 원본 유지:', corrected.slice(0, 100))
+    return rawTranscript
+  }
 
   // 환각 방어 1: 원본이 30자 미만인데 교정 결과가 3배 이상 길면 LLM이 답변을 만들어낸 것
   if (rawTranscript.length < 30 && corrected.length > rawTranscript.length * 3 + 20) {
