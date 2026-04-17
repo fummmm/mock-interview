@@ -169,7 +169,10 @@ export default function AdminQuotas() {
                         <span>
                           {s.name || s.email}{' '}
                           <span className="text-text-secondary">
-                            ({TRACK_LABELS[s.track]} {s.cohort}기)
+                            (
+                            {TRACK_LABELS[s.track] ||
+                              (s.track === 'tester' ? '테스터' : s.track || '-')}
+                            {s.cohort ? ` ${s.cohort}기` : ''})
                           </span>
                         </span>
                         <span className="text-text-secondary">

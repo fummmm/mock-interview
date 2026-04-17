@@ -29,10 +29,15 @@ export default function SetupPage() {
     setMode: setStoreMode,
   } = useSettingsStore()
   const { loadQuestions, reset } = useInterviewStore()
-  const { profile, quota, isMainAdmin } = useAuthStore()
+  const { profile, quota, isMainAdmin, isAdmin } = useAuthStore()
   const mainAdmin = isMainAdmin()
+  const admin = isAdmin()
+  const visibleCounts = admin ? COUNTS : COUNTS.filter((c) => c !== 2)
 
   const userTrack = profile?.track
+  const isTester = userTrack === 'tester'
+  // 전체 트랙 선택 가능: 어드민 또는 테스터 / 쿼타 소모는 별개(어드민만 면제)
+  const canSelectAnyTrack = mainAdmin || isTester
   const remaining = quota ? Math.max(0, quota.total_quota - quota.used_count) : 0
 
   const [starting, setStarting] = useState(false)
@@ -65,6 +70,11 @@ export default function SetupPage() {
         .then(({ data }) => setDocs(data || []))
     }
   }, [profile?.id])
+
+  // 비어드민인데 과거에 2로 저장된 경우 기본값(5)로 보정
+  useEffect(() => {
+    if (!admin && questionCount === 2) setQuestionCount(5)
+  }, [admin, questionCount, setQuestionCount])
 
   const handleStart = async () => {
     if (!canStart || starting) return
@@ -366,7 +376,7 @@ export default function SetupPage() {
                     </div>
                   </button>
 
-                  {mainAdmin
+                  {canSelectAnyTrack
                     ? Object.entries(TRACK_LABELS).map(([key, label]) => {
                         const sub =
                           key === 'pm' || key === 'design' ? '직무 전문 질문' : '기술 전문 질문'
@@ -410,7 +420,7 @@ export default function SetupPage() {
               <section className="space-y-3">
                 <h2 className="text-text-secondary text-lg font-semibold">질문 수</h2>
                 <div className="flex gap-3">
-                  {COUNTS.map((c) => (
+                  {visibleCounts.map((c) => (
                     <button
                       key={c}
                       onClick={() => setQuestionCount(c)}

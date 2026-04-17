@@ -30,6 +30,7 @@ export default function AdminStudents() {
   const [loading, setLoading] = useState(true)
   const [filterTrack, setFilterTrack] = useState('')
   const [filterCohort, setFilterCohort] = useState('')
+  const [showPending, setShowPending] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editTrack, setEditTrack] = useState('')
   const [editCohort, setEditCohort] = useState('')
@@ -42,7 +43,7 @@ export default function AdminStudents() {
     setLoading(true)
     const { data: users } = await supabase
       .from('users')
-      .select('id, name, email, track, cohort, role')
+      .select('id, name, email, track, cohort, role, onboarding_completed, created_at')
       .eq('role', 'student')
       .order('cohort', { ascending: false })
 
@@ -93,7 +94,14 @@ export default function AdminStudents() {
     await loadStudents()
   }
 
+  const pendingCount = students.filter((s) => !s.onboarding_completed).length
+
   const filtered = students.filter((s) => {
+    // 온보딩 미완료 계정은 메인 어드민만, 토글 ON일 때만 노출
+    if (!s.onboarding_completed) {
+      if (!isMain || !showPending) return false
+      return true
+    }
     // 서브 어드민은 본인 배정 범위만
     if (!canManageStudent(s.track, s.cohort)) return false
     if (filterTrack && s.track !== filterTrack) return false
@@ -102,6 +110,18 @@ export default function AdminStudents() {
   })
 
   const cohorts = [...new Set(students.map((s) => s.cohort).filter(Boolean))].sort((a, b) => b - a)
+
+  async function handleDeletePending(userId, email) {
+    if (!confirm(`${email} 계정을 삭제하시겠습니까?\n\n온보딩 미완료 상태이며, 이 수강생이 다시 로그인하면 계정이 재생성됩니다.`)) return
+    // auth.users는 클라에서 못 지움 (admin API 필요). public.users만 삭제.
+    // 재로그인 시 authStore.loadProfile의 PGRST116 fallback이 public.users를 재생성함.
+    const { error } = await supabase.from('users').delete().eq('id', userId)
+    if (error) {
+      alert('삭제 실패: ' + error.message)
+      return
+    }
+    await loadStudents()
+  }
 
   return (
     <div className="flex-1 p-4 sm:p-6">
@@ -128,6 +148,7 @@ export default function AdminStudents() {
               ...Object.entries(TRACK_LABELS)
                 .filter(([k]) => k !== 'behavioral' && k !== 'cs')
                 .map(([id, label]) => ({ value: id, label })),
+              { value: 'tester', label: '테스터' },
             ]}
           />
           <CustomSelect
@@ -140,6 +161,24 @@ export default function AdminStudents() {
               ...cohorts.map((c) => ({ value: c.toString(), label: `${c}기` })),
             ]}
           />
+          {isMain && (
+            <label className="flex cursor-pointer items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={showPending}
+                onChange={(e) => setShowPending(e.target.checked)}
+                className="accent-accent h-3.5 w-3.5 cursor-pointer"
+              />
+              <span className="text-text-secondary">
+                온보딩 미완료 포함
+                {pendingCount > 0 && (
+                  <span className="bg-warning/15 text-warning ml-1.5 rounded-full px-1.5 py-0.5 text-[10px]">
+                    {pendingCount}
+                  </span>
+                )}
+              </span>
+            </label>
+          )}
           <span className="text-text-secondary text-sm">{filtered.length}명</span>
         </div>
 
@@ -164,8 +203,18 @@ export default function AdminStudents() {
               </thead>
               <tbody>
                 {filtered.map((s) => (
-                  <tr key={s.id} className="border-border/50 hover:bg-bg-card/50 border-b">
-                    <td className="px-2 py-3 font-medium">{s.name || '-'}</td>
+                  <tr
+                    key={s.id}
+                    className={`border-border/50 hover:bg-bg-card/50 border-b ${!s.onboarding_completed ? 'opacity-60' : ''}`}
+                  >
+                    <td className="px-2 py-3 font-medium">
+                      {s.name || '-'}
+                      {!s.onboarding_completed && (
+                        <span className="bg-warning/15 text-warning ml-1.5 rounded px-1.5 py-0.5 text-[10px]">
+                          미완료
+                        </span>
+                      )}
+                    </td>
                     <td className="text-text-secondary px-2 py-3 text-xs">{s.email}</td>
                     {editingId === s.id ? (
                       <>
@@ -193,9 +242,9 @@ export default function AdminStudents() {
                     ) : (
                       <>
                         <td className="text-text-secondary px-2 py-3">
-                          {TRACK_LABELS[s.track] || s.track}
+                          {TRACK_LABELS[s.track] || (s.track === 'tester' ? '테스터' : s.track) || '-'}
                         </td>
-                        <td className="text-text-secondary px-2 py-3">{s.cohort}기</td>
+                        <td className="text-text-secondary px-2 py-3">{s.cohort ? `${s.cohort}기` : '-'}</td>
                       </>
                     )}
                     <td className="px-2 py-3 text-right">{s.interviewCount}</td>
@@ -240,6 +289,13 @@ export default function AdminStudents() {
                             취소
                           </button>
                         </div>
+                      ) : !s.onboarding_completed ? (
+                        <button
+                          onClick={() => handleDeletePending(s.id, s.email)}
+                          className="text-danger cursor-pointer text-xs hover:underline"
+                        >
+                          삭제
+                        </button>
                       ) : (
                         <button
                           onClick={() => {

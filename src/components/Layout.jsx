@@ -45,20 +45,21 @@ export default function Layout({ children }) {
                 >
                   마이페이지
                 </Link>
-                <Link
-                  to="/resume-builder"
-                  className={`rounded-lg px-3 py-1.5 text-xs transition-all ${location.pathname === '/resume-builder' ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:text-text-primary'}`}
-                >
-                  이력서 빌더
-                </Link>
-
                 {['main_admin', 'sub_admin'].includes(profile.role) && (
-                  <Link
-                    to="/admin"
-                    className={`rounded-lg px-3 py-1.5 text-xs transition-all ${location.pathname.startsWith('/admin') ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:text-text-primary'}`}
-                  >
-                    어드민
-                  </Link>
+                  <>
+                    <Link
+                      to="/resume-builder"
+                      className={`rounded-lg px-3 py-1.5 text-xs transition-all ${location.pathname === '/resume-builder' ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:text-text-primary'}`}
+                    >
+                      이력서 빌더
+                    </Link>
+                    <Link
+                      to="/admin"
+                      className={`rounded-lg px-3 py-1.5 text-xs transition-all ${location.pathname.startsWith('/admin') ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:text-text-primary'}`}
+                    >
+                      어드민
+                    </Link>
+                  </>
                 )}
 
                 <div className="bg-border mx-1 h-4 w-px" />

@@ -380,7 +380,9 @@ export default function MyPage() {
                 <div className="space-y-2">
                   <label className="text-text-secondary text-sm">트랙</label>
                   <p className="bg-bg-elevated text-text-secondary rounded-xl px-4 py-3">
-                    {TRACK_LABELS[profile?.track] || profile?.track || '-'}
+                    {TRACK_LABELS[profile?.track] ||
+                      (profile?.track === 'tester' ? '테스터' : profile?.track) ||
+                      '-'}
                   </p>
                   <p className="text-text-secondary text-xs">
                     트랙/기수 변경은 관리자에게 문의해주세요.

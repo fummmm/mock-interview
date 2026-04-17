@@ -201,9 +201,9 @@ function App() {
         }
       />
 
-      {/* 이력서 빌더 */}
+      {/* 이력서 빌더 (개발 단계 — 어드민 전용) */}
       <Route path="/resume-builder" element={
-        <ProtectedRoute><OnboardingGuard><ResumeBuilderPage /></OnboardingGuard></ProtectedRoute>
+        <ProtectedRoute><OnboardingGuard><AdminRoute><ResumeBuilderPage /></AdminRoute></OnboardingGuard></ProtectedRoute>
       } />
 
       {/* 404 */}

@@ -123,7 +123,7 @@ export const useAuthStore = create((set, get) => ({
       .update({
         name,
         track,
-        cohort: parseInt(cohort),
+        cohort: cohort == null ? null : parseInt(cohort),
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
       })

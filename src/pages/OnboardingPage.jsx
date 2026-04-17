@@ -8,6 +8,7 @@ const TRACKS = [
   { id: 'pm', label: 'PM' },
   { id: 'design', label: '게임기획' },
   { id: 'spring', label: 'Spring' },
+  { id: 'tester', label: '테스터', hint: '수강생이 아닌 테스트 참여자' },
 ]
 
 export default function OnboardingPage() {
@@ -21,13 +22,19 @@ export default function OnboardingPage() {
 
   if (profile?.onboarding_completed) return <Navigate to="/" replace />
 
-  const canSave = name.trim().length >= 2 && track && cohort && parseInt(cohort) > 0
+  const isTester = track === 'tester'
+  const canSave =
+    name.trim().length >= 2 && track && (isTester || (cohort && parseInt(cohort) > 0))
 
   const handleSubmit = async () => {
     if (!canSave) return
     setSaving(true)
     setError('')
-    const ok = await completeOnboarding({ name: name.trim(), track, cohort })
+    const ok = await completeOnboarding({
+      name: name.trim(),
+      track,
+      cohort: isTester ? null : cohort,
+    })
     if (ok) {
       navigate('/')
     } else {
@@ -74,28 +81,37 @@ export default function OnboardingPage() {
                       : 'border-border bg-bg-card text-text-secondary hover:border-accent/50'
                   }`}
                 >
-                  {t.label}
+                  <div>{t.label}</div>
+                  {t.hint && (
+                    <div className="text-text-secondary/70 mt-0.5 text-[10px]">{t.hint}</div>
+                  )}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* 기수 */}
-          <div className="space-y-2">
-            <label className="text-text-secondary text-sm font-medium">기수</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={cohort}
-              onChange={(e) => {
-                const v = e.target.value.replace(/[^0-9]/g, '')
-                setCohort(v)
-              }}
-              placeholder="예: 6"
-              maxLength={3}
-              className="bg-bg-card border-border text-text-primary placeholder:text-text-secondary/50 focus:border-accent w-full [appearance:textfield] rounded-xl border px-4 py-3 focus:outline-none"
-            />
-          </div>
+          {/* 기수 (테스터는 입력 안 받음) */}
+          {isTester ? (
+            <div className="bg-bg-elevated/60 text-text-secondary rounded-xl px-4 py-3 text-xs">
+              테스터는 기수 입력이 필요하지 않습니다. 모든 트랙의 면접을 체험해볼 수 있어요.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <label className="text-text-secondary text-sm font-medium">기수</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={cohort}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^0-9]/g, '')
+                  setCohort(v)
+                }}
+                placeholder="예: 6"
+                maxLength={3}
+                className="bg-bg-card border-border text-text-primary placeholder:text-text-secondary/50 focus:border-accent w-full [appearance:textfield] rounded-xl border px-4 py-3 focus:outline-none"
+              />
+            </div>
+          )}
         </div>
 
         {error && <p className="text-danger text-sm">{error}</p>}
