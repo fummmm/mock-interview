@@ -2,55 +2,59 @@
  * STT (Speech-to-Text) 모듈
  *
  * 우선순위:
- * 1. VITE_GROQ_API_KEY → Groq Whisper large-v3-turbo (서버, 빠름, 정확)
- * 2. VITE_OPENAI_API_KEY → OpenAI Whisper API (서버, 정확)
- * 3. 둘 다 없으면 → 브라우저 내 Whisper base (레거시 폴백)
+ * 1. 프로덕션: /api/stt 프록시 경유 Groq Whisper large-v3-turbo (API 키 서버 보관)
+ * 2. DEV 모드 + VITE_GROQ_API_KEY: Groq 직접 호출 (로컬 개발 편의)
+ * 3. 둘 다 없으면: 브라우저 내 Whisper base (레거시 폴백)
  */
+import { supabase } from './supabase'
 
 const FILLER_WORDS = ['음', '어', '그', '아', '에', '음음', '어어']
 const SILENCE_THRESHOLD = 2.5
+const isDev = import.meta.env.DEV
 
 // ═══════════════════════════════════════════════════
-//  서버 STT (Groq / OpenAI — 동일한 Whisper API 포맷)
+//  서버 STT (프로덕션: 프록시 / DEV: Groq 직접)
 // ═══════════════════════════════════════════════════
 
-const STT_PROVIDERS = {
-  groq: {
-    url: 'https://api.groq.com/openai/v1/audio/transcriptions',
-    model: 'whisper-large-v3-turbo',
-    key: import.meta.env.VITE_GROQ_API_KEY,
-  },
-  openai: {
-    url: 'https://api.openai.com/v1/audio/transcriptions',
-    model: 'whisper-1',
-    key: import.meta.env.VITE_OPENAI_API_KEY,
-  },
-}
+const PROXY_URL = '/api/stt'
+const GROQ_DIRECT_URL = 'https://api.groq.com/openai/v1/audio/transcriptions'
+const GROQ_MODEL = 'whisper-large-v3-turbo'
 
-function getServerProvider() {
-  if (STT_PROVIDERS.groq.key) return { name: 'groq', ...STT_PROVIDERS.groq }
-  if (STT_PROVIDERS.openai.key) return { name: 'openai', ...STT_PROVIDERS.openai }
-  return null
-}
+// DEV 모드에서만 VITE_ 키로 직접 호출 허용 (프로덕션 번들엔 제거됨)
+const devGroqKey = isDev ? import.meta.env.VITE_GROQ_API_KEY : null
 
-const serverProvider = getServerProvider()
+// 서버 STT 경로 사용 여부: 프로덕션은 항상 true, DEV는 키 있으면 사용
+const serverSttEnabled = !isDev || !!devGroqKey
 
 async function _transcribeServer(blob) {
   const formData = new FormData()
   formData.append('file', blob, 'audio.webm')
-  formData.append('model', serverProvider.model)
+  formData.append('model', GROQ_MODEL)
   formData.append('language', 'ko')
   formData.append('response_format', 'verbose_json')
 
-  const res = await fetch(serverProvider.url, {
+  let url, headers
+  if (devGroqKey) {
+    url = GROQ_DIRECT_URL
+    headers = { Authorization: `Bearer ${devGroqKey}` }
+  } else {
+    // 프로덕션: Supabase access token으로 프록시 인증
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData?.session?.access_token
+    if (!accessToken) throw new Error('로그인이 필요합니다.')
+    url = PROXY_URL
+    headers = { Authorization: `Bearer ${accessToken}` }
+  }
+
+  const res = await fetch(url, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${serverProvider.key}` },
+    headers,
     body: formData,
   })
 
   if (!res.ok) {
-    const errText = await res.text()
-    throw new Error(`[${serverProvider.name}] STT 실패 (${res.status}): ${errText}`)
+    const errText = await res.text().catch(() => '')
+    throw new Error(`STT 실패 (${res.status})${errText ? ': ' + errText.slice(0, 200) : ''}`)
   }
 
   const data = await res.json()
@@ -63,8 +67,9 @@ async function _transcribeServer(blob) {
   }))
 
   const lastEnd = chunks.length > 0 ? chunks[chunks.length - 1].timestamp[1] : 0
+  const provider = devGroqKey ? 'groq-direct' : 'proxy'
   console.log(
-    `[STT 진단] ${serverProvider.name} | 오디오: ${(data.duration || 0).toFixed(1)}초 | 끝: ${lastEnd.toFixed(1)}초 | 텍스트: ${text.length}자`,
+    `[STT 진단] ${provider} | 오디오: ${(data.duration || 0).toFixed(1)}초 | 끝: ${lastEnd.toFixed(1)}초 | 텍스트: ${text.length}자`,
   )
 
   return {
@@ -250,7 +255,7 @@ function analyzeTranscript(text, chunks) {
  */
 export function transcribeAudio(blob) {
   // 서버 STT: 큐 불필요 (서버가 동시 처리)
-  if (serverProvider) {
+  if (serverSttEnabled) {
     return _transcribeServer(blob)
   }
 
@@ -270,8 +275,9 @@ export function transcribeAudio(blob) {
  * 서버 STT 사용 시 로딩 불필요 → 즉시 완료
  */
 export async function preloadModel(onProgress, onStatus) {
-  if (serverProvider) {
-    console.log(`[STT] 서버 모드: ${serverProvider.name} (${serverProvider.model})`)
+  if (serverSttEnabled) {
+    const mode = devGroqKey ? 'groq-direct' : 'proxy'
+    console.log(`[STT] 서버 모드: ${mode} (${GROQ_MODEL})`)
     isModelReady = true
     return
   }
@@ -331,5 +337,5 @@ export async function preloadModel(onProgress, onStatus) {
 }
 
 export function isModelLoaded() {
-  return serverProvider ? true : isModelReady
+  return serverSttEnabled ? true : isModelReady
 }
