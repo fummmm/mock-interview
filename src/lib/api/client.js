@@ -1,9 +1,10 @@
 /**
  * OpenRouter API 호출 헬퍼
- * 배포: /api/openrouter 서버 프록시 경유 (API 키 서버에만 보관)
- * 개발: VITE_OPENROUTER_API_KEY 있으면 직접 호출 (폴백)
+ * 프로덕션: /api/openrouter 서버 프록시 경유 (Supabase access token 인증)
+ * 개발(DEV): VITE_OPENROUTER_API_KEY 있으면 직접 호출 (로컬 편의)
  */
 import { getEvaluators } from '../../data/evaluators'
+import { supabase } from '../supabase'
 
 const isDev = import.meta.env.DEV
 const DIRECT_URL = 'https://openrouter.ai/api/v1/chat/completions'
@@ -22,18 +23,17 @@ export async function callOpenRouter({
   if (maxTokens) body.max_tokens = maxTokens
   if (temperature !== null) body.temperature = temperature
 
-  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY
   const timeout = AbortSignal.timeout ? AbortSignal.timeout(timeoutMs) : undefined
 
-  // VITE_ 키가 있으면 직접 호출 (개발/배포 모두)
-  // Vercel Serverless는 10초 타임아웃이라 LLM 호출에 부적합
-  if (apiKey) {
+  // 개발 환경: VITE_ 키로 직접 호출 (로컬 편의, 프로덕션에선 키가 없어야 함)
+  const devKey = isDev ? import.meta.env.VITE_OPENROUTER_API_KEY : null
+  if (devKey) {
     const res = await fetch(DIRECT_URL, {
       method: 'POST',
       signal: timeout,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${devKey}`,
         'HTTP-Referer': window.location.origin,
         'X-Title': 'AI Mock Interview',
       },
@@ -44,15 +44,25 @@ export async function callOpenRouter({
     return data.choices[0].message.content
   }
 
-  // 폴백: 서버 프록시
+  // 프로덕션: Supabase 인증 토큰을 실어 서버 프록시 호출
+  const { data: sessionData } = await supabase.auth.getSession()
+  const accessToken = sessionData?.session?.access_token
+  if (!accessToken) throw new Error('로그인이 필요합니다.')
+
   const res = await fetch(PROXY_URL, {
     method: 'POST',
     signal: timeout,
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
     body: JSON.stringify(body),
   })
 
-  if (!res.ok) throw new Error(`API proxy error (${res.status}): ${await res.text()}`)
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '')
+    throw new Error(`API proxy error (${res.status})${errText ? ': ' + errText.slice(0, 200) : ''}`)
+  }
   const data = await res.json()
   return data.choices[0].message.content
 }

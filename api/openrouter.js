@@ -1,16 +1,27 @@
 /**
  * Vercel Serverless Function - OpenRouter 통합 프록시
- * 모든 LLM 호출이 이 엔드포인트를 경유
- * API 키는 Vercel 환경변수에만 보관 (클라이언트 노출 없음)
+ * 인증된 사용자만 호출 가능. 모델 화이트리스트 + max_tokens 상한 적용.
  */
+import { verifyAuth, validateLLMRequest } from './_auth.js'
+
+// Vercel Pro(Team) 최대 5분 허용 — 긴 분석 호출 대응
+export const config = { maxDuration: 300 }
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  const user = await verifyAuth(req)
+  if (!user) return res.status(401).json({ error: 'Unauthorized' })
+
+  const validation = validateLLMRequest(req.body)
+  if (!validation.ok) return res.status(validation.status).json({ error: validation.error })
+
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
-    return res.status(500).json({ error: 'OPENROUTER_API_KEY not configured on server' })
+    console.error('OPENROUTER_API_KEY not configured')
+    return res.status(500).json({ error: 'Server configuration error' })
   }
 
   try {
@@ -23,13 +34,13 @@ export default async function handler(req, res) {
           req.headers.referer || req.headers.origin || 'https://mock-interview.vercel.app',
         'X-Title': 'AI Mock Interview',
       },
-      body: JSON.stringify(req.body),
+      body: JSON.stringify(validation.body),
     })
 
     const data = await response.json()
     res.status(response.status).json(data)
   } catch (error) {
     console.error('OpenRouter proxy error:', error)
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ error: 'Upstream request failed' })
   }
 }
