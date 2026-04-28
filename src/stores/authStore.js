@@ -47,8 +47,8 @@ export const useAuthStore = create((set, get) => ({
         })
         if (insertError) console.error('프로필 생성 실패:', insertError.message)
 
-        // 쿼타 생성 (모든 가입자 3회 - 일반/맞춤형/하드모드 각 1회 체험)
-        const initialQuota = 5
+        // 쿼타 생성 (관리자 부여 전까지 0)
+        const initialQuota = 0
         await supabase.from('interview_quotas').insert({
           user_id: user.id,
           total_quota: initialQuota,
@@ -79,7 +79,7 @@ export const useAuthStore = create((set, get) => ({
 
     // 프로필은 있는데 쿼타가 없으면 생성 (트리거에서 quotas insert만 실패한 케이스)
     if (!quota) {
-      const initialQuota = 5
+      const initialQuota = 0
       await supabase.from('interview_quotas').insert({
         user_id: user.id,
         total_quota: initialQuota,

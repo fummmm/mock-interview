@@ -1,4 +1,4 @@
--- 모든 가입자에게 초기 쿼타 5회 부여
+-- 가입 시 쿼타 0으로 생성 (관리자가 직접 부여)
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
@@ -10,7 +10,7 @@ begin
   );
 
   insert into public.interview_quotas (user_id, total_quota, used_count)
-  values (new.id, 5, 0);
+  values (new.id, 0, 0);
 
   return new;
 end;
